@@ -1,4 +1,4 @@
-### Back end de LaFavorita Restaurant
+### Back end de La Favorita
 
 Esta app se está construyendo con la finalidad de otorgarle a este restaurante la capacidad de gestionar gran parte de la estructura de este negocio. Desde la gestión de sus productos, los datos de sus usuarios, hasta la gestión de sus pedidos online, y un largo etc.
 

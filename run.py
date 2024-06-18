@@ -1,4 +1,4 @@
-from src.app import run_app
+from src import run_app
 from config import config
 
 app = run_app(config)

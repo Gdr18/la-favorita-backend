@@ -13,3 +13,4 @@ class DevelopmentConfig(Config):
 
 
 config = os.getenv("MODE")
+print(os.getenv("MODE"))

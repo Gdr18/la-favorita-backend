@@ -1,6 +1,5 @@
 from flask import Blueprint, request
 
-
 from ..utils.db import db, bcrypt
 
 coll_users = db.users

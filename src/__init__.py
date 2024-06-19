@@ -1,6 +1,6 @@
 from flask import Flask
-from .utils.db import bcrypt
 
+from .utils.db import bcrypt
 from .routes.users import user
 
 app = Flask(__name__)

@@ -13,3 +13,4 @@ def db_connection():
 
 db = db_connection()
 bcrypt = Bcrypt()
+

@@ -64,7 +64,7 @@ def manage_user(user_id):
 
     elif request.method == "DELETE":
         user_deleted = coll_users.delete_one({"_id": ObjectId(user_id)})
-        if user_deleted.deleted_count is 1:
+        if user_deleted.deleted_count == 1:
             return f"The user {user_id} was deleted"
         else:
             return f"The user {user_id} was not found"

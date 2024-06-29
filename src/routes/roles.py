@@ -10,18 +10,24 @@ coll_users = db.users
 role = Blueprint("role", __name__)
 
 
-# La siguiente función no está testeada ni los endpoints POST y PUT
+# Está testeada, falta mejorar el rendimiento.
 def checking_user(role_id):
-    role = coll_roles.find(role_id)
-    user = coll_users.find(role.email)
+    role = coll_roles.find({"_id": ObjectId(role_id)})
+    # json_role = json_util.dumps(role)
+    json_role = list(role)
+    user = coll_users.find({"email": json_role[0]["email"]})
+    # json_user = json_util.dumps(user)
     if user:
-        if user.role != role.type:
+        json_user = list(user)
+        if json_user[0].get("role") != json_role[0].get("type"):
+            # Modificar a find_and_update_one
             user_updated = coll_users.update_one(
-                {"email": user.email}, {"$set": {"role": role.type}}
+                {"email": json_user[0].get("email")},
+                {"$set": {"role": json_role[0].get("type")}},
             )
-            return f"the user {user_updated._id} was updated"
+            return f"the user was updated"
         else:
-            return f"the user {user._id} was not updated"
+            return f"the user was not updated"
     else:
         return f"the user was not found"
 
@@ -66,11 +72,12 @@ def manage_role(role_id):
         else:
             checking = checking_user(role_id)
             response = json_util.dumps(role_updated)
-            return f"The document of the role updated is {response} and {checking}" response
+            return f"The document of the role updated is {response} and {checking}"
 
     elif request.method == "DELETE":
         role_deleted = coll_roles.delete_one({"_id": ObjectId(role_id)})
-        if role_deleted.deleted_count is 1:
+        if role_deleted.deleted_count == 1:
+            checking = checking_user(role_id)
             return f"The role {role_id} was deleted"
         else:
             return f"The role {role_id} was not found"

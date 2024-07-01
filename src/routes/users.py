@@ -1,22 +1,14 @@
-from flask import Blueprint, request
-from bson import json_util, ObjectId
-from pymongo.collection import ReturnDocument
+from flask import Blueprint, request, jsonify
+from bson import json_util, ObjectId, BSON
+from pymongo import ReturnDocument, errors
 
 from ..utils.db import db, bcrypt
 
 coll_users = db.users
-coll_roles = db.roles
+# coll_roles = db.roles
 
 user = Blueprint("user", __name__)
 
-def checking_role(user_email):
-    role = coll_roles.find({"email": user_email})
-    if role:
-        return role.type
-    else:
-        return 3
-
-# Falta testear comportamiento función y endpoints POST y PUT
 @user.route("/user", methods=["POST"])
 def add_user():
     user_data = request.get_json()
@@ -24,11 +16,19 @@ def add_user():
         user_data["password"] = bcrypt.generate_password_hash(
             user_data["password"]
         ).decode("utf-8")
-        user_data["role"] = checking_role(user_data["email"])
-        new_user = coll_users.insert_one(user_data)
-        return f"The user {new_user.inserted_id} was added successfully"
+        # TODO: AUTH usario tipo 1
+        # if user_data.get("role") and not # usuario con rol tipo 1 :
+        # return "No tiene autorización para asignar un rol."
+        # else:
+        # user_data["role"] = 3
+        try:
+            new_user = coll_users.insert_one(user_data)
+            return f"El usuario {new_user.inserted_id} ha sido añadido satisfactoriamente."
+        except errors.DuplicateKeyError as e:
+            print(e)
+            return f"Error de clave duplicada: {e.details['errmsg']}"
     else:
-        raise TypeError("Some key is missing or invalid")
+        raise TypeError("Alguna clave se ha olvidado o es inválida")
 
 
 @user.route("/users", methods=["GET"])
@@ -43,28 +43,33 @@ def manage_user(user_id):
     if request.method == "GET":
         user = coll_users.find_one({"_id": ObjectId(user_id)})
         if user is None:
-            return f"The user {user_id} was not found"
+            return f"El usuario {user_id} no ha sido encontrado."
         else:
-            response = json_util.dumps(user)
-            return response
+            # TODO: comprobar que funciona lo siguiente.
+            response = BSON(user).as_dict()
+            # response = json_util.dumps(user)
+            return jsonify(response)
 
     elif request.method == "PUT":
         user_data = request.get_json()
-        user_data["role"] = checking_role(user_data["email"])
+        # if user_data.get("role") and not # usuario con rol tipo 1 :
+        # return "No tiene autorización para modificar el rol."
         user_updated = coll_users.find_one_and_update(
             {"_id": ObjectId(user_id)},
             {"$set": user_data},
             return_document=ReturnDocument.AFTER,
         )
         if user_updated is None:
-            return f"The user {user_id} was not found"
+            return f"El usuario {user_id} no ha sido encontrado."
         else:
-            response = json_util.dumps(user_updated)
-            return response
+            # TODO: comprobar que funciona lo siguiente.
+            response = BSON(user_updated).as_dict()
+            # response = json_util.dumps(user_updated)
+            return jsonify(response)
 
     elif request.method == "DELETE":
         user_deleted = coll_users.delete_one({"_id": ObjectId(user_id)})
-        if user_deleted.deleted_count == 1:
-            return f"The user {user_id} was deleted"
+        if user_deleted.deleted_count > 0:
+            return f"El usuario {user_id} ha sido eliminado"
         else:
-            return f"The user {user_id} was not found"
+            return f"El usuario {user_id} no ha sido encontrado"

@@ -20,7 +20,7 @@ def add_user():
     # return "No tiene autorización para asignar un rol."
     try:
         user_data["password"] = bcrypt.generate_password_hash(
-            user_data["password"]
+            user_data.get("password")
         ).decode("utf-8")
         user = User(**user_data).__dict__
         new_user = coll_users.insert_one(user)
@@ -39,28 +39,23 @@ def add_user():
             ),
             500,
         )
-    except (KeyError, TypeError) as e:
+    except TypeError as e:
         if str(e).startswith("User.__init__"):
             msg = str(e)[str(e).index(":") + 2 :].replace("and", "y")
             return (
                 jsonify(
                     {
-                        "err": f"Se ha olvidado: {msg}. Son requeridos: 'email', 'name' y 'password'."
+                        "err": f"Error: Se ha olvidado: {msg}. Son requeridos: 'email', 'name' y 'password'."
                     }
                 ),
                 500,
             )
         else:
-            return (
-                jsonify(
-                    {
-                        "err": f"Se ha olvidado: {str(e)}. Son requeridos: 'email', 'name' y 'password'."
-                    }
-                ),
-                500,
-            )
-    except:
-        return jsonify({"err": "Ha ocurrido un error inesperado."}), 500
+            return jsonify({"err": f"Error: {str(e)}"}), 500
+    except ValueError as e:
+        return jsonify({"err": f"Error: {str(e)}"}), 500
+    except Exception as e:
+        return jsonify({"err": f"Error: Ha ocurrido un error inesperado. {e}"}), 500
 
 
 @user.route("/users", methods=["GET"])
@@ -78,7 +73,7 @@ def manage_user(user_id):
             response = json_util.dumps(user)
             return response, 200
         else:
-            return jsonify({"msg": f"El usuario {user_id} no ha sido encontrado."}), 404
+            return jsonify({"err": f"El usuario {user_id} no ha sido encontrado."}), 404
 
     elif request.method == "PUT":
         user_data = coll_users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
@@ -97,7 +92,7 @@ def manage_user(user_id):
                 elif (
                     key == "email" or key == "role"
                 ):  # Falta añadir si el rol del que modifica es 1.
-                    return jsonify({"msg": f"{key} no se puede modificar"}), 500
+                    return jsonify({"err": f"{key} no se puede modificar"}), 500
                 else:
                     user_data[key] = value
             user_data = User(**user_data).__dict__
@@ -110,11 +105,11 @@ def manage_user(user_id):
             response = json_util.dumps(user_updated)
             return response
         else:
-            return jsonify({"msg": f"El usuario {user_id} no ha sido encontrado."}), 404
+            return jsonify({"err": f"El usuario {user_id} no ha sido encontrado."}), 404
 
     elif request.method == "DELETE":
         user_deleted = coll_users.delete_one({"_id": ObjectId(user_id)})
         if user_deleted.deleted_count > 0:
             return jsonify({"msg": f"El usuario {user_id} ha sido eliminado."}), 200
         else:
-            return jsonify({"msg": f"El usuario {user_id} no ha sido encontrado."}), 404
+            return jsonify({"err": f"El usuario {user_id} no ha sido encontrado."}), 404

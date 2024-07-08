@@ -26,16 +26,16 @@ class User:
         else:
             raise ValueError("'role' debe tener el valor 1, 2 o 3")
 
-        if type_checking(phone, str):
+        if phone and type_checking(phone, str):
             self.phone = phone
 
-        if type_checking(addresses, list):
+        if addresses and type_checking(addresses, list):
             self.addresses = addresses
 
-        if type_checking(basket, list):
+        if basket and type_checking(basket, list):
             self.basket = basket
 
-        if type_checking(orders, list):
+        if orders and type_checking(orders, list):
             self.orders = orders
 
 

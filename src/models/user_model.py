@@ -1,6 +1,6 @@
 from ..utils.db import type_checking
 
-class User:
+class UserModel:
     def __init__(
         self,
         name: str,

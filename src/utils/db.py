@@ -24,4 +24,4 @@ def type_checking(value, type):
         else:
             raise TypeError(f"'{value}' debe ser un {type}")
     else:
-        raise ValueError("ningún valor requerido puede ser nulo. 'name', 'email' y 'password' son valores requeridos")
+        raise ValueError("ningún valor requerido puede ser nulo o estar vacío")

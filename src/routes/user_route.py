@@ -3,7 +3,7 @@ from bson import json_util, ObjectId
 from pymongo import ReturnDocument, errors
 
 from ..utils.db import db, bcrypt
-from ..models.user_model import User
+from ..models.user_model import UserModel
 
 
 coll_users = db.users
@@ -25,7 +25,7 @@ def add_user():
             ).decode("utf-8")
         else:
             return jsonify({"err": "Error: Se ha olvidado 'password'. Son requeridos: 'email', 'name' y 'password'"}), 500
-        user = User(**user_data).__dict__
+        user = UserModel(**user_data).__dict__
         new_user = coll_users.insert_one(user)
         return (
             jsonify(
@@ -98,7 +98,7 @@ def manage_user(user_id):
                     return jsonify({"err": f"Error: {key} no se puede modificar"}), 500
                 else:
                     user_data[key] = value
-            user_data = User(**user_data).__dict__
+            user_data = UserModel(**user_data).__dict__
             # Para mejorar el rendimiento cuando se ponga a producción cambiar a update_one, o mirar si es realmente necesario.
             user_updated = coll_users.find_one_and_update(
                 {"_id": ObjectId(user_id)},
@@ -115,4 +115,4 @@ def manage_user(user_id):
         if user_deleted.deleted_count > 0:
             return jsonify({"msg": f"El usuario {user_id} ha sido eliminado de forma satisfactoria"}), 200
         else:
-            return jsonify({"err": f"El usuario {user_id} no ha sido encontrado"}), 404
+            return jsonify({"err": f"Error: El usuario {user_id} no ha sido encontrado"}), 404

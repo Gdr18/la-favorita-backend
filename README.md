@@ -1,10 +1,10 @@
 ### Back end de La Favorita Bar
 
-Esta app se está construyendo con la finalidad de otorgarle a este bar la capacidad de gestionar desde sus productos hasta sus pedidos online.
+### Back end de La Favorita Bar
 
-Se ha utilizado el lenguaje Python y su framework Flask para construir una API. El objetivo será poder comunicar los diferentes clientes con una base de datos MongoDB. Estos clientes podrán, mediante autorización por roles, realizar acciones de lectura y escritura en dicha base de datos.
+Este proyecto está diseñado para mejorar la gestión y operación de La Favorita Bar, permitiendo una administración eficiente de productos y la gestión de pedidos en línea. Utilizando Python y el framework Flask, hemos desarrollado una API robusta que facilita la comunicación entre los clientes y una base de datos MongoDB. Esta interacción permite a los usuarios autorizados, a través de un sistema de roles, ejecutar operaciones de lectura y escritura en la base de datos, optimizando así los procesos internos del bar y mejorando la experiencia del cliente.
 
-Para inicializar la app:
+Para poner en marcha la aplicación, ejecuta el siguiente comando en tu terminal:
 ```
 python run.py
 ```

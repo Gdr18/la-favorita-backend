@@ -80,8 +80,6 @@ def manage_user(user_id):
 
     elif request.method == "PUT":
         user_data = coll_users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
-        print(type(user_data))
-        print(user_data)
         if user_data:
             for key, value in request.get_json().items():
                 if key == "password":
@@ -100,12 +98,12 @@ def manage_user(user_id):
                     user_data[key] = value
             user_data = UserModel(**user_data).__dict__
             # Para mejorar el rendimiento cuando se ponga a producción cambiar a update_one, o mirar si es realmente necesario.
-            user_updated = coll_users.find_one_and_update(
+            updated_user = coll_users.find_one_and_update(
                 {"_id": ObjectId(user_id)},
                 {"$set": user_data},
                 return_document=ReturnDocument.AFTER,
             )
-            response = json_util.dumps(user_updated)
+            response = json_util.dumps(updated_user)
             return response
         else:
             return jsonify({"err": f"Error: El usuario {user_id} no ha sido encontrado"}), 404

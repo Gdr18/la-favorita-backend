@@ -11,11 +11,12 @@ class ProductModel:
         if type_checking(categories, list):
             if all(category in allowed_category for category in categories):
                 self.categories = categories
+            else:
+                raise ValueError(f"Las categorías no son válidas. Estas son las categorías válidas: {allowed_category}")
         if type_checking(allergens, list):
             if all(allergen in allowed_allergens for allergen in allergens):
                 self.allergens = allergens
             else:
-                raise ValueError("Los alérgenos no son válidos")
+                raise ValueError(f"Los alérgenos no son válidos. Estos son los alérgenos válidos: {allowed_allergens}")
         if type_checking(stock, int):
             self.stock = stock
-        

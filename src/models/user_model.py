@@ -1,3 +1,5 @@
+import re
+
 from ..utils.db import type_checking
 
 class UserModel:
@@ -15,7 +17,7 @@ class UserModel:
         if type_checking(name, str):
             self.name = name
 
-        if type_checking(email, str):
+        if self._validate_email and type_checking(email, str):
             self.email = email 
 
         if type_checking(password, str):
@@ -37,6 +39,13 @@ class UserModel:
 
         if orders and type_checking(orders, list):
             self.orders = orders
+
+    def _validate_email(self, email: str) -> bool:
+        pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+        if re.match(pattern, email):
+            return True
+        else:
+            raise ValueError("El email no es válido")
 
 
 
@@ -77,7 +86,7 @@ class UserModel:
 
 #     def _validate_email(self, email: str) -> bool:
 #         pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
-#         return re.match(pattern, email) is not None
+#         return re.match(pattern, email)
 
 #     def _validate_password(self, password: str) -> bool:
 #         # Implementar validación de contraseña según los criterios deseados

@@ -24,7 +24,14 @@ def add_user():
                 user_data.get("password")
             ).decode("utf-8")
         else:
-            return jsonify({"err": "Error: Se ha olvidado 'password'. Son requeridos: 'email', 'name' y 'password'"}), 500
+            return (
+                jsonify(
+                    {
+                        "err": "Error: Se ha olvidado 'password'. Son requeridos: 'email', 'name' y 'password'"
+                    }
+                ),
+                500,
+            )
         user = UserModel(**user_data).__dict__
         new_user = coll_users.insert_one(user)
         return (
@@ -43,7 +50,7 @@ def add_user():
             500,
         )
     except TypeError as e:
-        if str(e).startswith("User.__init__"):
+        if str(e).startswith("UserModel.__init__"):
             msg = str(e)[str(e).index(":") + 2 :].replace("and", "y")
             return (
                 jsonify(
@@ -58,7 +65,10 @@ def add_user():
     except ValueError as e:
         return jsonify({"err": f"Error: {str(e)}"}), 500
     except Exception as e:
-        return jsonify({"err": f"Error: Ha ocurrido un error inesperado. {e}"}), 500
+        return (
+            jsonify({"err": f"Error: Ha ocurrido un error inesperado. {str(e)}"}),
+            500,
+        )
 
 
 @user.route("/users", methods=["GET"])
@@ -76,18 +86,21 @@ def manage_user(user_id):
             response = json_util.dumps(user)
             return response, 200
         else:
-            return jsonify({"err": f"Error: El usuario {user_id} no ha sido encontrado"}), 404
+            return (
+                jsonify({"err": f"Error: El usuario {user_id} no ha sido encontrado"}),
+                404,
+            )
 
     elif request.method == "PUT":
-        user_data = coll_users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
-        if user_data:
+        user = coll_users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
+        if user:
             for key, value in request.get_json().items():
                 if key == "password":
                     # Confirmar cuando se realice el front que se necesita esta condicional.
                     if value != "" and not bcrypt.check_password_hash(
-                        user_data["password"], value
+                        user["password"], value
                     ):
-                        user_data["password"] = bcrypt.generate_password_hash(
+                        user["password"] = bcrypt.generate_password_hash(
                             value
                         ).decode("utf-8")
                 elif (
@@ -95,8 +108,8 @@ def manage_user(user_id):
                 ):  # Falta añadir si el rol del que modifica es 1.
                     return jsonify({"err": f"Error: {key} no se puede modificar"}), 500
                 else:
-                    user_data[key] = value
-            user_data = UserModel(**user_data).__dict__
+                    user[key] = value
+            user_data = UserModel(**user).__dict__
             # Para mejorar el rendimiento cuando se ponga a producción cambiar a update_one, o mirar si es realmente necesario.
             updated_user = coll_users.find_one_and_update(
                 {"_id": ObjectId(user_id)},
@@ -106,11 +119,24 @@ def manage_user(user_id):
             response = json_util.dumps(updated_user)
             return response
         else:
-            return jsonify({"err": f"Error: El usuario {user_id} no ha sido encontrado"}), 404
+            return (
+                jsonify({"err": f"Error: El usuario {user_id} no ha sido encontrado"}),
+                404,
+            )
 
     elif request.method == "DELETE":
-        user_deleted = coll_users.delete_one({"_id": ObjectId(user_id)})
-        if user_deleted.deleted_count > 0:
-            return jsonify({"msg": f"El usuario {user_id} ha sido eliminado de forma satisfactoria"}), 200
+        deleted_user = coll_users.delete_one({"_id": ObjectId(user_id)})
+        if deleted_user.deleted_count > 0:
+            return (
+                jsonify(
+                    {
+                        "msg": f"El usuario {user_id} ha sido eliminado de forma satisfactoria"
+                    }
+                ),
+                200,
+            )
         else:
-            return jsonify({"err": f"Error: El usuario {user_id} no ha sido encontrado"}), 404
+            return (
+                jsonify({"err": f"Error: El usuario {user_id} no ha sido encontrado"}),
+                404,
+            )

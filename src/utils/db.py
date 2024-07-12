@@ -17,10 +17,10 @@ db = db_connection()
 bcrypt = Bcrypt()
 
 
-def type_checking(value, type):
+def type_checking(value, type: str) -> bool:
     if value:
         if isinstance(value, type):
-            return value
+            return True
         else:
             raise TypeError(f"'{value}' debe ser un {type}")
     else:

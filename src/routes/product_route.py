@@ -10,10 +10,11 @@ coll_products = db.products
 product = Blueprint("product", __name__)
 
 
+# TODO: Falta comprobar como quedan los mensajes de error con type(e)
 @product.route("/product", methods=["POST"])
 def add_product():
-    product_data = request.get_json()
     try:
+        product_data = request.get_json()
         product = ProductModel(**product_data).__dict__
         new_product = coll_products.insert_one(product)
         return (
@@ -31,58 +32,69 @@ def add_product():
             ),
             500,
         )
+    # TODO: cambiar la captura de TypeError especificando mejor la condicional
     except TypeError as e:
-        if str(e).startswith("ProductModel.__init__"):
+        if "keyword" in str(e):
+            return jsonify({"err": f"{type(e)}: la clave utilizada no es correcta"}), 500
+        else:
             msg = str(e)[str(e).index(":") + 2 :].replace("and", "y")
             return (
                 jsonify(
                     {
-                        "err": f"Error: Se ha olvidado: {msg}. Son requeridos: 'name', 'categories' y 'stock'"
+                        "err": f"{type(e)}: Se ha olvidado: {msg}. Son requeridos: 'email', 'name' y 'password'"
                     }
                 ),
                 500,
-            )
-        else:
-            return jsonify({"err": f"Error: {str(e)}"}), 500
+            )   
     except ValueError as e:
-        return jsonify({"err": f"Error: {str(e)}"}), 500
+        return jsonify({"err": f"{type(e)}: {e}"}), 500
     except Exception as e:
         return (
-            jsonify({"err": f"Error: Ha ocurrido un error inesperado. {str(e)}"}),
+            jsonify({"err": f"{type(e)}: Ha ocurrido un error inesperado. {e}"}),
             500,
         )
 
 
 @product.route("/products", methods=["GET"])
 def get_products():
-    products = coll_products.find()
-    response = json_util.dumps(products)
-    return response, 200
+    try:
+        products = coll_products.find()
+        response = json_util.dumps(products)
+        return response, 200
+    except Exception as e:
+        return jsonify({"err": f"{type(e)}: Ha ocurrido un error inesperado. {e}"}), 500
 
 
 @product.route("/product/<product_id>", methods=["GET", "PUT", "DELETE"])
 def manage_product(product_id):
     if request.method == "GET":
-        product = coll_products.find_one({"_id": ObjectId(product_id)})
-        if product:
-            response = json_util.dumps(product)
-            return response, 200
-        else:
+        try:
+            product = coll_products.find_one({"_id": ObjectId(product_id)})
+            if product:
+                response = json_util.dumps(product)
+                return response, 200
+            else:
+                return (
+                    jsonify(
+                        {
+                            "err": f"Error: El producto {product_id} no ha sido encontrado"
+                        }
+                    ),
+                    404,
+                )
+        except Exception as e:
             return (
-                jsonify(
-                    {"err": f"Error: El producto {product_id} no ha sido encontrado"}
-                ),
-                404,
+                jsonify({"err": f"{type(e)}: Ha ocurrido un error inesperado. {e}"}),
+                500,
             )
 
     elif request.method == "PUT":
-        product = coll_products.find_one({"_id": ObjectId(product_id)}, {"_id": 0})
-        if product:
-            try:
+        try:
+            product = coll_products.find_one({"_id": ObjectId(product_id)}, {"_id": 0})
+            if product:
                 product.update(request.get_json())
                 product_data = ProductModel(**product).__dict__
-
-                # Cambiar la consulta por update_one para mejorar la consulta
+                # TODO: Cambiar la consulta por update_one para mejorar la consulta
                 updated_product = coll_products.find_one_and_update(
                     {"_id": ObjectId(product_id)},
                     {"$set": product_data},
@@ -90,35 +102,51 @@ def manage_product(product_id):
                 )
                 response = json_util.dumps(updated_product)
                 return response
-            except errors.DuplicateKeyError as e:
+            else:
                 return (
                     jsonify(
                         {
-                            "err": f"Error de clave duplicada en MongoDB: {e.details['keyValue']}"
+                            "err": f"Error: El producto {product_id} no ha sido encontrado"
                         }
                     ),
-                    500,
+                    404,
                 )
-            except Exception as e:
-                return jsonify({"err": f"Error: {str(e)}"}), 500
-        else:
+        except errors.DuplicateKeyError as e:
             return (
                 jsonify(
-                    {"err": f"Error: El producto {product_id} no ha sido encontrado"}
+                    {
+                        "err": f"Error de clave duplicada en MongoDB: {e.details['keyValue']}"
+                    }
                 ),
-                404,
+                500,
             )
+        # TODO: Añadir excepción de TypeError
+        except Exception as e:
+            return jsonify({"err": f"{type(e)}: {e}"}), 500
 
     elif request.method == "DELETE":
-        deleted_product = coll_products.delete_one(
-            {"_id": ObjectId(product_id)}
-        )
-        if deleted_product.deleted_count > 0:
-            return jsonify({"msg": f"El producto {product_id} ha sido eliminado de forma satisfactoria"}), 200
-        else:
+        try:
+            deleted_product = coll_products.delete_one({"_id": ObjectId(product_id)})
+            if deleted_product.deleted_count > 0:
+                return (
+                    jsonify(
+                        {
+                            "msg": f"El producto {product_id} ha sido eliminado de forma satisfactoria"
+                        }
+                    ),
+                    200,
+                )
+            else:
+                return (
+                    jsonify(
+                        {
+                            "err": f"Error: El producto {product_id} no ha sido encontrado"
+                        }
+                    ),
+                    404,
+                )
+        except Exception as e:
             return (
-                jsonify(
-                    {"err": f"Error: El producto {product_id} no ha sido encontrado"}
-                ),
-                404,
+                jsonify({"err": f"{type(e)}: Ha ocurrido un error inesperado. {e}"}),
+                500,
             )

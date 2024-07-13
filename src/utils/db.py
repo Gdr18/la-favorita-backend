@@ -13,8 +13,12 @@ def db_connection():
     return db
 
 
+# Instancias necesarias para la conexión a la base de datos y para el cifrado de contraseñas
+
 db = db_connection()
 bcrypt = Bcrypt()
+
+# Función para comprobar el tipo de dato necesario para escribir en la base de datos
 
 
 def type_checking(value, type: str) -> bool:

@@ -2,6 +2,7 @@ import re
 
 from ..utils.db import type_checking
 
+
 class UserModel:
     def __init__(
         self,
@@ -13,13 +14,14 @@ class UserModel:
         addresses: list = None,
         basket: list = None,
         orders: list = None,
-    ):  
+    ):
         if type_checking(name, str):
             self.name = name
 
         if self._validate_email and type_checking(email, str):
-            self.email = email 
+            self.email = email
 
+        # TODO: Implementar validación de contraseña según los criterios deseados
         if type_checking(password, str):
             self.password = password
 
@@ -48,6 +50,7 @@ class UserModel:
             raise ValueError("El email no es válido")
 
 
+# TODO: Eliminar lo siguiente cuando se implemente la validación de contraseña
 
 # from typing import List, Optional
 # import re

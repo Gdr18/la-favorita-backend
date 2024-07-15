@@ -86,5 +86,5 @@ class ProductModel:
             return True
         else:
             raise ValueError(
-                f"El valor '{value}' no es válido en ese campo. Los valores permitidos son: {allowed_values}"
+                f"el valor '{value}' no es válido en ese campo. Los valores permitidos son: {allowed_values}"
             )

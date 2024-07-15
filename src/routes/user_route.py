@@ -11,7 +11,6 @@ coll_users = db.users
 user = Blueprint("user", __name__)
 
 
-# TODO: Falta comprobar como quedan los mensajes de error con type(e)
 @user.route("/user", methods=["POST"])
 def add_user():
     try:
@@ -19,14 +18,10 @@ def add_user():
         # TODO: AUTH usario tipo 1
         # if user_data.get("role") and not # usuario con rol tipo 1 :
             # raise "No tiene autorización para asignar un rol."
-        # TODO: Comprobar si hace falta el raise y la condicional
-        if user_data.get("password"):
-            user_data["password"] = bcrypt.generate_password_hash(
-                user_data.get("password")
-            ).decode("utf-8")
-        else:
-            raise ValueError("El campo 'password' es requerido")
         user = UserModel(**user_data).__dict__
+        user["password"] = bcrypt.generate_password_hash(
+                user["password"]
+            ).decode("utf-8")
         new_user = coll_users.insert_one(user)
         return (
             jsonify(
@@ -43,20 +38,20 @@ def add_user():
             ),
             500,
         )
-    # TODO: cambiar la captura de TypeError especificando mejor la condicional
     except TypeError as e:
-        if "keyword" in str(e):
-            return jsonify({"err": f"{type(e)}: la clave utilizada no es correcta"}), 500
-        else:
-            msg = str(e)[str(e).index(":") + 2 :].replace("and", "y")
-            return (
-                jsonify(
-                    {
-                        "err": f"{type(e)}: Se ha olvidado: {msg}. Son requeridos: 'email', 'name' y 'password'"
-                    }
-                ),
-                500,
-            )   
+        if "unexpected keyword argument" in str(e):
+                key = str(e)[str(e).index("'") : str(e).index("'", str(e).index("'") + 1) + 1]
+                return jsonify({"err": f"{type(e)}: la clave {key} no es válida"}), 500
+        elif "required positional argument" in str(e):
+                msg = str(e)[str(e).index(":") + 2 :].replace("and", "y")
+                return (
+                    jsonify(
+                        {
+                            "err": f"{type(e)}: Se ha olvidado {msg}. Son requeridos: 'email', 'name' y 'password'"
+                        }
+                    ),
+                    500,
+                ) 
     except ValueError as e:
         return jsonify({"err": f"{type(e)}: {e}"}), 500
     except Exception as e:
@@ -139,7 +134,10 @@ def manage_user(user_id):
                 ),
                 500,
             )
-        # TODO: Añadir excepción de TypeError
+        except TypeError as e:
+            if "unexpected keyword argument" in str(e):
+                key = str(e)[str(e).index("'") : str(e).index("'", str(e).index("'") + 1) + 1]
+                return jsonify({"err": f"{type(e)}: la clave {key} no es válida"}), 500
         except Exception as e:
             return jsonify({"err": f"{type(e)}: {e}"}), 500
 

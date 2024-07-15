@@ -10,7 +10,6 @@ coll_products = db.products
 product = Blueprint("product", __name__)
 
 
-# TODO: Falta comprobar como quedan los mensajes de error con type(e)
 @product.route("/product", methods=["POST"])
 def add_product():
     try:
@@ -32,20 +31,20 @@ def add_product():
             ),
             500,
         )
-    # TODO: cambiar la captura de TypeError especificando mejor la condicional
     except TypeError as e:
-        if "keyword" in str(e):
-            return jsonify({"err": f"{type(e)}: la clave utilizada no es correcta"}), 500
-        else:
+        if "unexpected keyword argument" in str(e):
+            key = str(e)[str(e).index("'") : str(e).index("'", str(e).index("'") + 1) + 1]
+            return jsonify({"err": f"{type(e)}: la clave {key} no es válida"}), 500
+        elif "required positional argument" in str(e):
             msg = str(e)[str(e).index(":") + 2 :].replace("and", "y")
             return (
                 jsonify(
                     {
-                        "err": f"{type(e)}: Se ha olvidado: {msg}. Son requeridos: 'email', 'name' y 'password'"
+                        "err": f"{type(e)}: Se ha olvidado: {msg}. Son requeridos: 'name', 'categories' y 'stock'"
                     }
                 ),
                 500,
-            )   
+            ) 
     except ValueError as e:
         return jsonify({"err": f"{type(e)}: {e}"}), 500
     except Exception as e:
@@ -120,7 +119,10 @@ def manage_product(product_id):
                 ),
                 500,
             )
-        # TODO: Añadir excepción de TypeError
+        except TypeError as e:
+            if "unexpected keyword argument" in str(e):
+                key = str(e)[str(e).index("'") : str(e).index("'", str(e).index("'") + 1) + 1]
+                return jsonify({"err": f"{type(e)}: la clave {key} no es válida"}), 500
         except Exception as e:
             return jsonify({"err": f"{type(e)}: {e}"}), 500
 

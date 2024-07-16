@@ -2,7 +2,11 @@ from flask import Blueprint, request, jsonify
 from bson import json_util, ObjectId
 from pymongo import ReturnDocument, errors
 
-from ..utils.db import db
+from ..utils.db_utils import (
+    db,
+    unexpected_keyword_argument,
+    required_positional_argument,
+)
 from ..models.product_model import ProductModel
 
 coll_products = db.products
@@ -18,38 +22,29 @@ def add_product():
         new_product = coll_products.insert_one(product)
         return (
             jsonify(
-                {
-                    "msg": f"El producto {new_product.inserted_id} ha sido añadido de forma satisfactoria"
-                }
+                msg=f"El producto {new_product.inserted_id} ha sido añadido de forma satisfactoria"
             ),
             200,
         )
     except errors.DuplicateKeyError as e:
         return (
             jsonify(
-                {"err": f"Error de clave duplicada en MongoDB: {e.details['keyValue']}"}
+                err=f"Error de clave duplicada en MongoDB: {e.details['keyValue']}"
             ),
             500,
         )
     except TypeError as e:
         if "unexpected keyword argument" in str(e):
-            key = str(e)[str(e).index("'") : str(e).index("'", str(e).index("'") + 1) + 1]
-            return jsonify({"err": f"{type(e)}: la clave {key} no es válida"}), 500
+            return unexpected_keyword_argument(e)
         elif "required positional argument" in str(e):
-            msg = str(e)[str(e).index(":") + 2 :].replace("and", "y")
-            return (
-                jsonify(
-                    {
-                        "err": f"{type(e)}: Se ha olvidado: {msg}. Son requeridos: 'name', 'categories' y 'stock'"
-                    }
-                ),
-                500,
-            ) 
+            return required_positional_argument(e, "name", "categories", "stock")
+        else:
+            return jsonify({"err": f"{type(e)}: {e}"}), 500
     except ValueError as e:
         return jsonify({"err": f"{type(e)}: {e}"}), 500
     except Exception as e:
         return (
-            jsonify({"err": f"{type(e)}: Ha ocurrido un error inesperado. {e}"}),
+            jsonify(err=f"{type(e)}: Ha ocurrido un error inesperado. {e}"),
             500,
         )
 
@@ -61,7 +56,7 @@ def get_products():
         response = json_util.dumps(products)
         return response, 200
     except Exception as e:
-        return jsonify({"err": f"{type(e)}: Ha ocurrido un error inesperado. {e}"}), 500
+        return jsonify(err=f"{type(e)}: Ha ocurrido un error inesperado. {e}"), 500
 
 
 @product.route("/product/<product_id>", methods=["GET", "PUT", "DELETE"])
@@ -75,15 +70,13 @@ def manage_product(product_id):
             else:
                 return (
                     jsonify(
-                        {
-                            "err": f"Error: El producto {product_id} no ha sido encontrado"
-                        }
+                        err=f"Error: El producto {product_id} no ha sido encontrado"
                     ),
                     404,
                 )
         except Exception as e:
             return (
-                jsonify({"err": f"{type(e)}: Ha ocurrido un error inesperado. {e}"}),
+                jsonify(err=f"{type(e)}: Ha ocurrido un error inesperado. {e}"),
                 500,
             )
 
@@ -104,27 +97,24 @@ def manage_product(product_id):
             else:
                 return (
                     jsonify(
-                        {
-                            "err": f"Error: El producto {product_id} no ha sido encontrado"
-                        }
+                        err=f"Error: El producto {product_id} no ha sido encontrado"
                     ),
                     404,
                 )
         except errors.DuplicateKeyError as e:
             return (
                 jsonify(
-                    {
-                        "err": f"Error de clave duplicada en MongoDB: {e.details['keyValue']}"
-                    }
+                    err=f"Error de clave duplicada en MongoDB: {e.details['keyValue']}"
                 ),
                 500,
             )
         except TypeError as e:
             if "unexpected keyword argument" in str(e):
-                key = str(e)[str(e).index("'") : str(e).index("'", str(e).index("'") + 1) + 1]
-                return jsonify({"err": f"{type(e)}: la clave {key} no es válida"}), 500
+                return unexpected_keyword_argument(e)
+            else:
+                return jsonify(err=f"{type(e)}: {e}"), 500
         except Exception as e:
-            return jsonify({"err": f"{type(e)}: {e}"}), 500
+            return jsonify(err=f"{type(e)}: {e}"), 500
 
     elif request.method == "DELETE":
         try:
@@ -132,23 +122,19 @@ def manage_product(product_id):
             if deleted_product.deleted_count > 0:
                 return (
                     jsonify(
-                        {
-                            "msg": f"El producto {product_id} ha sido eliminado de forma satisfactoria"
-                        }
+                        msg=f"El producto {product_id} ha sido eliminado de forma satisfactoria"
                     ),
                     200,
                 )
             else:
                 return (
                     jsonify(
-                        {
-                            "err": f"Error: El producto {product_id} no ha sido encontrado"
-                        }
+                        err=f"Error: El producto {product_id} no ha sido encontrado"
                     ),
                     404,
                 )
         except Exception as e:
             return (
-                jsonify({"err": f"{type(e)}: Ha ocurrido un error inesperado. {e}"}),
+                jsonify(err=f"{type(e)}: Ha ocurrido un error inesperado. {e}"),
                 500,
             )

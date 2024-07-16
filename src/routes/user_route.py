@@ -2,7 +2,12 @@ from flask import Blueprint, request, jsonify
 from bson import json_util, ObjectId
 from pymongo import ReturnDocument, errors
 
-from ..utils.db import db, bcrypt
+from ..utils.db_utils import (
+    db,
+    bcrypt,
+    unexpected_keyword_argument,
+    required_positional_argument,
+)
 from ..models.user_model import UserModel
 
 
@@ -17,48 +22,36 @@ def add_user():
         user_data = request.get_json()
         # TODO: AUTH usario tipo 1
         # if user_data.get("role") and not # usuario con rol tipo 1 :
-            # raise "No tiene autorización para asignar un rol."
+        # raise "No tiene autorización para asignar un rol."
         user = UserModel(**user_data).__dict__
-        user["password"] = bcrypt.generate_password_hash(
-                user["password"]
-            ).decode("utf-8")
+        user["password"] = bcrypt.generate_password_hash(user["password"]).decode(
+            "utf-8"
+        )
         new_user = coll_users.insert_one(user)
         return (
             jsonify(
-                {
-                    "msg": f"El usuario {new_user.inserted_id} ha sido añadido de forma satisfactoria"
-                }
+                msg=f"El usuario {new_user.inserted_id} ha sido añadido de forma satisfactoria"
             ),
             200,
         )
     except errors.DuplicateKeyError as e:
         return (
             jsonify(
-                {"err": f"Error de clave duplicada en MongoDB: {e.details['keyValue']}"}
+                err=f"Error de clave duplicada en MongoDB: {e.details['keyValue']}"
             ),
             500,
         )
     except TypeError as e:
         if "unexpected keyword argument" in str(e):
-                key = str(e)[str(e).index("'") : str(e).index("'", str(e).index("'") + 1) + 1]
-                return jsonify({"err": f"{type(e)}: la clave {key} no es válida"}), 500
+            return unexpected_keyword_argument(e)
         elif "required positional argument" in str(e):
-                msg = str(e)[str(e).index(":") + 2 :].replace("and", "y")
-                return (
-                    jsonify(
-                        {
-                            "err": f"{type(e)}: Se ha olvidado {msg}. Son requeridos: 'email', 'name' y 'password'"
-                        }
-                    ),
-                    500,
-                ) 
+            return required_positional_argument(e, "name", "email", "password")
+        else:
+            return jsonify(err=f"{type(e)}: {e}"), 500
     except ValueError as e:
         return jsonify({"err": f"{type(e)}: {e}"}), 500
     except Exception as e:
-        return (
-            jsonify({"err": f"{type(e)}: Ha ocurrido un error inesperado: {e}"}),
-            500,
-        )
+        return jsonify(err=f"{type(e)}: Ha ocurrido un error inesperado: {e}"), 500
 
 
 @user.route("/users", methods=["GET"])
@@ -68,7 +61,7 @@ def get_users():
         response = json_util.dumps(users)
         return response, 200
     except Exception as e:
-        return jsonify({"err": f"{type(e)}: Ha ocurrido un error inesperado: {e}"}), 500
+        return jsonify(err=f"{type(e)}: Ha ocurrido un error inesperado: {e}"), 500
 
 
 @user.route("/user/<user_id>", methods=["GET", "PUT", "DELETE"])
@@ -81,14 +74,12 @@ def manage_user(user_id):
                 return response, 200
             else:
                 return (
-                    jsonify(
-                        {"err": f"Error: El usuario {user_id} no ha sido encontrado"}
-                    ),
+                    jsonify(err=f"Error: El usuario {user_id} no ha sido encontrado"),
                     404,
                 )
         except Exception as e:
             return (
-                jsonify({"err": f"{type(e)}: Ha ocurrido un error inesperado: {e}"}),
+                jsonify(err=f"{type(e)}: Ha ocurrido un error inesperado: {e}"),
                 500,
             )
 
@@ -102,13 +93,17 @@ def manage_user(user_id):
                         if value != "" and not bcrypt.check_password_hash(
                             user["password"], value
                         ):
-                            user["password"] = bcrypt.generate_password_hash(value).decode(
-                                "utf-8"
-                            )
+                        # TODO: No se hace la comprobación del tipo de dato de la contraseña desde el modelo
+                            user["password"] = bcrypt.generate_password_hash(
+                                value
+                            ).decode("utf-8")
                     elif (
                         key == "email" or key == "role"
                     ):  # TODO: Falta añadir si el rol del que modifica es 1
-                        return jsonify({"err": f"Error: {key} no se puede modificar"}), 500
+                        return (
+                            jsonify(err=f"Error: {key} no se puede modificar"),
+                            500,
+                        )
                     else:
                         user[key] = value
                 user_data = UserModel(**user).__dict__
@@ -122,24 +117,23 @@ def manage_user(user_id):
                 return response
             else:
                 return (
-                    jsonify({"err": f"Error: El usuario {user_id} no ha sido encontrado"}),
+                    jsonify(err=f"Error: El usuario {user_id} no ha sido encontrado"),
                     404,
                 )
         except errors.DuplicateKeyError as e:
             return (
                 jsonify(
-                    {
-                        "err": f"Error de clave duplicada en MongoDB: {e.details['keyValue']}"
-                    }
+                    err=f"Error de clave duplicada en MongoDB: {e.details['keyValue']}"
                 ),
                 500,
             )
         except TypeError as e:
             if "unexpected keyword argument" in str(e):
-                key = str(e)[str(e).index("'") : str(e).index("'", str(e).index("'") + 1) + 1]
-                return jsonify({"err": f"{type(e)}: la clave {key} no es válida"}), 500
+                return unexpected_keyword_argument(e)
+            else:
+                return jsonify(err=f"{type(e)}: {e}"), 500
         except Exception as e:
-            return jsonify({"err": f"{type(e)}: {e}"}), 500
+            return jsonify(err=f"{type(e)}: {e}"), 500
 
     elif request.method == "DELETE":
         try:
@@ -147,16 +141,14 @@ def manage_user(user_id):
             if deleted_user.deleted_count > 0:
                 return (
                     jsonify(
-                        {
-                            "msg": f"El usuario {user_id} ha sido eliminado de forma satisfactoria"
-                        }
+                        msg=f"El usuario {user_id} ha sido eliminado de forma satisfactoria"
                     ),
                     200,
                 )
             else:
                 return (
-                    jsonify({"err": f"Error: El usuario {user_id} no ha sido encontrado"}),
+                    jsonify(err=f"Error: El usuario {user_id} no ha sido encontrado"),
                     404,
                 )
         except Exception as e:
-            return jsonify({"err": f"{type(e)}: {e}"}), 500
+            return jsonify(err=f"{type(e)}: {e}"), 500

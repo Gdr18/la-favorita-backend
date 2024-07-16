@@ -1,6 +1,6 @@
 import re
 
-from ..utils.db import type_checking
+from ..utils.db_utils import type_checking
 
 
 class UserModel:

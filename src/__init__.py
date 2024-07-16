@@ -1,6 +1,6 @@
 from flask import Flask
 
-from .utils.db import bcrypt
+from .utils.db_utils import bcrypt
 from .routes.user_route import user
 from .routes.product_route import product
 

@@ -18,18 +18,16 @@ class UserModel:
         if type_checking(name, str):
             self.name = name
 
-        if self._validate_email and type_checking(email, str):
+        if type_checking(email, str) and self._validate_email(email):
             self.email = email
 
-        # TODO: Implementar validación de contraseña según los criterios deseados
+        # TODO: Incluir la función de validación de contraseña
         if type_checking(password, str):
             self.password = password
 
-        if type_checking(role, int) and role in [1, 2, 3]:
+        if type_checking(role, int) and self._validate_role(role):
             self.role = role
-        else:
-            raise ValueError("'role' debe tener el valor 1, 2 o 3")
-
+    
         if phone and type_checking(phone, str):
             self.phone = phone
 
@@ -48,3 +46,18 @@ class UserModel:
             return True
         else:
             raise ValueError("El email no es válido")
+        
+    def _validate_role(self, role: int) -> bool:
+        if role in (1, 2, 3):
+            return True
+        else:
+            raise ValueError("'role' debe tener el valor 1, 2 o 3")
+        
+    def _validate_password(self, password: str) -> bool:
+        if len(password) >= 8 and re.search(r"[A-Z]", password) and re.search(r"[a-z]", password) and re.search(r"[0-9]", password) and re.search(r"[!@#$%^&*]", password):
+            return True
+        else:
+            raise ValueError("La contraseña debe tener al menos 8 caracteres")
+        
+    def __str__(self):
+        return f"UserModel({self.__dict__})"

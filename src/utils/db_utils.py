@@ -35,7 +35,7 @@ def unexpected_keyword_argument(error: TypeError) -> Response:
     key = str(error)[
         str(error).index("'") : str(error).index("'", str(error).index("'") + 1) + 1
     ]
-    return jsonify(err = f"{type(error)}: la clave {key} no es válida"), 500
+    return jsonify(err=f"Error: la clave {key} no es válida"), 400
 
 
 # Función para manejar errores de claves requeridas
@@ -43,6 +43,6 @@ def required_positional_argument(error: TypeError, *args: str) -> Response:
     msg = str(error)[str(error).index(":") + 2 :].replace("and", "y")
     str_args = ", ".join("'" + arg + "'" for arg in args)
     return (
-        jsonify(err = f"{type(error)}: Se ha olvidado {msg}. Son requeridos: {str_args}"),
-        500,
+        jsonify(err=f"Error: Se ha olvidado {msg}. Son requeridos: {str_args}"),
+        400,
     )

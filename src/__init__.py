@@ -5,6 +5,7 @@ from .utils.db_utils import bcrypt
 
 from .routes.user_route import user
 from .routes.product_route import product
+from .routes.login_route import login
 
 app = Flask(__name__)
 
@@ -19,4 +20,6 @@ def run_app(config):
 
     app.register_blueprint(user)
     app.register_blueprint(product)
+    app.register_blueprint(login)
+
     return app

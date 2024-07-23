@@ -8,7 +8,7 @@ database = os.getenv("MONGO_DB_URI")
 
 class Config:
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-    JWT_ACCESS_TOKEN_EXPIRES = 3600
+    JWT_ACCESS_TOKEN_EXPIRES = 600
 
 
 class DevelopmentConfig(Config):

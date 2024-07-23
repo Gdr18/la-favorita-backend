@@ -31,7 +31,7 @@ def add_product():
             jsonify(
                 err=f"Error de clave duplicada en MongoDB: {e.details['keyValue']}"
             ),
-            500,
+            409,
         )
     except TypeError as e:
         if "unexpected keyword argument" in str(e):
@@ -39,12 +39,12 @@ def add_product():
         elif "required positional argument" in str(e):
             return required_positional_argument(e, "name", "categories", "stock")
         else:
-            return jsonify({"err": f"{type(e)}: {e}"}), 500
+            return jsonify({"err": f"Error: {e}"}), 400
     except ValueError as e:
-        return jsonify({"err": f"{type(e)}: {e}"}), 500
+        return jsonify({"err": f"Error: {e}"}), 400
     except Exception as e:
         return (
-            jsonify(err=f"{type(e)}: Ha ocurrido un error inesperado. {e}"),
+            jsonify(err=f"Error: Ha ocurrido un error inesperado. {e}"),
             500,
         )
 
@@ -56,7 +56,7 @@ def get_products():
         response = json_util.dumps(products)
         return response, 200
     except Exception as e:
-        return jsonify(err=f"{type(e)}: Ha ocurrido un error inesperado. {e}"), 500
+        return jsonify(err=f"Error: Ha ocurrido un error inesperado. {e}"), 500
 
 
 @product.route("/product/<product_id>", methods=["GET", "PUT", "DELETE"])
@@ -76,7 +76,7 @@ def manage_product(product_id):
                 )
         except Exception as e:
             return (
-                jsonify(err=f"{type(e)}: Ha ocurrido un error inesperado. {e}"),
+                jsonify(err=f"Error: Ha ocurrido un error inesperado. {e}"),
                 500,
             )
 
@@ -106,15 +106,15 @@ def manage_product(product_id):
                 jsonify(
                     err=f"Error de clave duplicada en MongoDB: {e.details['keyValue']}"
                 ),
-                500,
+                409,
             )
         except TypeError as e:
             if "unexpected keyword argument" in str(e):
                 return unexpected_keyword_argument(e)
             else:
-                return jsonify(err=f"{type(e)}: {e}"), 500
+                return jsonify(err=f"Error: {e}"), 400
         except Exception as e:
-            return jsonify(err=f"{type(e)}: {e}"), 500
+            return jsonify(err=f"Error: {e}"), 500
 
     elif request.method == "DELETE":
         try:
@@ -135,6 +135,6 @@ def manage_product(product_id):
                 )
         except Exception as e:
             return (
-                jsonify(err=f"{type(e)}: Ha ocurrido un error inesperado. {e}"),
+                jsonify(err=f"Error: Ha ocurrido un error inesperado. {e}"),
                 500,
             )

@@ -20,7 +20,7 @@ def login_user():
             if bcrypt.check_password_hash(user_request["password"], data["password"]):
                 # TODO: No acepta el id de MongoDB como un string
                 access_token = create_access_token(
-                    identity={"id": user_request["_id"], "role": user_request["role"]}
+                    identity={"id": str(user_request["_id"]), "role": user_request["role"]}
                 )
                 return jsonify(access_token=access_token), 200
             else:

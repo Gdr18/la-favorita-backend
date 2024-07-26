@@ -1,6 +1,6 @@
 import re
 
-from ..utils.db_utils import type_checking
+from ..utils.db_utils import type_checking, bcrypt
 
 
 class UserModel:
@@ -22,7 +22,7 @@ class UserModel:
             self.email = email
 
         # TODO: Incluir la función de validación de contraseña
-        if type_checking(password, str):
+        if type_checking(password, str) and self._validate_password(password):
             self.password = password
 
         if type_checking(role, int) and self._validate_role(role):
@@ -59,9 +59,13 @@ class UserModel:
             and re.search(r"[A-Z]", password)
             and re.search(r"[a-z]", password)
             and re.search(r"[0-9]", password)
-            and re.search(r"[!@#$%^&*]", password)
+            and re.search(r"[!@#$%^&*_-]", password)
         ):
             return True
         else:
-            raise ValueError("La contraseña debe tener al menos 8 caracteres")
+            raise ValueError("La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial")
+        
+    def hashing_password(self):
+        self.password = bcrypt.generate_password_hash(self.password).decode("utf-8")
+        return self.password
 

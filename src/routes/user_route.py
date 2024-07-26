@@ -24,9 +24,10 @@ def add_user():
         # if user_data.get("role") and not # usuario con rol tipo 1 :
         # raise "No tiene autorización para asignar un rol."
         user = UserModel(**user_data).__dict__
-        user["password"] = bcrypt.generate_password_hash(user["password"]).decode(
-            "utf-8"
-        )
+        # user["password"] = bcrypt.generate_password_hash(user["password"]).decode(
+        #     "utf-8"
+        # )
+        user.hashing_password()
         new_user = coll_users.insert_one(user)
         return (
             jsonify(

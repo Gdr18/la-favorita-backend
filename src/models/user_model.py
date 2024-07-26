@@ -22,7 +22,7 @@ class UserModel:
             self.email = email
 
         # TODO: Incluir la función de validación de contraseña
-        if type_checking(password, str) and self._validate_password(password):
+        if type_checking(password, str):
             self.password = password
 
         if type_checking(role, int) and self._validate_role(role):
@@ -53,19 +53,19 @@ class UserModel:
         else:
             raise ValueError("'role' debe tener el valor 1, 2 o 3")
 
-    def _validate_password(self, password: str) -> bool:
+    def _validate_password(self) -> bool:
         if (
-            len(password) >= 8
-            and re.search(r"[A-Z]", password)
-            and re.search(r"[a-z]", password)
-            and re.search(r"[0-9]", password)
-            and re.search(r"[!@#$%^&*_-]", password)
+            len(self.password) >= 8
+            and re.search(r"[A-Z]", self.password)
+            and re.search(r"[a-z]", self.password)
+            and re.search(r"[0-9]", self.password)
+            and re.search(r"[!@#$%^&*_-]", self.password)
         ):
             return True
         else:
             raise ValueError("La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial")
         
-    def hashing_password(self):
+    def _hashing_password(self):
         self.password = bcrypt.generate_password_hash(self.password).decode("utf-8")
         return self.password
 

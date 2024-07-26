@@ -23,12 +23,10 @@ def add_user():
         # TODO: AUTH usario tipo 1
         # if user_data.get("role") and not # usuario con rol tipo 1 :
         # raise "No tiene autorización para asignar un rol."
-        user = UserModel(**user_data).__dict__
-        # user["password"] = bcrypt.generate_password_hash(user["password"]).decode(
-        #     "utf-8"
-        # )
-        user.hashing_password()
-        new_user = coll_users.insert_one(user)
+        user = UserModel(**user_data)
+        user._validate_password()
+        user.password = user._hashing_password()
+        new_user = coll_users.insert_one(user.__dict__)
         return (
             jsonify(
                 msg=f"El usuario {new_user.inserted_id} ha sido añadido de forma satisfactoria"
@@ -88,30 +86,24 @@ def manage_user(user_id):
         try:
             user = coll_users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
             if user:
-                for key, value in request.get_json().items():
-                    if key == "password":
-                        # TODO: Confirmar cuando se realice el front que se necesita esta condicional
-                        if value != "" and not bcrypt.check_password_hash(
-                            user["password"], value
-                        ):
-                        # TODO: No se hace la comprobación del tipo de dato de la contraseña desde el modelo
-                            user["password"] = bcrypt.generate_password_hash(
-                                value
-                            ).decode("utf-8")
-                    elif (
-                        key == "email" or key == "role"
-                    ):  # TODO: Falta añadir si el rol del que modifica es 1
-                        return (
-                            jsonify(err=f"Error: {key} no se puede modificar"),
-                            500,
-                        )
-                    else:
-                        user[key] = value
-                user_data = UserModel(**user).__dict__
+                data = request.get_json()
+                data.update(user)
+                print(data, "antes de la instancia")
+                user_data = UserModel(**data)
+                print(user_data.__dict__, "despues de la instancia")
+                
+                if not bcrypt.check_password_hash(
+                    user["password"], user_data.password
+                ) or data["password"] != user["password"]:
+                    # TODO: No se está validando la contraseña
+                    user_data._validate_password()
+                    user_data._hashing_password()
+                    print(user_data.password, "despues de la encriptación")
+
                 # TODO: Para mejorar el rendimiento cuando se ponga a producción cambiar a update_one, o mirar si es realmente necesario
                 updated_user = coll_users.find_one_and_update(
                     {"_id": ObjectId(user_id)},
-                    {"$set": user_data},
+                    {"$set": user_data.__dict__},
                     return_document=ReturnDocument.AFTER,
                 )
                 response = json_util.dumps(updated_user)

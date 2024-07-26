@@ -1,7 +1,6 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt, jwt_required
 
-from bson import ObjectId
 
 from ..utils.db_utils import db, bcrypt
 

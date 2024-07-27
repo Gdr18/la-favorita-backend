@@ -25,7 +25,7 @@ def add_user():
         # raise "No tiene autorización para asignar un rol."
         user = UserModel(**user_data)
         user._validate_password()
-        user.password = user._hashing_password()
+        user._hashing_password()
         new_user = coll_users.insert_one(user.__dict__)
         return (
             jsonify(
@@ -87,18 +87,16 @@ def manage_user(user_id):
             user = coll_users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
             if user:
                 data = request.get_json()
-                data.update(user)
-                print(data, "antes de la instancia")
-                user_data = UserModel(**data)
-                print(user_data.__dict__, "despues de la instancia")
-                
-                if not bcrypt.check_password_hash(
+                # TODO: Mirar cómo se podría cambiar el email también?
+                # TODO: AUTH usuario tipo 1: if (data.get("role") or data.get("email")) and not # usuario con rol tipo 1: raise "No tiene autorización para asignar un rol o cambiar el email."
+                mixed_data = {**user, **data}
+                user_data = UserModel(**mixed_data)
+
+                if user["password"] != user_data.password and not bcrypt.check_password_hash(
                     user["password"], user_data.password
-                ) or data["password"] != user["password"]:
-                    # TODO: No se está validando la contraseña
+                ):
                     user_data._validate_password()
                     user_data._hashing_password()
-                    print(user_data.password, "despues de la encriptación")
 
                 # TODO: Para mejorar el rendimiento cuando se ponga a producción cambiar a update_one, o mirar si es realmente necesario
                 updated_user = coll_users.find_one_and_update(

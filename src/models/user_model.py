@@ -15,29 +15,29 @@ class UserModel:
         basket: list = None,
         orders: list = None,
     ):
-        if type_checking(name, str):
+        if type_checking(name, str, True):
             self.name = name
 
-        if type_checking(email, str) and self._validate_email(email):
+        if type_checking(email, str, True) and self._validate_email(email):
             self.email = email
 
         # TODO: Incluir la función de validación de contraseña
-        if type_checking(password, str):
+        if type_checking(password, str, True):
             self.password = password
 
-        if type_checking(role, int) and self._validate_role(role):
+        if type_checking(role, int, True) and self._validate_role(role):
             self.role = role
 
-        if phone and type_checking(phone, str):
+        if type_checking(phone, str):
             self.phone = phone
 
-        if addresses and type_checking(addresses, list):
+        if type_checking(addresses, list):
             self.addresses = addresses
 
-        if basket and type_checking(basket, list):
+        if type_checking(basket, list):
             self.basket = basket
 
-        if orders and type_checking(orders, list):
+        if type_checking(orders, list):
             self.orders = orders
 
     def _validate_email(self, email: str) -> bool:
@@ -65,6 +65,7 @@ class UserModel:
         else:
             raise ValueError("La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial")
         
+    # TODO: Comprobar si se puede mejorar
     def _hashing_password(self):
         self.password = bcrypt.generate_password_hash(self.password).decode("utf-8")
         return self.password

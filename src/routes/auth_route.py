@@ -4,12 +4,12 @@ from flask_jwt_extended import create_access_token, get_jwt, jwt_required
 
 from ..utils.db_utils import db, bcrypt
 
-login = Blueprint("login", __name__)
+auth = Blueprint("auth", __name__)
 
 coll_users = db.users
 
 
-@login.route("/login", methods=["POST"])
+@auth.route("/login", methods=["POST"])
 def login_user():
     data = request.get_json()
     try:
@@ -17,7 +17,6 @@ def login_user():
         # TODO: Refactorizar
         if user_request:
             if bcrypt.check_password_hash(user_request["password"], data["password"]):
-                # TODO: No acepta el id de MongoDB como un string
                 access_token = create_access_token(
                     identity={"id": str(user_request["_id"]), "role": user_request["role"]}
                 )
@@ -30,7 +29,7 @@ def login_user():
         return jsonify(err=f"Error: {e}"), 500
 
 
-@login.route("/logout", methods=["DELETE"])
+@auth.route("/logout", methods=["DELETE"])
 @jwt_required()
 def logout():
     pass

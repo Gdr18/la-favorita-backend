@@ -20,14 +20,18 @@ bcrypt = Bcrypt()
 
 
 # Función para comprobar el tipo de dato necesario para escribir en la base de datos
-def type_checking(value, data_type) -> bool:
-    if value:
+def type_checking(value, data_type, required: bool = False) -> bool:
+    if value == "" or value == [] or value == {}:
+        raise ValueError("ningún valor puede estar vacío")
+    elif required and value == None:
+        raise ValueError("ningún valor requerido puede ser nulo")
+    elif not required and value is None:
+        return True
+    else:
         if isinstance(value, data_type):
             return True
         else:
             raise TypeError(f"'{value}' debe ser un {data_type}")
-    else:
-        raise ValueError("ningún valor requerido puede ser nulo o estar vacío")
 
 
 # Función para manejar errores de claves no esperadas

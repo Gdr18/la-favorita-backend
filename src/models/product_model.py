@@ -1,6 +1,6 @@
 from ..utils.db_utils import type_checking
 
-allowed_allergens = [
+allowed_allergens = (
     "cereal",
     "huevo",
     "crustáceo",
@@ -15,8 +15,8 @@ allowed_allergens = [
     "sulfito",
     "altramuz",
     "molusco",
-]
-allowed_category = [
+)
+allowed_category = (
     "snack",
     "dulce",
     "fruta",
@@ -43,7 +43,7 @@ allowed_category = [
     "bebida isotónica",
     "limpieza",
     "otro",
-]
+)
 
 
 class ProductModel:
@@ -57,28 +57,26 @@ class ProductModel:
         notes: str = None,
     ):
 
-        if type_checking(name, str):
+        if type_checking(name, str, True):
             self.name = name
 
-        if type_checking(categories, list) and self._checking_in_list(
+        if type_checking(categories, list, True) and self._checking_in_list(
             categories, allowed_category
         ):
             self.categories = categories
 
-        if type_checking(stock, int):
+        if type_checking(stock, int, True):
             self.stock = stock
 
-        if brand and type_checking(brand, str):
+        if type_checking(brand, str):
             self.brand = brand
 
-        if (
-            allergens
-            and type_checking(allergens, list)
-            and self._checking_in_list(allergens, allowed_allergens)
+        if type_checking(allergens, list) and self._checking_in_list(
+            allergens, allowed_allergens
         ):
             self.allergens = allergens
 
-        if notes and type_checking(notes, str):
+        if type_checking(notes, str):
             self.notes = notes
 
     def _checking_in_list(self, value: list, allowed_values: list) -> bool:

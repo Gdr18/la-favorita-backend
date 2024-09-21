@@ -1,17 +1,20 @@
+from typing import Tuple
+
 from pymongo import MongoClient
+from pymongo.database import Database
 from flask_bcrypt import Bcrypt
 from flask import jsonify, Response
 
-from config import database
+from config import database_uri
 
 
-def db_connection():
+def db_connection() -> Database:
     try:
-        client = MongoClient(database)
-        db = client["test_la_favorita"]
+        client = MongoClient(database_uri)
+        database = client["test_la_favorita"]
+        return database
     except ConnectionError:
         print("No se pudo conectar a la base de datos")
-    return db
 
 
 # Instancias necesarias para la conexión a la base de datos y para el cifrado de contraseñas
@@ -21,32 +24,31 @@ bcrypt = Bcrypt()
 
 # Función para comprobar el tipo de dato necesario para escribir en la base de datos
 def type_checking(value, data_type, required: bool = False) -> bool:
-    if value == "" or value == [] or value == {}:
-        raise ValueError("ningún valor puede estar vacío")
-    elif required and value == None:
-        raise ValueError("ningún valor requerido puede ser nulo")
-    elif not required and value is None:
+    if (value == "" or value == [] or value == {} or value is None) and required is True:
+        raise ValueError("ningún valor requerido puede estar vacío o ser nulo")
+    if not required and value is None:
+        return True
+    if isinstance(value, data_type):
         return True
     else:
-        if isinstance(value, data_type):
-            return True
-        else:
-            raise TypeError(f"'{value}' debe ser un {data_type}")
+        raise TypeError(f"'{value}' debe ser un {data_type}")
 
 
 # Función para manejar errores de claves no esperadas
-def unexpected_keyword_argument(error: TypeError) -> Response:
+def unexpected_keyword_argument(error: TypeError) -> tuple[Response, int]:
     key = str(error)[
         str(error).index("'") : str(error).index("'", str(error).index("'") + 1) + 1
     ]
-    return jsonify(err=f"Error: la clave {key} no es válida"), 400
+    response = jsonify(err=f"Error: la clave {key} no es válida")
+    print(response, 400)
+    return response, 400
 
 
 # Función para manejar errores de claves requeridas
-def required_positional_argument(error: TypeError, *args: str) -> Response:
+def required_positional_argument(error: TypeError, *args: str) -> tuple[Response, int]:
     msg = str(error)[str(error).index(":") + 2 :].replace("and", "y")
     str_args = ", ".join("'" + arg + "'" for arg in args)
-    return (
-        jsonify(err=f"Error: Se ha olvidado {msg}. Son requeridos: {str_args}"),
-        400,
-    )
+    response = jsonify(err=f"Error: Se ha olvidado {msg}. Son requeridos: {str_args}")
+    print(response, 400)
+    return response, 400
+

@@ -3,7 +3,7 @@ import os
 
 load_dotenv(".env")
 
-database = os.getenv("MONGO_DB_URI")
+database_uri = os.getenv("MONGO_DB_URI")
 
 
 class Config:

@@ -1,7 +1,6 @@
-from typing import Tuple
-
 from pymongo import MongoClient
 from pymongo.database import Database
+from pymongo.errors import ConnectionFailure
 from flask_bcrypt import Bcrypt
 from flask import jsonify, Response
 
@@ -13,7 +12,7 @@ def db_connection() -> Database:
         client = MongoClient(database_uri)
         database = client["test_la_favorita"]
         return database
-    except ConnectionError:
+    except ConnectionFailure:
         print("No se pudo conectar a la base de datos")
 
 
@@ -37,18 +36,17 @@ def type_checking(value, data_type, required: bool = False) -> bool:
 # Función para manejar errores de claves no esperadas
 def unexpected_keyword_argument(error: TypeError) -> tuple[Response, int]:
     key = str(error)[
-        str(error).index("'") : str(error).index("'", str(error).index("'") + 1) + 1
+        str(error).index("'"): str(error).index("'", str(error).index("'") + 1) + 1
     ]
-    response = jsonify(err=f"Error: la clave {key} no es válida")
+    response = jsonify(err=f"Error: la clave {key} no es valida")
     print(response, 400)
     return response, 400
 
 
 # Función para manejar errores de claves requeridas
 def required_positional_argument(error: TypeError, *args: str) -> tuple[Response, int]:
-    msg = str(error)[str(error).index(":") + 2 :].replace("and", "y")
+    msg = str(error)[str(error).index(":") + 2:].replace("and", "y")
     str_args = ", ".join("'" + arg + "'" for arg in args)
     response = jsonify(err=f"Error: Se ha olvidado {msg}. Son requeridos: {str_args}")
     print(response, 400)
     return response, 400
-

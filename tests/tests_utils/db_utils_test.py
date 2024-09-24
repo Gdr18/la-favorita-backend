@@ -3,12 +3,11 @@ from unittest.mock import patch, MagicMock
 from pymongo.errors import ConnectionFailure
 from flask import Flask
 
-from src.utils.db_utils import db_connection, type_checking, unexpected_keyword_argument, required_positional_argument
+from src.utils.db_utils import db_connection, unexpected_keyword_argument, required_positional_argument
 from config import database_uri
 
+
 # Tests db_connection
-
-
 @patch("src.utils.db_utils.MongoClient")
 def test_db_connection_success(mock_mongo_client):
     # Configurar el mock para que devuelva un cliente de base de datos simulado
@@ -37,41 +36,8 @@ def test_db_connection_failure(mock_mongo_client, capsys):
     assert "No se pudo conectar a la base de datos" in captured.out
     assert db is None
 
-# Tests type_checking
-
-
-def test_type_checking_valid():
-    assert type_checking(123, int) is True
-    assert type_checking("test", str) is True
-    assert type_checking([1, 2, 3], list) is True
-    assert type_checking(None, None) is True
-
-
-def test_type_checking_required():
-    with pytest.raises(ValueError):
-        type_checking("", str, required=True)
-    with pytest.raises(ValueError):
-        type_checking([], list, required=True)
-    with pytest.raises(ValueError):
-        type_checking({}, dict, required=True)
-    with pytest.raises(ValueError):
-        type_checking(None, int, required=True)
-
-
-def test_type_checking_invalid_type():
-    with pytest.raises(TypeError):
-        type_checking(123, str)
-    with pytest.raises(TypeError):
-        type_checking("test", int)
-    with pytest.raises(TypeError):
-        type_checking([1, 2, 3], dict)
-    with pytest.raises(TypeError):
-        type_checking(2, float)
-
 
 # test unexpected_keyword_argument
-
-
 @pytest.fixture
 def app():
     app = Flask(__name__)
@@ -88,8 +54,6 @@ def test_unexpected_keyword_argument(app):
 
 
 # tests required_positional_argument
-
-
 def test_required_positional_argument(app):
     with app.app_context():
         error = TypeError("missing 1 required positional argument: 'arg1'")

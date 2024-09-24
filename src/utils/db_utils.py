@@ -1,4 +1,4 @@
-from pymongo import MongoClient
+from pymongo.mongo_client import MongoClient
 from pymongo.database import Database
 from pymongo.errors import ConnectionFailure
 from flask_bcrypt import Bcrypt
@@ -21,19 +21,6 @@ db = db_connection()
 bcrypt = Bcrypt()
 
 
-# Función para comprobar el tipo de dato necesario para escribir en la base de datos
-def type_checking(value, data_type, required: bool = False) -> bool:
-    if (value == "" or value == [] or value == {} or value is None) and required is True:
-        raise ValueError("ningún valor requerido puede estar vacío o ser nulo")
-    if not required and value is None:
-        return True
-    if isinstance(value, data_type):
-        return True
-    else:
-        raise TypeError(f"'{value}' debe ser un {data_type}")
-
-
-# Función para manejar errores de claves no esperadas
 def unexpected_keyword_argument(error: TypeError) -> tuple[Response, int]:
     key = str(error)[
         str(error).index("'"): str(error).index("'", str(error).index("'") + 1) + 1

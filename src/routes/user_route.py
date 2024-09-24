@@ -20,12 +20,12 @@ user = Blueprint("user", __name__)
 def add_user():
     try:
         user_data = request.get_json()
-        # TODO: AUTH usario tipo 1
+        # TODO: AUTH usuario tipo 1
         # if user_data.get("role") and not # usuario con rol tipo 1 :
         # raise "No tiene autorización para asignar un rol."
         user = UserModel(**user_data)
-        user._validate_password()
-        user._hashing_password()
+        user.validate_password()
+        user.hashing_password()
         new_user = coll_users.insert_one(user.__dict__)
         return (
             jsonify(
@@ -95,8 +95,8 @@ def manage_user(user_id):
                 if user["password"] != user_data.password and not bcrypt.check_password_hash(
                     user["password"], user_data.password
                 ):
-                    user_data._validate_password()
-                    user_data._hashing_password()
+                    user_data.validate_password()
+                    user_data.hashing_password()
 
                 # TODO: Para mejorar el rendimiento cuando se ponga a producción cambiar a update_one, o mirar si es realmente necesario
                 updated_user = coll_users.find_one_and_update(

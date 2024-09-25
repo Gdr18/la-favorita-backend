@@ -1,24 +1,26 @@
 import re
-from pydantic import BaseModel, EmailStr, Field, field_validator
-# from typing import List, Optional
+from typing import Dict, List, Optional
+from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationError
 
 from ..utils.db_utils import bcrypt
 
 
 # TODO: Verificar que todo funciona correctamente
 # Campos únicos: email. Está configurado en MongoDB Atlas.
-# noinspection PyMethodParameters
 class UserModel(BaseModel):
     name: str = Field(..., min_length=1, max_length=50)
     email: EmailStr = Field(..., min_length=5, max_length=100)
     password: str = Field(..., min_length=8, max_length=50)
     role: int = Field(default=3, ge=1, le=3)
-    phone: str = None
-    addresses: list = None
-    basket: dict = None
+    phone: Optional[str] = None
+    addresses: Optional[List] = None
+    basket: Optional[Dict] = None
+
+    class Config:
+        extra = 'forbid'
 
     @field_validator('password')
-    def validate_password(cls, v):
+    def __validate_password(cls, v):
         bcrypt_pattern = re.compile(r'^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$')
         if bcrypt_pattern.match(v):
             return v
@@ -29,19 +31,24 @@ class UserModel(BaseModel):
             and re.search(r"[0-9]", v)
             and re.search(r"[!@#$%^&*_-]", v)
         ):
-            return v
+            hashing_v = cls.hashing_password(v)
+            return hashing_v
         else:
-            raise ValueError("La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial")
+            raise ValueError('password')
 
-    def hashing_password(self):
-        self.password = bcrypt.generate_password_hash(self.password).decode("utf-8")
+    @staticmethod
+    def hashing_password(password):
+        return bcrypt.generate_password_hash(password).decode("utf-8")
 
     @field_validator('phone')
-    def validate_phone(cls, v):
+    def __validate_phone(cls, v):
         if v is None:
             return v
         phone_pattern = re.compile(r"^\+?34?\d{9}$")
         if phone_pattern.match(v):
             return v
         else:
-            raise ValueError("El número de teléfono no es válido")
+            raise ValueError("phone")
+
+    def to_dict(self):
+        return self.dict()

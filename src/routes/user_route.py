@@ -1,32 +1,30 @@
 from flask import Blueprint, request, jsonify
 from bson import json_util, ObjectId
 from pymongo import ReturnDocument, errors
+from pydantic import ValidationError
 
 from ..utils.db_utils import (
     db,
-    bcrypt,
-    unexpected_keyword_argument,
-    required_positional_argument,
+    extra_inputs_are_not_permitted,
+    field_required
 )
 from ..models.user_model import UserModel
 
 
 coll_users = db.users
 
-user = Blueprint("user", __name__)
+users_route = Blueprint("user", __name__)
 
 
-@user.route("/user", methods=["POST"])
+@users_route.route("/user", methods=["POST"])
 def add_user():
     try:
         user_data = request.get_json()
         # TODO: AUTH usuario tipo 1
         # if user_data.get("role") and not # usuario con rol tipo 1 :
         # raise "No tiene autorización para asignar un rol."
-        user = UserModel(**user_data)
-        user.validate_password()
-        user.hashing_password()
-        new_user = coll_users.insert_one(user.__dict__)
+        user_object = UserModel(**user_data)
+        new_user = coll_users.insert_one(user_object.to_dict())
         return (
             jsonify(
                 msg=f"El usuario {new_user.inserted_id} ha sido añadido de forma satisfactoria"
@@ -40,20 +38,22 @@ def add_user():
             ),
             409,
         )
-    except TypeError as e:
-        if "unexpected keyword argument" in str(e):
-            return unexpected_keyword_argument(e)
-        elif "required positional argument" in str(e):
-            return required_positional_argument(e, "name", "email", "password")
+    except ValidationError as e:
+        if "Extra inputs are not permitted" in str(e):
+            return extra_inputs_are_not_permitted(e)
+        elif "Field required" in str(e):
+            feturn Field_required(e, "name", "email", "password")
+        elif "Value error" and "password" in str(e):
+            return jsonify(err="La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-)"), 400
+        elif "Value error" and "phone" in str(e):
+            return jsonify(err="El teléfono debe tener el prefijo +34 y/o 9 dígitos"), 400
         else:
             return jsonify(err=f"Error: {e}"), 400
-    except ValueError as e:
-        return jsonify(err=f"Error: {e}"), 400
     except Exception as e:
         return jsonify(err=f"Error: Ha ocurrido un error inesperado: {e}"), 500
 
 
-@user.route("/users", methods=["GET"])
+@users_route.route("/users", methods=["GET"])
 def get_users():
     try:
         users = coll_users.find()
@@ -63,7 +63,7 @@ def get_users():
         return jsonify(err=f"Error: Ha ocurrido un error inesperado: {e}"), 500
 
 
-@user.route("/user/<user_id>", methods=["GET", "PUT", "DELETE"])
+@users_route.route("/user/<user_id>", methods=["GET", "PUT", "DELETE"])
 def manage_user(user_id):
     if request.method == "GET":
         try:
@@ -89,19 +89,13 @@ def manage_user(user_id):
                 data = request.get_json()
                 # TODO: Mirar cómo se podría cambiar el email también?
                 # TODO: AUTH usuario tipo 1: if (data.get("role") or data.get("email")) and not # usuario con rol tipo 1: raise "No tiene autorización para asignar un rol o cambiar el email."
-                mixed_data = {**user, **data}
-                user_data = UserModel(**mixed_data)
-
-                if user["password"] != user_data.password and not bcrypt.check_password_hash(
-                    user["password"], user_data.password
-                ):
-                    user_data.validate_password()
-                    user_data.hashing_password()
+                combined_data = {**user, **data}
+                user_object = UserModel(**combined_data)
 
                 # TODO: Para mejorar el rendimiento cuando se ponga a producción cambiar a update_one, o mirar si es realmente necesario
                 updated_user = coll_users.find_one_and_update(
                     {"_id": ObjectId(user_id)},
-                    {"$set": user_data.__dict__},
+                    {"$set": user_object.to_dict()},
                     return_document=ReturnDocument.AFTER,
                 )
                 response = json_util.dumps(updated_user)
@@ -118,13 +112,17 @@ def manage_user(user_id):
                 ),
                 409,
             )
-        except TypeError as e:
-            if "unexpected keyword argument" in str(e):
-                return unexpected_keyword_argument(e)
+        except ValidationError as e:
+            if "Extra inputs are not permitted" in str(e):
+                return extra_inputs_are_not_permitted(e)
+            elif "Value error" and "password" in str(e):
+                return jsonify(err="La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-)"), 400
+            elif "Value error" and "phone" in str(e):
+                return jsonify(err="El teléfono debe tener el prefijo +34 y/o 9 dígitos"), 400
             else:
                 return jsonify(err=f"Error: {e}"), 400
         except Exception as e:
-            return jsonify(err=f"Error: {e}"), 500
+            return jsonify(err=f"Error: Ha ocurrido un error inesperado: {e}"), 500
 
     elif request.method == "DELETE":
         try:

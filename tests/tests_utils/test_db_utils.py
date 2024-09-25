@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 from pymongo.errors import ConnectionFailure
 from flask import Flask
 
-from src.utils.db_utils import db_connection, unexpected_keyword_argument, required_positional_argument
+from src.utils.db_utils import db_connection, extra_inputs_are_not_permitted, field_required
 from config import database_uri
 
 
@@ -45,26 +45,35 @@ def app():
     return app
 
 
-def test_unexpected_keyword_argument(app):
+def test_single_invalid_field(app):
     with app.app_context():
-        error = TypeError("unexpected keyword argument 'invalid_key'")
-        response, status_code = unexpected_keyword_argument(error)
+        error_message = "input_value='invalid_field'"
+        response, status_code = extra_inputs_are_not_permitted(error_message)
         assert status_code == 400
-        assert "Error: la clave 'invalid_key' no es valida".encode() in response.data
+        assert "'invalid_field' no es un campo válido." in response.get_json()["err"]
 
 
-# tests required_positional_argument
-def test_required_positional_argument(app):
+def test_multiple_invalid_fields(app):
     with app.app_context():
-        error = TypeError("missing 1 required positional argument: 'arg1'")
-        response, status_code = required_positional_argument(error, "arg1")
+        error_message = "input_value='field1' input_value='field2'"
+        response, status_code = extra_inputs_are_not_permitted(error_message)
         assert status_code == 400
-        assert "Error: Se ha olvidado 'arg1'. Son requeridos: 'arg1'".encode() in response.data
+        assert "'field1', 'field2' no son campos válidos." in response.get_json()["err"]
 
 
-def test_required_positional_argument_multiple_args(app):
+# tests field_required
+def test_single_required_field(app):
     with app.app_context():
-        error = TypeError("missing 3 required positional arguments: 'arg1', 'arg2' and 'arg3'")
-        response, status_code = required_positional_argument(error, "arg1", "arg2", "arg3")
+        error_message = "1"
+        response, status_code = field_required(error_message, "field1")
         assert status_code == 400
-        assert "Error: Se ha olvidado 'arg1', 'arg2' y 'arg3'. Son requeridos: 'arg1', 'arg2', 'arg3".encode() in response.data
+        assert "Falta 1 campo requerido. Los campos requeridos son: 'field1'." in response.get_json()["err"]
+
+
+def test_multiple_required_fields(app):
+    with app.app_context():
+        error_message = "2"
+        response, status_code = field_required(error_message, "field1", "field2")
+        assert status_code == 400
+        assert "Faltan 2 campos requeridos. Los campos requeridos son: 'field1', 'field2'." in response.get_json()["err"]
+

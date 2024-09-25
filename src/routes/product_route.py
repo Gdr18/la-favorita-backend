@@ -1,11 +1,10 @@
 from flask import Blueprint, request, jsonify
 from bson import json_util, ObjectId
 from pymongo import ReturnDocument, errors
+from pydantic import ValidationError
 
 from ..utils.db_utils import (
-    db,
-    unexpected_keyword_argument,
-    required_positional_argument,
+    db, extra_inputs_are_not_permitted, field_required
 )
 from ..models.product_model import ProductModel
 
@@ -33,11 +32,11 @@ def add_product():
             ),
             409,
         )
-    except TypeError as e:
-        if "unexpected keyword argument" in str(e):
-            return unexpected_keyword_argument(e)
-        elif "required positional argument" in str(e):
-            return required_positional_argument(e, "name", "categories", "stock")
+    except ValidationError as e:
+        if "Extra inputs are not permitted" in str(e):
+            return extra_inputs_are_not_permitted(e)
+        elif "Field required" in str(e):
+            return field_required(e, "name", "email", "password")
         else:
             return jsonify({"err": f"Error: {e}"}), 400
     except ValueError as e:
@@ -109,8 +108,8 @@ def manage_product(product_id):
                 409,
             )
         except TypeError as e:
-            if "unexpected keyword argument" in str(e):
-                return unexpected_keyword_argument(e)
+            if "Extra inputs are not permitted" in str(e):
+                return extra_inputs_are_not_permitted(e)
             else:
                 return jsonify(err=f"Error: {e}"), 400
         except Exception as e:

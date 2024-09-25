@@ -42,7 +42,7 @@ def add_user():
         if "Extra inputs are not permitted" in str(e):
             return extra_inputs_are_not_permitted(e)
         elif "Field required" in str(e):
-            feturn Field_required(e, "name", "email", "password")
+            return field_required(e, "name", "email", "password")
         elif "Value error" and "password" in str(e):
             return jsonify(err="La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-)"), 400
         elif "Value error" and "phone" in str(e):

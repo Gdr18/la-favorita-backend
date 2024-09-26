@@ -3,8 +3,9 @@ from unittest.mock import patch, MagicMock
 from pymongo.errors import ConnectionFailure
 from flask import Flask
 
-from src.utils.db_utils import db_connection, extra_inputs_are_not_permitted, field_required
+from src.utils.db_utils import db_connection, extra_inputs_are_not_permitted, field_required, input_should_be
 from config import database_uri
+from run import app as real_app
 
 
 # Tests db_connection
@@ -37,16 +38,15 @@ def test_db_connection_failure(mock_mongo_client, capsys):
     assert db is None
 
 
-# test unexpected_keyword_argument
 @pytest.fixture
 def app():
-    app = Flask(__name__)
-    app.testing = True
+    real_app.testing = True
     return app
 
 
+# tests extra_inputs_are_not_permitted
 def test_single_invalid_field(app):
-    with app.app_context():
+    with real_app.app_context():
         error_message = "input_value='invalid_field'"
         response, status_code = extra_inputs_are_not_permitted(error_message)
         assert status_code == 400
@@ -54,7 +54,7 @@ def test_single_invalid_field(app):
 
 
 def test_multiple_invalid_fields(app):
-    with app.app_context():
+    with real_app.app_context():
         error_message = "input_value='field1' input_value='field2'"
         response, status_code = extra_inputs_are_not_permitted(error_message)
         assert status_code == 400
@@ -63,7 +63,7 @@ def test_multiple_invalid_fields(app):
 
 # tests field_required
 def test_single_required_field(app):
-    with app.app_context():
+    with real_app.app_context():
         error_message = "1"
         response, status_code = field_required(error_message, "field1")
         assert status_code == 400
@@ -71,9 +71,25 @@ def test_single_required_field(app):
 
 
 def test_multiple_required_fields(app):
-    with app.app_context():
+    with real_app.app_context():
         error_message = "2"
         response, status_code = field_required(error_message, "field1", "field2")
         assert status_code == 400
         assert "Faltan 2 campos requeridos. Los campos requeridos son: 'field1', 'field2'." in response.get_json()["err"]
 
+
+# test_input_should_be
+def test_single_invalid_type(app):
+    with real_app.app_context():
+        error_message = "validation errors for UserModel\nfield_name\n  Input should be a valid string [type=string_type, input_value=2352235, input_type=int]\n"
+        response, status_code = input_should_be(error_message)
+        assert status_code == 400
+        assert "El campo 'field_name' debe ser de tipo 'int'." in response.get_json()["err"]
+
+
+def test_multiple_invalid_type(app):
+    with real_app.app_context():
+        error_message = "validation errors for UserModel\nfield_name\n  Input should be a valid string [type=string_type, input_value=2352235, input_type=str]\n For further information visit \nanother_field\n  Input should be a valid list [type=list_type, input_value={}, input_type=int]\n For"
+        response, status_code = input_should_be(error_message)
+        assert status_code == 400
+        assert "El campo 'field_name' debe ser de tipo 'str'. El campo 'another_field' debe ser de tipo 'int'" in response.get_json()["err"]

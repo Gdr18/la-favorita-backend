@@ -10,11 +10,11 @@ from ..utils.db_utils import bcrypt
 class UserModel(BaseModel):
     name: str = Field(..., min_length=1, max_length=50)
     email: EmailStr = Field(..., min_length=5, max_length=100)
-    password: str = Field(..., min_length=8, max_length=50)
+    password: str = Field(..., min_length=8, max_length=60)
     role: int = Field(default=3, ge=1, le=3)
     phone: Optional[str] = None
     addresses: Optional[List] = None
-    basket: Optional[Dict] = None
+    basket: Optional[List] = None
 
     class ConfigDict:
         extra = 'forbid'
@@ -34,7 +34,7 @@ class UserModel(BaseModel):
             hashing_v = cls.hashing_password(v)
             return hashing_v
         else:
-            raise ValueError('password')
+            raise ValueError('validate_password error')
 
     @staticmethod
     def hashing_password(password):
@@ -48,7 +48,7 @@ class UserModel(BaseModel):
         if phone_pattern.match(v):
             return v
         else:
-            raise ValueError("phone")
+            raise ValueError("validate_phone error")
 
     def to_dict(self):
-        return self.dict()
+        return self.model_dump()

@@ -6,7 +6,8 @@ from pydantic import ValidationError
 from ..utils.db_utils import (
     db,
     extra_inputs_are_not_permitted,
-    field_required
+    field_required,
+    input_should_be
 )
 from ..models.user_model import UserModel
 
@@ -43,10 +44,12 @@ def add_user():
             return extra_inputs_are_not_permitted(e)
         elif "Field required" in str(e):
             return field_required(e, "name", "email", "password")
-        elif "Value error" and "password" in str(e):
+        elif "Value error" and "validate_password error" in str(e):
             return jsonify(err="La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-)"), 400
-        elif "Value error" and "phone" in str(e):
-            return jsonify(err="El teléfono debe tener el prefijo +34 y/o 9 dígitos"), 400
+        elif "Value error" and "validate_phone error" in str(e):
+            return jsonify(err="El teléfono debe tener el prefijo +34 y/o 9 dígitos, y debe ser tipo string."), 400
+        elif "Input should be" in str(e):
+            return input_should_be(e)
         else:
             return jsonify(err=f"Error: {e}"), 400
     except Exception as e:
@@ -115,10 +118,12 @@ def manage_user(user_id):
         except ValidationError as e:
             if "Extra inputs are not permitted" in str(e):
                 return extra_inputs_are_not_permitted(e)
-            elif "Value error" and "password" in str(e):
-                return jsonify(err="La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-)"), 400
-            elif "Value error" and "phone" in str(e):
-                return jsonify(err="El teléfono debe tener el prefijo +34 y/o 9 dígitos"), 400
+            elif "Value error" and "validate_password error" in str(e):
+                return jsonify(err="La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-), y ser de tipo string"), 400
+            elif "Value error" and "validate_phone error" in str(e):
+                return jsonify(err="El teléfono debe tener el prefijo +34 y/o 9 dígitos, y ser de tipo string"), 400
+            elif "Input should be" in str(e):
+                return input_should_be(e)
             else:
                 return jsonify(err=f"Error: {e}"), 400
         except Exception as e:

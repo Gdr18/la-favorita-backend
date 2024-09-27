@@ -14,10 +14,10 @@ from ..models.user_model import UserModel
 
 coll_users = db.users
 
-users_route = Blueprint("user", __name__)
+user_route = Blueprint("user", __name__)
 
 
-@users_route.route("/user", methods=["POST"])
+@user_route.route("/user", methods=["POST"])
 def add_user():
     try:
         user_data = request.get_json()
@@ -56,7 +56,7 @@ def add_user():
         return jsonify(err=f"Error: Ha ocurrido un error inesperado: {e}"), 500
 
 
-@users_route.route("/users", methods=["GET"])
+@user_route.route("/users", methods=["GET"])
 def get_users():
     try:
         users = coll_users.find()
@@ -66,7 +66,7 @@ def get_users():
         return jsonify(err=f"Error: Ha ocurrido un error inesperado: {e}"), 500
 
 
-@users_route.route("/user/<user_id>", methods=["GET", "PUT", "DELETE"])
+@user_route.route("/user/<user_id>", methods=["GET", "PUT", "DELETE"])
 def manage_user(user_id):
     if request.method == "GET":
         try:

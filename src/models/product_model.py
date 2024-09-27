@@ -1,5 +1,3 @@
-# from ..utils.db_utils import type_checking
-
 allowed_allergens = (
     "cereal",
     "huevo",

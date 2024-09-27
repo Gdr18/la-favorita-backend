@@ -40,20 +40,22 @@ def add_user():
             409,
         )
     except ValidationError as e:
-        if "Extra inputs are not permitted" in str(e):
-            return extra_inputs_are_not_permitted(e)
-        elif "Field required" in str(e):
+        if "Field required" in str(e):
             return field_required(e, "name", "email", "password")
+        elif "Extra inputs are not permitted" in str(e):
+            return extra_inputs_are_not_permitted(e)
+        elif "Input should be" in str(e):
+            return input_should_be(e)
+        elif "is not a valid email address" in str(e):
+            return jsonify(err="El email no es una dirección de correo electrónico válida."), 400
         elif "Value error" and "validate_password error" in str(e):
             return jsonify(err="La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-)"), 400
         elif "Value error" and "validate_phone error" in str(e):
             return jsonify(err="El teléfono debe tener el prefijo +34 y/o 9 dígitos, y debe ser tipo string."), 400
-        elif "Input should be" in str(e):
-            return input_should_be(e)
         else:
             return jsonify(err=f"Error: {e}"), 400
     except Exception as e:
-        return jsonify(err=f"Error: Ha ocurrido un error inesperado: {e}"), 500
+        return jsonify(err=f"Ha ocurrido un error inesperado: {e}"), 500
 
 
 @user_route.route("/users", methods=["GET"])

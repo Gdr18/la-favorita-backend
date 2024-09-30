@@ -57,7 +57,7 @@ class ProductModel(BaseModel):
     allergens: Optional[List[str]] = None
     notes: Optional[str] = None
 
-    class ConfigDict:
+    class Config:
         extra = 'forbid'
 
     @field_validator('categories')

@@ -15,7 +15,7 @@ class UserModel(BaseModel):
     addresses: Optional[List[Dict]] = None
     basket: Optional[List[Dict]] = None
 
-    class ConfigDict:
+    class Config:
         extra = 'forbid'
 
     @field_validator('password')

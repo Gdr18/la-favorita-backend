@@ -65,7 +65,7 @@ def get_users():
         response = json_util.dumps(users)
         return response, 200
     except Exception as e:
-        return jsonify(err=f"Error: Ha ocurrido un error inesperado: {e}"), 500
+        return jsonify(err=f"Ha ocurrido un error inesperado: {e}"), 500
 
 
 @user_route.route("/user/<user_id>", methods=["GET", "PUT", "DELETE"])
@@ -78,12 +78,12 @@ def manage_user(user_id):
                 return response, 200
             else:
                 return (
-                    jsonify(err=f"Error: El usuario {user_id} no ha sido encontrado"),
+                    jsonify(err=f"El usuario {user_id} no ha sido encontrado"),
                     404,
                 )
         except Exception as e:
             return (
-                jsonify(err=f"Error: Ha ocurrido un error inesperado: {e}"),
+                jsonify(err=f"Ha ocurrido un error inesperado: {e}"),
                 500,
             )
 
@@ -107,7 +107,7 @@ def manage_user(user_id):
                 return response
             else:
                 return (
-                    jsonify(err=f"Error: El usuario {user_id} no ha sido encontrado"),
+                    jsonify(err=f"El usuario {user_id} no ha sido encontrado"),
                     404,
                 )
         except errors.DuplicateKeyError as e:
@@ -120,16 +120,18 @@ def manage_user(user_id):
         except ValidationError as e:
             if "Extra inputs are not permitted" in str(e):
                 return extra_inputs_are_not_permitted(e)
+            elif "Input should be" in str(e):
+                return input_should_be(e)
+            elif "is not a valid email address" in str(e):
+                return jsonify(err="El email no es una dirección de correo electrónico válida."), 400
             elif "Value error" and "validate_password error" in str(e):
                 return jsonify(err="La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-), y ser de tipo string"), 400
             elif "Value error" and "validate_phone error" in str(e):
                 return jsonify(err="El teléfono debe tener el prefijo +34 y/o 9 dígitos, y ser de tipo string"), 400
-            elif "Input should be" in str(e):
-                return input_should_be(e)
             else:
                 return jsonify(err=f"Error: {e}"), 400
         except Exception as e:
-            return jsonify(err=f"Error: Ha ocurrido un error inesperado: {e}"), 500
+            return jsonify(err=f"Ha ocurrido un error inesperado: {e}"), 500
 
     elif request.method == "DELETE":
         try:
@@ -143,7 +145,7 @@ def manage_user(user_id):
                 )
             else:
                 return (
-                    jsonify(err=f"Error: El usuario {user_id} no ha sido encontrado"),
+                    jsonify(err=f"El usuario {user_id} no ha sido encontrado"),
                     404,
                 )
         except Exception as e:

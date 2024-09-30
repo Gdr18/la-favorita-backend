@@ -4,21 +4,21 @@ from pymongo import ReturnDocument, errors
 from pydantic import ValidationError
 
 from ..utils.db_utils import (
-    db, extra_inputs_are_not_permitted, field_required
+    db, extra_inputs_are_not_permitted, field_required, input_should_be
 )
 from ..models.product_model import ProductModel
 
 coll_products = db.products
 
-product = Blueprint("product", __name__)
+product_route = Blueprint("product", __name__)
 
 
-@product.route("/product", methods=["POST"])
+@product_route.route("/product", methods=["POST"])
 def add_product():
     try:
         product_data = request.get_json()
-        product = ProductModel(**product_data).__dict__
-        new_product = coll_products.insert_one(product)
+        product_object = ProductModel(**product_data)
+        new_product = coll_products.insert_one(product_object.to_dict())
         return (
             jsonify(
                 msg=f"El producto {new_product.inserted_id} ha sido añadido de forma satisfactoria"
@@ -35,30 +35,31 @@ def add_product():
     except ValidationError as e:
         if "Extra inputs are not permitted" in str(e):
             return extra_inputs_are_not_permitted(e)
-        elif "Field required" in str(e):
+        if "Field required" in str(e):
             return field_required(e, "name", "email", "password")
+        elif "Input should be" in str(e):
+            return input_should_be(e)
+        # TODO: Falta añadir ValueError
         else:
             return jsonify({"err": f"Error: {e}"}), 400
-    except ValueError as e:
-        return jsonify({"err": f"Error: {e}"}), 400
     except Exception as e:
         return (
-            jsonify(err=f"Error: Ha ocurrido un error inesperado. {e}"),
+            jsonify(err=f"Ha ocurrido un error inesperado. {e}"),
             500,
         )
 
 
-@product.route("/products", methods=["GET"])
+@product_route.route("/products", methods=["GET"])
 def get_products():
     try:
         products = coll_products.find()
         response = json_util.dumps(products)
         return response, 200
     except Exception as e:
-        return jsonify(err=f"Error: Ha ocurrido un error inesperado. {e}"), 500
+        return jsonify(err=f"Ha ocurrido un error inesperado. {e}"), 500
 
 
-@product.route("/product/<product_id>", methods=["GET", "PUT", "DELETE"])
+@product_route.route("/product/<product_id>", methods=["GET", "PUT", "DELETE"])
 def manage_product(product_id):
     if request.method == "GET":
         try:
@@ -69,13 +70,13 @@ def manage_product(product_id):
             else:
                 return (
                     jsonify(
-                        err=f"Error: El producto {product_id} no ha sido encontrado"
+                        err=f"El producto {product_id} no ha sido encontrado"
                     ),
                     404,
                 )
         except Exception as e:
             return (
-                jsonify(err=f"Error: Ha ocurrido un error inesperado. {e}"),
+                jsonify(err=f"Ha ocurrido un error inesperado. {e}"),
                 500,
             )
 
@@ -83,12 +84,13 @@ def manage_product(product_id):
         try:
             product = coll_products.find_one({"_id": ObjectId(product_id)}, {"_id": 0})
             if product:
-                product.update(request.get_json())
-                product_data = ProductModel(**product).__dict__
+                data = request.get_json()
+                combined_data = {**product, **data}
+                product_object = ProductModel(**combined_data)
                 # TODO: Cambiar la consulta por update_one para mejorar la consulta
                 updated_product = coll_products.find_one_and_update(
                     {"_id": ObjectId(product_id)},
-                    {"$set": product_data},
+                    {"$set": product_object.to_dict()},
                     return_document=ReturnDocument.AFTER,
                 )
                 response = json_util.dumps(updated_product)
@@ -96,7 +98,7 @@ def manage_product(product_id):
             else:
                 return (
                     jsonify(
-                        err=f"Error: El producto {product_id} no ha sido encontrado"
+                        err=f"El producto {product_id} no ha sido encontrado"
                     ),
                     404,
                 )
@@ -107,9 +109,12 @@ def manage_product(product_id):
                 ),
                 409,
             )
-        except TypeError as e:
+        except ValidationError as e:
             if "Extra inputs are not permitted" in str(e):
                 return extra_inputs_are_not_permitted(e)
+            elif "Input should be" in str(e):
+                return input_should_be(e)
+            # TODO: Falta añadir ValueError.
             else:
                 return jsonify(err=f"Error: {e}"), 400
         except Exception as e:
@@ -128,12 +133,12 @@ def manage_product(product_id):
             else:
                 return (
                     jsonify(
-                        err=f"Error: El producto {product_id} no ha sido encontrado"
+                        err=f"El producto {product_id} no ha sido encontrado"
                     ),
                     404,
                 )
         except Exception as e:
             return (
-                jsonify(err=f"Error: Ha ocurrido un error inesperado. {e}"),
+                jsonify(err=f"Ha ocurrido un error inesperado. {e}"),
                 500,
             )

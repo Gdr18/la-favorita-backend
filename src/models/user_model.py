@@ -1,21 +1,19 @@
 import re
-from typing import List, Optional
+from typing import List, Optional, Dict
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from ..utils.db_utils import bcrypt
 
 
-# TODO: Verificar que todo funciona correctamente
 # Campos únicos: email. Está configurado en MongoDB Atlas.
-# noinspection PyMethodParameters
 class UserModel(BaseModel):
     name: str = Field(..., min_length=1, max_length=50)
     email: EmailStr = Field(..., min_length=5, max_length=100)
     password: str = Field(..., min_length=8, max_length=60)
     role: int = Field(default=3, ge=1, le=3)
     phone: Optional[str] = None
-    addresses: Optional[List] = None
-    basket: Optional[List] = None
+    addresses: Optional[List[Dict]] = None
+    basket: Optional[List[Dict]] = None
 
     class ConfigDict:
         extra = 'forbid'
@@ -38,7 +36,7 @@ class UserModel(BaseModel):
             raise ValueError('validate_password error')
 
     @staticmethod
-    def hashing_password(password):
+    def hashing_password(password) -> str:
         return bcrypt.generate_password_hash(password).decode("utf-8")
 
     @field_validator('phone')
@@ -49,7 +47,7 @@ class UserModel(BaseModel):
         if phone_pattern.match(v):
             return v
         else:
-            raise ValueError("validate_phone error")
+            raise ValueError('validate_phone error')
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return self.model_dump()

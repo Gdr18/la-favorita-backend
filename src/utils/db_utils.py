@@ -21,7 +21,22 @@ db = db_connection()
 bcrypt = Bcrypt()
 
 
-# TODO: Cambiar nombre a funciones
+# def get_allowed_values(collection_name):
+#     collection = db[collection_name]
+#     return [item["value"] for item in collection.find()]
+#
+#
+# allowed_allergens = get_allowed_values("allergens")
+# allowed_category = get_allowed_values("categories")
+#
+#
+# def reload_allowed_values():
+#     global allowed_allergens, allowed_category
+#     allowed_allergens = get_allowed_values("allergens")
+#     allowed_category = get_allowed_values("categories")
+
+
+# Función para manejar errores de campos no permitidos
 def extra_inputs_are_not_permitted(error) -> tuple[Response, int]:
     fields = []
     count = str(error).count('input_value=')

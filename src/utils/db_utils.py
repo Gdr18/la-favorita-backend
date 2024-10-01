@@ -79,3 +79,8 @@ def input_should_be(error) -> tuple[Response, int]:
         err=' '.join(f"El campo '{field}' debe ser de tipo '{type_field[:-1] if ',' in type_field else type_field}'." for field, type_field in fields)
     )
     return response, 400
+
+
+def value_error_formatting(error) -> tuple[Response, int]:
+    msg = [error["msg"][error["msg"].find(",") + 2:] for error in error.errors()]
+    return jsonify({"err": " ".join(msg)}), 400

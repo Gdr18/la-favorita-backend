@@ -4,7 +4,7 @@ from pymongo import ReturnDocument, errors
 from pydantic import ValidationError
 
 from ..utils.db_utils import (
-    db, extra_inputs_are_not_permitted, field_required, input_should_be
+    db, extra_inputs_are_not_permitted, field_required, input_should_be, value_error_formatting
 )
 from ..models.product_model import ProductModel
 
@@ -33,15 +33,18 @@ def add_product():
             409,
         )
     except ValidationError as e:
-        if "Extra inputs are not permitted" in str(e):
-            return extra_inputs_are_not_permitted(e)
-        if "Field required" in str(e):
-            return field_required(e, "name", "email", "password")
-        elif "Input should be" in str(e):
-            return input_should_be(e)
-        # TODO: Falta añadir ValueError
-        else:
-            return jsonify({"err": f"Error: {e}"}), 400
+        for error in e.errors():
+            if error["msg"] == "Field required":
+                print(error)
+                return field_required(e, "name", "categories", "stock")
+            if error["msg"].startswith("Input should be"):
+                return input_should_be(e)
+            if error["msg"] == "Extra inputs are not permitted":
+                return extra_inputs_are_not_permitted(e)
+            if error["msg"].startswith("Value error"):
+                return value_error_formatting(e)
+            else:
+                return jsonify({"err": f"Error: {error}"}), 400
     except Exception as e:
         return (
             jsonify(err=f"Ha ocurrido un error inesperado. {e}"),

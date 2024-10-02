@@ -44,7 +44,7 @@ def extra_inputs_are_not_permitted(errors: list) -> tuple[Response, int]:
     return response, 400
 
 
-# Función para manejar errores de claves requeridas
+# Función para manejar errores de campos requeridos
 def field_required(errors: list) -> tuple[Response, int]:
     fields_required = [error["loc"][0] for error in errors if error["msg"] == "Field required"]
     formatting_fields_required = ', '.join([f"""'{error}'""" for error in fields_required])
@@ -68,6 +68,7 @@ def input_should_be(errors: list) -> tuple[Response, int]:
     return response, 400
 
 
+# Función para manejar errores de valores no permitidos
 def value_error_formatting(errors: list) -> tuple[Response, int]:
     msg = [error["msg"][error["msg"].find(",") + 2:] for error in errors]
     return jsonify({"err": " ".join(msg)}), 400

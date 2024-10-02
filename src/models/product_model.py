@@ -79,7 +79,7 @@ class ProductModel(BaseModel):
             invalid_values_str = ', '.join(f"'{item}'" for item in invalid_values)
             allowed_values_str = ', '.join(f"'{item}'" for item in allowed_values)
             raise ValueError(
-                f"""{f"Los valores {invalid_values_str} no son válidos en el campo '{name_field}'." if len(invalid_values) > 1 else f"El valor '{invalid_values[0]}' no es válido en el campo '{name_field}'."} Los valores permitidos son: {allowed_values_str}."""            # )
+                f"""{f"Los valores {invalid_values_str} no son válidos en el campo '{name_field}'." if len(invalid_values) > 1 else f"El valor '{invalid_values[0]}' no es válido en el campo '{name_field}'."}"""            # )
             )
         return value
 

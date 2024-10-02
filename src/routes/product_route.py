@@ -33,18 +33,18 @@ def add_product():
             409,
         )
     except ValidationError as e:
-        for error in e.errors():
+        errors_list = e.errors()
+        for error in errors_list:
             if error["msg"] == "Field required":
-                print(error)
-                return field_required(e, "name", "categories", "stock")
+                return field_required(errors_list)
             if error["msg"].startswith("Input should be"):
-                return input_should_be(e)
+                return input_should_be(errors_list)
             if error["msg"] == "Extra inputs are not permitted":
-                return extra_inputs_are_not_permitted(e)
+                return extra_inputs_are_not_permitted(errors_list)
             if error["msg"].startswith("Value error"):
-                return value_error_formatting(e)
-            else:
-                return jsonify({"err": f"Error: {error}"}), 400
+                return value_error_formatting(errors_list)
+
+        return jsonify(err=errors_list), 400
     except Exception as e:
         return (
             jsonify(err=f"Ha ocurrido un error inesperado. {e}"),
@@ -113,13 +113,18 @@ def manage_product(product_id):
                 409,
             )
         except ValidationError as e:
-            if "Extra inputs are not permitted" in str(e):
-                return extra_inputs_are_not_permitted(e)
-            elif "Input should be" in str(e):
-                return input_should_be(e)
-            # TODO: Falta añadir ValueError.
-            else:
-                return jsonify(err=f"Error: {e}"), 400
+            errors_list = e.errors()
+            for error in errors_list:
+                if error["msg"] == "Field required":
+                    return field_required(errors_list)
+                if error["msg"].startswith("Input should be"):
+                    return input_should_be(errors_list)
+                if error["msg"] == "Extra inputs are not permitted":
+                    return extra_inputs_are_not_permitted(errors_list)
+                if error["msg"].startswith("Value error"):
+                    return value_error_formatting(errors_list)
+
+            return jsonify(err=errors_list), 400
         except Exception as e:
             return jsonify(err=f"Error: {e}"), 500
 

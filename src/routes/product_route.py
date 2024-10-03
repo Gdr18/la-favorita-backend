@@ -3,9 +3,8 @@ from bson import json_util, ObjectId
 from pymongo import ReturnDocument, errors
 from pydantic import ValidationError
 
-from ..utils.db_utils import (
-    db, extra_inputs_are_not_permitted, field_required, input_should_be, value_error_formatting
-)
+from ..utils.db_utils import db
+from ..utils.exceptions_management import handle_validation_error, handle_unexpected_error, handle_duplicate_key_error
 from ..models.product_model import ProductModel
 
 coll_products = db.products
@@ -26,30 +25,11 @@ def add_product():
             200,
         )
     except errors.DuplicateKeyError as e:
-        return (
-            jsonify(
-                err=f"Error de clave duplicada en MongoDB: {e.details['keyValue']}"
-            ),
-            409,
-        )
+        return handle_duplicate_key_error(e)
     except ValidationError as e:
-        errors_list = e.errors()
-        for error in errors_list:
-            if error["msg"] == "Field required":
-                return field_required(errors_list)
-            if error["msg"].startswith("Input should be"):
-                return input_should_be(errors_list)
-            if error["msg"] == "Extra inputs are not permitted":
-                return extra_inputs_are_not_permitted(errors_list)
-            if error["msg"].startswith("Value error"):
-                return value_error_formatting(errors_list)
-
-        return jsonify(err=errors_list), 400
+        return handle_validation_error(e)
     except Exception as e:
-        return (
-            jsonify(err=f"Ha ocurrido un error inesperado. {e}"),
-            500,
-        )
+        return handle_unexpected_error(e)
 
 
 @product_route.route("/products", methods=["GET"])
@@ -59,7 +39,7 @@ def get_products():
         response = json_util.dumps(products)
         return response, 200
     except Exception as e:
-        return jsonify(err=f"Ha ocurrido un error inesperado. {e}"), 500
+        return handle_unexpected_error(e)
 
 
 @product_route.route("/product/<product_id>", methods=["GET", "PUT", "DELETE"])
@@ -78,10 +58,7 @@ def manage_product(product_id):
                     404,
                 )
         except Exception as e:
-            return (
-                jsonify(err=f"Ha ocurrido un error inesperado. {e}"),
-                500,
-            )
+            return handle_unexpected_error(e)
 
     elif request.method == "PUT":
         try:
@@ -106,27 +83,11 @@ def manage_product(product_id):
                     404,
                 )
         except errors.DuplicateKeyError as e:
-            return (
-                jsonify(
-                    err=f"Error de clave duplicada en MongoDB: {e.details['keyValue']}"
-                ),
-                409,
-            )
+            return handle_duplicate_key_error(e)
         except ValidationError as e:
-            errors_list = e.errors()
-            for error in errors_list:
-                if error["msg"] == "Field required":
-                    return field_required(errors_list)
-                if error["msg"].startswith("Input should be"):
-                    return input_should_be(errors_list)
-                if error["msg"] == "Extra inputs are not permitted":
-                    return extra_inputs_are_not_permitted(errors_list)
-                if error["msg"].startswith("Value error"):
-                    return value_error_formatting(errors_list)
-
-            return jsonify(err=errors_list), 400
+            return handle_validation_error(e)
         except Exception as e:
-            return jsonify(err=f"Error: {e}"), 500
+            return handle_unexpected_error(e)
 
     elif request.method == "DELETE":
         try:
@@ -146,7 +107,4 @@ def manage_product(product_id):
                     404,
                 )
         except Exception as e:
-            return (
-                jsonify(err=f"Ha ocurrido un error inesperado. {e}"),
-                500,
-            )
+            return handle_unexpected_error(e)

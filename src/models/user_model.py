@@ -1,6 +1,6 @@
 import re
 from typing import List, Optional, Dict
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationInfo
 
 from ..utils.db_utils import bcrypt
 
@@ -32,8 +32,7 @@ class UserModel(BaseModel):
         ):
             hashing_v = cls.hashing_password(v)
             return hashing_v
-        else:
-            raise ValueError('validate_password error')
+        raise ValueError("La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-)")
 
     @staticmethod
     def hashing_password(password) -> str:
@@ -43,11 +42,18 @@ class UserModel(BaseModel):
     def __validate_phone(cls, v):
         if v is None:
             return v
-        phone_pattern = re.compile(r"^\+?34?\d{9}$")
+        phone_pattern = re.compile(r"^(?:\+34)?\d{9}$")
         if phone_pattern.match(v):
             return v
-        else:
-            raise ValueError('validate_phone error')
+        raise ValueError("El teléfono debe tener el prefijo +34 y/o 9 dígitos, y debe ser tipo string.")
+
+    @field_validator('addresses', 'basket', mode='before')
+    def __validate_addresses_basket(cls, v, field: ValidationInfo):
+        if v is None:
+            return v
+        if all(isinstance(i, dict) for i in v):
+            return v
+        raise ValueError(f"El campo '{field.field_name}' debe ser una lista de diccionarios o None.")
 
     def to_dict(self) -> dict:
         return self.model_dump()

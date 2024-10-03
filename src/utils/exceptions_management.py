@@ -1,6 +1,15 @@
 from flask import jsonify, Response
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
+from bson import json_util
+
+class ResourceNotFoundError(Exception):
+    def __init__(self, user_id: int, resource: str):
+        self.user_id = user_id
+        self.resource = resource
+
+    def json_response(self):
+        return jsonify(err=f"El {self.resource} {self.user_id} no ha sido encontrado"), 404
 
 
 # Función para manejar errores de campos no permitidos
@@ -37,7 +46,7 @@ def input_should_be(errors: list) -> tuple[Response, int]:
 
 # Función para manejar errores de valores no permitidos
 def value_error_formatting(errors: list) -> tuple[Response, int]:
-    msg = [e["msg"][e["msg"].find(",") + 2:] for e in errors]
+    msg = [e["msg"][e["msg"].find(",") + 2:] for e in errors if e["msg"].startswith("Value error")]
     return jsonify({"err": " ".join(msg)}), 400
 
 
@@ -51,9 +60,11 @@ def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
             return input_should_be(errors_list)
         if e["msg"] == "Extra inputs are not permitted":
             return extra_inputs_are_not_permitted(errors_list)
+        if e["msg"].startswith("value is not a valid email address"):
+            return jsonify(err="El email no es válido."), 400
         if e["msg"].startswith("Value error"):
             return value_error_formatting(errors_list)
-    return jsonify(err=errors_list), 400
+    return jsonify(err=[str(e) for e in errors_list]), 400
 
 
 def handle_duplicate_key_error(error: DuplicateKeyError) -> tuple[Response, int]:
@@ -61,4 +72,4 @@ def handle_duplicate_key_error(error: DuplicateKeyError) -> tuple[Response, int]
 
 
 def handle_unexpected_error(error: Exception) -> tuple[Response, int]:
-    return jsonify(err=f"Ha ocurrido un error inesperado. {error}"), 500
+    return jsonify(err=f"Ha ocurrido un error inesperado. {str(error)}"), 500

@@ -1,18 +1,16 @@
-from flask import Blueprint, request, jsonify
-from bson import json_util, ObjectId
+from flask import Blueprint, request
+from bson import ObjectId
 from pymongo import ReturnDocument, errors
 from pydantic import ValidationError
 
-from ..utils.db_utils import (
-    db,
-    extra_inputs_are_not_permitted,
-    field_required,
-    input_should_be
-)
+from ..utils.db_utils import db
+from ..utils.exceptions_management import handle_unexpected_error, handle_validation_error, handle_duplicate_key_error, ResourceNotFoundError
 from ..models.user_model import UserModel
+from ..utils.successfully_responses import resource_added_msg, resource_deleted_msg, db_json_response
 
 
 coll_users = db.users
+user_resource = "usuario"
 
 user_route = Blueprint("user", __name__)
 
@@ -26,46 +24,22 @@ def add_user():
         # raise "No tiene autorización para asignar un rol."
         user_object = UserModel(**user_data)
         new_user = coll_users.insert_one(user_object.to_dict())
-        return (
-            jsonify(
-                msg=f"El usuario {new_user.inserted_id} ha sido añadido de forma satisfactoria"
-            ),
-            200,
-        )
+        return resource_added_msg(new_user.inserted_id, user_resource)
     except errors.DuplicateKeyError as e:
-        return (
-            jsonify(
-                err=f"Error de clave duplicada en MongoDB: {e.details['keyValue']}"
-            ),
-            409,
-        )
+        return handle_duplicate_key_error(e)
     except ValidationError as e:
-        if "Field required" in str(e):
-            return field_required(e, "name", "email", "password")
-        elif "Extra inputs are not permitted" in str(e):
-            return extra_inputs_are_not_permitted(e)
-        elif "Input should be" in str(e):
-            return input_should_be(e)
-        elif "is not a valid email address" in str(e):
-            return jsonify(err="El email no es una dirección de correo electrónico válida."), 400
-        elif "Value error" and "validate_password error" in str(e):
-            return jsonify(err="La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-)"), 400
-        elif "Value error" and "validate_phone error" in str(e):
-            return jsonify(err="El teléfono debe tener el prefijo +34 y/o 9 dígitos, y debe ser tipo string."), 400
-        else:
-            return jsonify(err=f"Error: {e}"), 400
+        return handle_validation_error(e)
     except Exception as e:
-        return jsonify(err=f"Ha ocurrido un error inesperado: {e}"), 500
+        return handle_unexpected_error(e)
 
 
 @user_route.route("/users", methods=["GET"])
 def get_users():
     try:
         users = coll_users.find()
-        response = json_util.dumps(users)
-        return response, 200
+        return db_json_response(users)
     except Exception as e:
-        return jsonify(err=f"Ha ocurrido un error inesperado: {e}"), 500
+        return handle_unexpected_error(e)
 
 
 @user_route.route("/user/<user_id>", methods=["GET", "PUT", "DELETE"])
@@ -74,18 +48,13 @@ def manage_user(user_id):
         try:
             user = coll_users.find_one({"_id": ObjectId(user_id)})
             if user:
-                response = json_util.dumps(user)
-                return response, 200
+                return db_json_response(user)
             else:
-                return (
-                    jsonify(err=f"El usuario {user_id} no ha sido encontrado"),
-                    404,
-                )
+                raise ResourceNotFoundError(user_id, user_resource)
+        except ResourceNotFoundError as e:
+            return e.json_response()
         except Exception as e:
-            return (
-                jsonify(err=f"Ha ocurrido un error inesperado: {e}"),
-                500,
-            )
+            return handle_unexpected_error(e)
 
     elif request.method == "PUT":
         try:
@@ -103,50 +72,26 @@ def manage_user(user_id):
                     {"$set": user_object.to_dict()},
                     return_document=ReturnDocument.AFTER,
                 )
-                response = json_util.dumps(updated_user)
-                return response
+                return db_json_response(updated_user)
             else:
-                return (
-                    jsonify(err=f"El usuario {user_id} no ha sido encontrado"),
-                    404,
-                )
+                raise ResourceNotFoundError(user_id, user_resource)
+        except ResourceNotFoundError as e:
+            return e.json_response()
         except errors.DuplicateKeyError as e:
-            return (
-                jsonify(
-                    err=f"Error de clave duplicada en MongoDB: {e.details['keyValue']}"
-                ),
-                409,
-            )
+            return handle_duplicate_key_error(e)
         except ValidationError as e:
-            if "Extra inputs are not permitted" in str(e):
-                return extra_inputs_are_not_permitted(e)
-            elif "Input should be" in str(e):
-                return input_should_be(e)
-            elif "is not a valid email address" in str(e):
-                return jsonify(err="El email no es una dirección de correo electrónico válida."), 400
-            elif "Value error" and "validate_password error" in str(e):
-                return jsonify(err="La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-), y ser de tipo string"), 400
-            elif "Value error" and "validate_phone error" in str(e):
-                return jsonify(err="El teléfono debe tener el prefijo +34 y/o 9 dígitos, y ser de tipo string"), 400
-            else:
-                return jsonify(err=f"Error: {e}"), 400
+            return handle_validation_error(e)
         except Exception as e:
-            return jsonify(err=f"Ha ocurrido un error inesperado: {e}"), 500
+            return handle_unexpected_error(e)
 
     elif request.method == "DELETE":
         try:
             deleted_user = coll_users.delete_one({"_id": ObjectId(user_id)})
             if deleted_user.deleted_count > 0:
-                return (
-                    jsonify(
-                        msg=f"El usuario {user_id} ha sido eliminado de forma satisfactoria"
-                    ),
-                    200,
-                )
+                return resource_deleted_msg(user_id, user_resource)
             else:
-                return (
-                    jsonify(err=f"El usuario {user_id} no ha sido encontrado"),
-                    404,
-                )
+                raise ResourceNotFoundError(user_id, user_resource)
+        except ResourceNotFoundError as e:
+            return e.json_response()
         except Exception as e:
-            return jsonify(err=f"Error: {e}"), 500
+            return handle_unexpected_error(e)

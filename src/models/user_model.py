@@ -51,7 +51,7 @@ class UserModel(BaseModel):
     def __validate_addresses_basket(cls, v, field: ValidationInfo):
         if v is None:
             return v
-        if all(isinstance(i, dict) for i in v):
+        if isinstance(v, list) and all(isinstance(i, dict) for i in v):
             return v
         raise ValueError(f"El campo '{field.field_name}' debe ser una lista de diccionarios o None.")
 

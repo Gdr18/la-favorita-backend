@@ -75,15 +75,27 @@ def test_validate_phone_non_numeric():
         UserModel(name="John Doe", email="john.doe@example.com", password="ValidPass123!", role=1, phone="+123ABC7890")
 
 
+def test_validate_addresses_basket_non_list_or_none():
+    with pytest.raises(ValidationError):
+        UserModel(name="John Doe", email="john.doe@example.com", password="ValidPass123!", role=1, basket="item1", addresses=5235634)
+
+
+def test_validate_addresses_basket_list_of_non_dicts():
+    with pytest.raises(ValidationError):
+        UserModel(name="John Doe", email="john.doe@example.com", password="ValidPass123!", role=1, basket=[213122], addresses=["+123ABC7890"])
+
+
+def test_validate_addresses_basket_valid():
+    user = UserModel(name="John Doe", email="john.doe@example.com", password="ValidPass123!", role=1, basket=[{"item": "item1"}], addresses=None)
+    assert all(isinstance(item, dict) for item in user.basket) is True and user.addresses is None
+
+
 def test_to_dict():
     user_data = {
         "name": "John Doe",
         "email": "john.doe@example.com",
         "password": "Password123!",
-        "role": 2,
-        "phone": "+34123456789",
-        "addresses": ["123 Main St", "456 Elm St"],
-        "basket": ["item1", "item2"]
+        "role": 2
     }
 
     user = UserModel(**user_data)

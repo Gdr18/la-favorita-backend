@@ -68,11 +68,11 @@ class ProductModel(BaseModel):
                 return v
         if all(isinstance(i, str) for i in v):
             return cls.checking_in_list(field, v, allowed_allergens if field == 'allergens' else allowed_categories)
-        raise ValueError(f"El campo '{field}' debe ser una lista de strings o None.")
+        raise ValueError(f"El campo '{field}' debe ser una lista de strings{' o None' if field == 'allergens' else None}.")
 
     @staticmethod
     def checking_in_list(name_field: str, value: List[str], allowed_values: tuple) -> list:
-        invalid_values = [item for item in value if item not in allowed_values]
+        invalid_values = [item for item in value if item not in allowed_values if isinstance(value, list)]
         if invalid_values:
             invalid_values_str = ', '.join(f"'{item}'" for item in invalid_values)
             raise ValueError(f"""{f"Los valores {invalid_values_str} no son válidos en el campo '{name_field}'." if len(invalid_values) > 1 else f"El valor '{invalid_values[0]}' no es válido en el campo '{name_field}'."}""")

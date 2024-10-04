@@ -1,30 +1,28 @@
 from flask import jsonify, Response
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
-from bson import json_util
+
 
 class ResourceNotFoundError(Exception):
     def __init__(self, user_id: int, resource: str):
         self.user_id = user_id
         self.resource = resource
 
-    def json_response(self):
-        return jsonify(err=f"El {self.resource} {self.user_id} no ha sido encontrado"), 404
+    def json_response(self) -> tuple[Response, int]:
+        return jsonify(err=f"El {self.resource} con id {self.user_id} no ha sido encontrado"), 404
 
 
 # Función para manejar errores de campos no permitidos
 def extra_inputs_are_not_permitted(errors: list) -> tuple[Response, int]:
-    invalid_fields = [error["loc"][0] for error in errors if error["msg"] == "Extra inputs are not permitted"]
-    formatting_invalid_fields = ', '.join(f"'{field}'" for field in invalid_fields)
-    response = jsonify(err=f"""Hay {f"{len(invalid_fields)} campos que no son válidos" if len(invalid_fields) > 1 else f"{len(invalid_fields)} campo que no es válido"}: {formatting_invalid_fields}.""")
+    formatting_invalid_fields = ', '.join(f"'{field['loc'][0]}'" for field in errors)
+    response = jsonify(err=f"""Hay {f"{len(errors)} campos que no son válidos" if len(errors) > 1 else f"{len(errors)} campo que no es válido"}: {formatting_invalid_fields}.""")
     return response, 400
 
 
 # Función para manejar errores de campos requeridos
 def field_required(errors: list) -> tuple[Response, int]:
-    fields_required = [error["loc"][0] for error in errors if error["msg"] == "Field required"]
-    formatting_fields_required = ', '.join([f"""'{error}'""" for error in fields_required])
-    response = jsonify(err=f"{f'Faltan {len(fields_required)} campos requeridos ' if len(fields_required) > 1 else f'Falta {len(fields_required)} campo requerido'}: {formatting_fields_required}.")
+    formatting_fields_required = ', '.join([f"""'{error['loc'][0]}'""" for error in errors])
+    response = jsonify(err=f"{f'Faltan {len(errors)} campos requeridos ' if len(errors) > 1 else f'Falta {len(errors)} campo requerido'}: {formatting_fields_required}.")
     return response, 400
 
 
@@ -46,7 +44,20 @@ def input_should_be(errors: list) -> tuple[Response, int]:
 
 # Función para manejar errores de valores no permitidos
 def value_error_formatting(errors: list) -> tuple[Response, int]:
-    msg = [e["msg"][e["msg"].find(",") + 2:] for e in errors if e["msg"].startswith("Value error")]
+    msg = [error["msg"][error["msg"].find(",") + 2:] for error in errors]
+    return jsonify({"err": " ".join(msg)}), 400
+
+
+def items_should_be_in_collection(errors: list) -> tuple[Response, int]:
+    source_selected = []
+    for error in errors:
+        field = error["loc"][0]
+        type_field = error["msg"][:error["msg"].find(" ")]
+        first_index_items_number = error["msg"].find("at least ") + 9
+        last_index_items_number = error["msg"].find(" ", first_index_items_number)
+        items_number = error["msg"][first_index_items_number:last_index_items_number]
+        source_selected.append((field, type_field, items_number))
+    msg = [f"El campo '{field}' debe ser de tipo '{type_field.lower()}' con al menos {items_number} elemento." for field, type_field, items_number in source_selected]
     return jsonify({"err": " ".join(msg)}), 400
 
 
@@ -55,15 +66,22 @@ def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
     errors_list = error.errors()
     for e in errors_list:
         if e["msg"] == "Field required":
-            return field_required(errors_list)
+            errors_field_required = [error for error in errors_list if error["msg"] == "Field required"]
+            return field_required(errors_field_required)
         if e["msg"].startswith("Input should be"):
-            return input_should_be(errors_list)
+            errors_input_should_be = [error for error in errors_list if error["msg"].startswith("Input should be")]
+            return input_should_be(errors_input_should_be)
         if e["msg"] == "Extra inputs are not permitted":
-            return extra_inputs_are_not_permitted(errors_list)
+            errors_extra_inputs_are_not_permitted = [error for error in errors_list if error["msg"] == "Extra inputs are not permitted"]
+            return extra_inputs_are_not_permitted(errors_extra_inputs_are_not_permitted)
         if e["msg"].startswith("value is not a valid email address"):
             return jsonify(err="El email no es válido."), 400
         if e["msg"].startswith("Value error"):
-            return value_error_formatting(errors_list)
+            errors_value_error = [error for error in errors_list if error["msg"].startswith("Value error")]
+            return value_error_formatting(errors_value_error)
+        if e["msg"].startswith("List should have at least"):
+            errors_should_be_in_list = [error for error in errors_list if error["msg"].startswith("List should have at least")]
+            return items_should_be_in_collection(errors_should_be_in_list)
     return jsonify(err=[str(e) for e in errors_list]), 400
 
 

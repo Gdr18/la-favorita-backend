@@ -65,7 +65,6 @@ def manage_user(user_id):
                 # TODO: AUTH usuario tipo 1: if (data.get("role") or data.get("email")) and not # usuario con rol tipo 1: raise "No tiene autorización para asignar un rol o cambiar el email."
                 combined_data = {**user, **data}
                 user_object = UserModel(**combined_data)
-
                 # TODO: Para mejorar el rendimiento cuando se ponga a producción cambiar a update_one, o mirar si es realmente necesario
                 updated_user = coll_users.find_one_and_update(
                     {"_id": ObjectId(user_id)},

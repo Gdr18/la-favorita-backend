@@ -1,13 +1,15 @@
-from flask import Blueprint, request, jsonify
-from bson import json_util, ObjectId
+from flask import Blueprint, request
+from bson import ObjectId
 from pymongo import ReturnDocument, errors
 from pydantic import ValidationError
 
 from ..utils.db_utils import db
-from ..utils.exceptions_management import handle_validation_error, handle_unexpected_error, handle_duplicate_key_error
+from ..utils.exceptions_management import ResourceNotFoundError, handle_validation_error, handle_unexpected_error, handle_duplicate_key_error
+from ..utils.successfully_responses import resource_added_msg, resource_deleted_msg, db_json_response
 from ..models.product_model import ProductModel
 
 coll_products = db.products
+product_resource = "producto"
 
 product_route = Blueprint("product", __name__)
 
@@ -18,12 +20,7 @@ def add_product():
         product_data = request.get_json()
         product_object = ProductModel(**product_data)
         new_product = coll_products.insert_one(product_object.to_dict())
-        return (
-            jsonify(
-                msg=f"El producto {new_product.inserted_id} ha sido añadido de forma satisfactoria"
-            ),
-            200,
-        )
+        return resource_added_msg(new_product.inserted_id, product_resource)
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
@@ -36,8 +33,7 @@ def add_product():
 def get_products():
     try:
         products = coll_products.find()
-        response = json_util.dumps(products)
-        return response, 200
+        return db_json_response(products)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -48,15 +44,11 @@ def manage_product(product_id):
         try:
             product = coll_products.find_one({"_id": ObjectId(product_id)})
             if product:
-                response = json_util.dumps(product)
-                return response, 200
+                return db_json_response(product)
             else:
-                return (
-                    jsonify(
-                        err=f"El producto {product_id} no ha sido encontrado"
-                    ),
-                    404,
-                )
+                raise ResourceNotFoundError(product_id, product_resource)
+        except ResourceNotFoundError as e:
+            return e.json_response()
         except Exception as e:
             return handle_unexpected_error(e)
 
@@ -73,15 +65,11 @@ def manage_product(product_id):
                     {"$set": product_object.to_dict()},
                     return_document=ReturnDocument.AFTER,
                 )
-                response = json_util.dumps(updated_product)
-                return response
+                return db_json_response(updated_product)
             else:
-                return (
-                    jsonify(
-                        err=f"El producto {product_id} no ha sido encontrado"
-                    ),
-                    404,
-                )
+                raise ResourceNotFoundError(product_id, product_resource)
+        except ResourceNotFoundError as e:
+            return e.json_response()
         except errors.DuplicateKeyError as e:
             return handle_duplicate_key_error(e)
         except ValidationError as e:
@@ -93,18 +81,10 @@ def manage_product(product_id):
         try:
             deleted_product = coll_products.delete_one({"_id": ObjectId(product_id)})
             if deleted_product.deleted_count > 0:
-                return (
-                    jsonify(
-                        msg=f"El producto {product_id} ha sido eliminado de forma satisfactoria"
-                    ),
-                    200,
-                )
+                return resource_deleted_msg(product_id, product_resource)
             else:
-                return (
-                    jsonify(
-                        err=f"El producto {product_id} no ha sido encontrado"
-                    ),
-                    404,
-                )
+                raise ResourceNotFoundError(product_id, product_resource)
+        except ResourceNotFoundError as e:
+            return e.json_response()
         except Exception as e:
             return handle_unexpected_error(e)

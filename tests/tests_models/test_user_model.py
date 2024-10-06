@@ -102,4 +102,3 @@ def test_to_dict():
     user_dict = user.to_dict()
 
     assert isinstance(user_dict, dict) is True
-

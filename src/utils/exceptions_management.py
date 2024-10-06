@@ -22,7 +22,7 @@ def extra_inputs_are_not_permitted(errors: list) -> tuple[Response, int]:
 # Función para manejar errores de campos requeridos
 def field_required(errors: list) -> tuple[Response, int]:
     formatting_fields_required = ', '.join([f"""'{error['loc'][0]}'""" for error in errors])
-    response = jsonify(err=f"{f'Faltan {len(errors)} campos requeridos ' if len(errors) > 1 else f'Falta {len(errors)} campo requerido'}: {formatting_fields_required}.")
+    response = jsonify(err=f"{f'Faltan {len(errors)} campos requeridos' if len(errors) > 1 else f'Falta {len(errors)} campo requerido'}: {formatting_fields_required}.")
     return response, 400
 
 

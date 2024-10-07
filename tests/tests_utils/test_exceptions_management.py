@@ -33,7 +33,7 @@ def test_handle_validation_error_extra_inputs_are_not_permitted(app):
             assert response.get_json()['err'] == "Hay 2 campos que no son válidos: 'color', 'size'."
 
 
-# Test para campos requeridos faltantes
+# Test para manejar errores de campos requeridos faltantes
 def test_handle_validation_error_field_required(app):
     with app.app_context():
         try:
@@ -44,7 +44,7 @@ def test_handle_validation_error_field_required(app):
             assert response.get_json()['err'] == "Faltan 3 campos requeridos: 'name', 'email', 'password'."
 
 
-# Test para tipos de datos incorrectos
+# Test para manejar errores de tipos de datos incorrectos
 def test_handle_validation_error_input_should_be(app):
     with app.app_context():
         try:
@@ -55,7 +55,7 @@ def test_handle_validation_error_input_should_be(app):
             assert response.get_json()['err'] == "El campo 'name' debe ser de tipo 'string'. El campo 'phone' debe ser de tipo 'string'."
 
 
-# test_value_error_formatting
+# Test para manejar errores value error que necesitan formatearse
 def test_handle_validation_error_value_error_formatting(app):
     with app.app_context():
         try:
@@ -66,7 +66,7 @@ def test_handle_validation_error_value_error_formatting(app):
             assert response.get_json()['err'] == "La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-)"
 
 
-# Test para listas con menos elementos de los requeridos
+# Test para manejar errorres de listas con menos elementos de los requeridos
 def test_handle_validation_error_items_should_be_in_collection(app):
     with app.app_context():
         try:

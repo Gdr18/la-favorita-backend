@@ -1,6 +1,6 @@
 import re
 from typing import List, Optional, Dict
-from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationInfo
+from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationInfo, ConfigDict
 
 from ..utils.db_utils import bcrypt
 
@@ -15,8 +15,8 @@ class UserModel(BaseModel):
     addresses: Optional[List[Dict]] = None
     basket: Optional[List[Dict]] = None
 
-    class Config:
-        extra = 'forbid'
+    model_config = ConfigDict(extra='forbid')
+
 
     @field_validator('password')
     def __validate_password(cls, v) -> str:

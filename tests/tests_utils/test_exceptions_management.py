@@ -1,6 +1,10 @@
 import pytest
+from pydantic import ValidationError
+from pymongo.errors import DuplicateKeyError
 
-from src.utils.exceptions_management import ResourceNotFoundError, extra_inputs_are_not_permitted, field_required, input_should_be, handle_unexpected_error, handle_validation_error, handle_duplicate_key_error
+from src.models.user_model import UserModel
+from src.models.product_model import ProductModel
+from src.utils.exceptions_management import ResourceNotFoundError, handle_validation_error, handle_duplicate_key_error, handle_unexpected_error
 from run import app as real_app
 
 
@@ -15,55 +19,104 @@ def test_resource_not_found(app):
         error = ResourceNotFoundError(1, "usuario")
         response, status_code = error.json_response()
         assert status_code == 404
-        assert "El usuario con id 1 no ha sido encontrado" in response.get_json()["err"]
+        assert response.get_json()["err"] == "El usuario con id 1 no ha sido encontrado"
 
 
-# tests extra_inputs_are_not_permitted
-def test_single_extra_inputs_are_not_permitted():
-    with real_app.app_context():
-        error_message = [{"loc": ["field_name"]}]
-        response, status_code = extra_inputs_are_not_permitted(error_message)
+# tests para manejar errores de campos no permitidos
+def test_handle_validation_error_extra_inputs_are_not_permitted(app):
+    with app.app_context():
+        try:
+            UserModel(name="John Doe", email="john.doe@example.com", password="ValidPass!9", role=1, color="red", size="big")
+        except ValidationError as error:
+            response, status_code = handle_validation_error(error)
+            assert status_code == 400
+            assert response.get_json()['err'] == "Hay 2 campos que no son válidos: 'color', 'size'."
+
+
+# Test para campos requeridos faltantes
+def test_handle_validation_error_field_required(app):
+    with app.app_context():
+        try:
+            UserModel()
+        except ValidationError as error:
+            response, status_code = handle_validation_error(error)
+            assert status_code == 400
+            assert response.get_json()['err'] == "Faltan 3 campos requeridos: 'name', 'email', 'password'."
+
+
+# Test para tipos de datos incorrectos
+def test_handle_validation_error_input_should_be(app):
+    with app.app_context():
+        try:
+            UserModel(name=234235, email="john.doe@example.com", password="ValidPass!9", role=1, phone=23252)
+        except ValidationError as error:
+            response, status_code = handle_validation_error(error)
+            assert status_code == 400
+            assert response.get_json()['err'] == "El campo 'name' debe ser de tipo 'string'. El campo 'phone' debe ser de tipo 'string'."
+
+
+# test_value_error_formatting
+def test_handle_validation_error_value_error_formatting(app):
+    with app.app_context():
+        try:
+            UserModel(name="John Doe", email="john.doe@example.com", password="ValidPass", role=1)
+        except ValidationError as error:
+            response, status_code = handle_validation_error(error)
+            assert status_code == 400
+            assert response.get_json()['err'] == "La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-)"
+
+
+# Test para listas con menos elementos de los requeridos
+def test_handle_validation_error_items_should_be_in_collection(app):
+    with app.app_context():
+        try:
+            ProductModel(name="Tomato", stock=44, categories=[])
+        except ValidationError as error:
+            response, status_code = handle_validation_error(error)
+            assert status_code == 400
+            assert response.get_json()['err'] == "El campo 'categories' debe ser de tipo 'list' con al menos 1 elemento."
+
+
+# Test para manejar errores en el campo email
+def test_handle_validation_error_invalid_email(app):
+    with app.app_context():
+        try:
+            UserModel(name="John Dale", email="john.doe@example", password="ValidPass!9", role=1)
+        except ValidationError as error:
+            response, status_code = handle_validation_error(error)
+            assert status_code == 400
+            assert response.get_json()['err'] == "El email no es válido."
+
+
+# Test para manejar errores de validación inesperados
+def test_handle_validation_error_default_case(app, mocker):
+    with app.app_context():
+        error_mock = mocker.Mock(spec=ValidationError)
+        error_mock.errors.return_value = [
+            {"msg": "Some other error"}
+        ]
+        response, status_code = handle_validation_error(error_mock)
         assert status_code == 400
-        assert "Hay 1 campo que no es válido: 'field_name'." in response.get_json()["err"]
+        assert response.get_json()["err"] == ["{'msg': 'Some other error'}"]
 
 
-def test_multiple_extra_inputs_are_not_permitted(app):
-    with real_app.app_context():
-        error_message = [{"loc": ["field_name"]}, {"loc": ["field_name2"]}]
-        response, status_code = extra_inputs_are_not_permitted(error_message)
-        assert status_code == 400
-        assert "Hay 2 campos que no son válidos: 'field_name', 'field_name2'." in response.get_json()["err"]
+# Test para manejar errores de campos con valores duplicados
+def test_handle_duplicate_key_error(app, mocker):
+    with app.app_context():
+        error = DuplicateKeyError("E11000 duplicate key error collection: db.collection index: _id_ dup key: { _id: 1 }")
+        mocker.patch('pymongo.errors.DuplicateKeyError.details', new_callable=mocker.PropertyMock, return_value={"keyValue": {"_id": "1"}})
+
+        response, status_code = handle_duplicate_key_error(error)
+
+        assert status_code == 409
+        assert response.get_json() == {"err": "Error de clave duplicada en MongoDB: {'_id': '1'}"}
 
 
-# tests field_required
-def test_single_field_required(app):
-    with real_app.app_context():
-        error_message = [{"loc": ["field1"]}]
-        response, status_code = field_required(error_message)
-        assert status_code == 400
-        assert "Falta 1 campo requerido: 'field1'." in response.get_json()["err"]
+# Test para manejar errores inesperados
+def test_handle_unexpected_error(app):
+    with app.app_context():
+        error_message = "Test error"
+        response, status_code = handle_unexpected_error(Exception(error_message))
 
-
-def test_multiple_field_required(app):
-    with real_app.app_context():
-        error_message = [{"loc": ["field1"]}, {"loc": ["field2"]}]
-        response, status_code = field_required(error_message)
-        assert status_code == 400
-        assert "Faltan 2 campos requeridos: 'field1', 'field2'." in response.get_json()["err"]
-
-
-# test_input_should_be
-def test_single_input_should_be(app):
-    with real_app.app_context():
-        error_message = [{"loc": ["field_name"], "msg": "Input should be a valid string"}]
-        response, status_code = input_should_be(error_message)
-        assert status_code == 400
-        assert "El campo 'field_name' debe ser de tipo 'string'." in response.get_json()["err"]
-
-
-def test_multiple_invalid_type(app):
-    with real_app.app_context():
-        error_message = [{"loc": ["field_name"], "msg": "Input should be a valid string"}, {"loc": ["another_field"], "msg": "Input should be a valid list"}]
-        response, status_code = input_should_be(error_message)
-        assert status_code == 400
-        assert "El campo 'field_name' debe ser de tipo 'string'. El campo 'another_field' debe ser de tipo 'list'" in response.get_json()["err"]
+        assert status_code == 500
+        assert response.get_json() == {"err": f"Ha ocurrido un error inesperado. {error_message}"}

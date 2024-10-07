@@ -1,5 +1,5 @@
 from typing import List, Optional
-from pydantic import BaseModel, Field, field_validator, ValidationInfo
+from pydantic import BaseModel, Field, field_validator, ValidationInfo, ConfigDict
 
 
 allowed_allergens = (
@@ -57,8 +57,7 @@ class ProductModel(BaseModel):
     allergens: Optional[List[str]] = None
     notes: Optional[str] = None
 
-    class Config:
-        extra = 'forbid'
+    model_config = ConfigDict(extra='forbid')
 
     @field_validator('categories', 'allergens', mode='before')
     def __validate_addresses_basket(cls, v, field: ValidationInfo):

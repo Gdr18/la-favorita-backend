@@ -17,7 +17,6 @@ class UserModel(BaseModel):
 
     model_config = ConfigDict(extra='forbid')
 
-
     @field_validator('password')
     def __validate_password(cls, v) -> str:
         bcrypt_pattern = re.compile(r'^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$')

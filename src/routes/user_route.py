@@ -5,9 +5,9 @@ from pydantic import ValidationError
 
 from ..utils.db_utils import db
 from ..utils.exceptions_management import handle_unexpected_error, handle_validation_error, handle_duplicate_key_error, ResourceNotFoundError
-from ..models.user_model import UserModel
 from ..utils.successfully_responses import resource_added_msg, resource_deleted_msg, db_json_response
 
+from ..models.user_model import UserModel
 
 coll_users = db.users
 user_resource = "usuario"
@@ -56,7 +56,7 @@ def manage_user(user_id):
         except Exception as e:
             return handle_unexpected_error(e)
 
-    elif request.method == "PUT":
+    if request.method == "PUT":
         try:
             user = coll_users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
             if user:
@@ -83,7 +83,7 @@ def manage_user(user_id):
         except Exception as e:
             return handle_unexpected_error(e)
 
-    elif request.method == "DELETE":
+    if request.method == "DELETE":
         try:
             deleted_user = coll_users.delete_one({"_id": ObjectId(user_id)})
             if deleted_user.deleted_count > 0:

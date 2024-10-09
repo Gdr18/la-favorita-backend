@@ -2,7 +2,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field, field_validator, ValidationInfo, ConfigDict
 
 
-allowed_allergens = (
+allowed_allergens = [
     "cereal",
     "huevo",
     "crustáceo",
@@ -17,8 +17,8 @@ allowed_allergens = (
     "sulfito",
     "altramuz",
     "molusco",
-)
-allowed_categories = (
+]
+allowed_categories = [
     "snack",
     "dulce",
     "fruta",
@@ -45,7 +45,7 @@ allowed_categories = (
     "bebida isotónica",
     "limpieza",
     "otro",
-)
+]
 
 
 # Campos únicos: name. Está configurado en MongoDB Atlas.
@@ -65,7 +65,7 @@ class ProductModel(BaseModel):
         if field == 'allergens':
             if v is None:
                 return v
-        if all(isinstance(i, str) for i in v):
+        if isinstance(v, list) and all(isinstance(i, str) for i in v):
             return cls.checking_in_list(field, v, allowed_allergens if field == 'allergens' else allowed_categories)
         raise ValueError(f"El campo '{field}' debe ser una lista de strings{' o None' if field == 'allergens' else None}.")
 

@@ -65,9 +65,6 @@ def items_should_be_in_collection(errors: list) -> tuple[Response, int]:
 def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
     errors_list = error.errors()
     for e in errors_list:
-        if e["msg"] == "Field required":
-            errors_field_required = [error for error in errors_list if error["msg"] == "Field required"]
-            return field_required(errors_field_required)
         if e["msg"].startswith("Input should be"):
             errors_input_should_be = [error for error in errors_list if error["msg"].startswith("Input should be")]
             return input_should_be(errors_input_should_be)
@@ -80,6 +77,9 @@ def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
         if e["msg"].startswith("List should have at least"):
             errors_should_be_in_list = [error for error in errors_list if error["msg"].startswith("List should have at least")]
             return items_should_be_in_collection(errors_should_be_in_list)
+        if e["msg"] == "Field required":
+            errors_field_required = [error for error in errors_list if error["msg"] == "Field required"]
+            return field_required(errors_field_required)
         if e["msg"].startswith("value is not a valid email address"):
             return jsonify(err="El email no es válido."), 400
     return jsonify(err=[str(e) for e in errors_list]), 400

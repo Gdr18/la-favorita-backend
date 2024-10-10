@@ -7,7 +7,7 @@ def resource_added_msg(resource_id: str, resource) -> tuple[Response, int]:
         jsonify(
             msg=f"El/la {resource} con id '{resource_id}' ha sido añadido/a de forma satisfactoria"
         ),
-        200,
+        201,
     )
 
 
@@ -20,6 +20,6 @@ def resource_deleted_msg(resource_id: str, resource) -> tuple[Response, int]:
     )
 
 
-def db_json_response(data):
+def db_json_response(data) -> tuple[Response, int]:
     response = json_util.dumps(data)
-    return response, 200
+    return Response(response, mimetype='application/json'), 200

@@ -52,7 +52,7 @@ def manage_product(product_id):
         except Exception as e:
             return handle_unexpected_error(e)
 
-    elif request.method == "PUT":
+    if request.method == "PUT":
         try:
             product = coll_products.find_one({"_id": ObjectId(product_id)}, {"_id": 0})
             if product:
@@ -77,7 +77,7 @@ def manage_product(product_id):
         except Exception as e:
             return handle_unexpected_error(e)
 
-    elif request.method == "DELETE":
+    if request.method == "DELETE":
         try:
             deleted_product = coll_products.delete_one({"_id": ObjectId(product_id)})
             if deleted_product.deleted_count > 0:

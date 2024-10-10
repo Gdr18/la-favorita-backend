@@ -11,9 +11,9 @@ class SettingModel(BaseModel):
 
     @field_validator("values", mode="before")
     def __validate_values(cls, v):
-        if isinstance(v, list) and all(isinstance(item, str) for item in v):
+        if isinstance(v, list) and all(isinstance(item, str) and len(item) > 1 for item in v):
             return v
-        raise ValueError("El campo 'values' debe ser una lista de strings")
+        raise ValueError("El campo 'values' debe ser una lista de strings con al menos un caracter en cada string.")
 
     def to_dict(self) -> dict:
         return self.model_dump()

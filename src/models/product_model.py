@@ -37,9 +37,9 @@ class ProductModel(BaseModel):
         if field == 'allergens':
             if v is None:
                 return v
-        if isinstance(v, list) and all(isinstance(i, str) for i in v):
+        if isinstance(v, list) and all(isinstance(i, str) and len(i) > 1 for i in v):
             return cls.checking_in_list(field, v, allowed_allergens if field == 'allergens' else allowed_categories)
-        raise ValueError(f"El campo '{field}' debe ser una lista de strings{' o None' if field == 'allergens' else None}.")
+        raise ValueError(f"El campo '{field}' debe ser una lista de strings con al menos un caracter en cada string{' o None' if field == 'allergens' else None}.")
 
     @staticmethod
     def checking_in_list(name_field: str, value: list[str], allowed_values: list[str]) -> list[str]:

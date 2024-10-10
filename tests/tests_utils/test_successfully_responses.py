@@ -17,14 +17,14 @@ status_code = 200
 def test_resource_added_msg(app):
     with app.app_context():
         function = resource_added_msg("234525", "usuario")
-        expected_msg = "El usuario con id 234525 ha sido añadido de forma satisfactoria"
+        expected_msg = "El/la usuario con id '234525' ha sido añadido/a de forma satisfactoria"
         validate_success_response(function, status_code, expected_msg)
 
 
 def test_resource_deleted_msg(app):
     with app.app_context():
         function = resource_deleted_msg("234525", "usuario")
-        expected_msg = "El usuario con id 234525 ha sido eliminado de forma satisfactoria"
+        expected_msg = "El/la usuario con id '234525' ha sido eliminado/a de forma satisfactoria"
         validate_success_response(function, status_code, expected_msg)
 
 

@@ -8,6 +8,7 @@ from ..utils.exceptions_management import handle_unexpected_error, handle_valida
 from ..utils.successfully_responses import resource_added_msg, resource_deleted_msg, db_json_response
 
 from ..models.setting_model import SettingModel
+from ..models.product_model import reload_allowed_values
 
 coll_settings = db.settings
 setting_resource = "configuración"
@@ -53,7 +54,7 @@ def manage_setting(setting_id):
         except Exception as e:
             return handle_unexpected_error(e)
 
-    # TODO: Introducir actualización para las configuraciones
+    # TODO: Comprobar como podría hacer PATCH para poder optimizar el rendimiento de la base de datos
     if request.method == "PUT":
         try:
             setting = coll_settings.find_one({"_id": ObjectId(setting_id)}, {"_id": 0})
@@ -66,6 +67,7 @@ def manage_setting(setting_id):
                     {"$set": setting_object.to_dict()},
                     return_document=ReturnDocument.AFTER,
                 )
+                reload_allowed_values()
                 return db_json_response(updated_setting)
             else:
                 raise ResourceNotFoundError(setting_id, setting_resource)

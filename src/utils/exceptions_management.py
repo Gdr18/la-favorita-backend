@@ -4,12 +4,12 @@ from pymongo.errors import DuplicateKeyError
 
 
 class ResourceNotFoundError(Exception):
-    def __init__(self, user_id: int, resource: str):
+    def __init__(self, user_id: str, resource: str):
         self.user_id = user_id
         self.resource = resource
 
     def json_response(self) -> tuple[Response, int]:
-        return jsonify(err=f"El {self.resource} con id {self.user_id} no ha sido encontrado"), 404
+        return jsonify(err=f"El/la {self.resource} con id '{self.user_id}' no ha sido encontrado/a."), 404
 
 
 # Función para manejar errores de campos no permitidos

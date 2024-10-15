@@ -47,7 +47,7 @@ class UserModel(BaseModel):
         raise ValueError("El teléfono debe tener el prefijo +34 y/o 9 dígitos, y debe ser tipo string.")
 
     @field_validator('addresses', 'basket', mode='before')
-    def __validate_addresses_basket(cls, v, field: ValidationInfo):
+    def __validate_addresses_and_basket(cls, v, field: ValidationInfo):
         if v is None:
             return v
         if isinstance(v, list) and all(isinstance(i, dict) for i in v):

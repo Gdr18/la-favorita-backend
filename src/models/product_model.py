@@ -32,7 +32,7 @@ class ProductModel(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
     @field_validator('categories', 'allergens', mode='before')
-    def __validate_addresses_and_basket(cls, v, field: ValidationInfo):
+    def __validate_categories_and_allergens(cls, v, field: ValidationInfo):
         field = field.field_name
         if field == 'allergens':
             if v is None:

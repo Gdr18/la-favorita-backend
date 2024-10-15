@@ -1,3 +1,4 @@
+import json
 from typing import Union
 from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
@@ -89,7 +90,8 @@ def request_resource_not_found_error(client, mock_db, method: str, url_resource:
 
 def request_invalid_resource_duplicate_key_error(client, mock_db, mocker, method: str, url_resource: str, valid_resource_data: dict, updated_resource_data, field_required: str = None):
     error = DuplicateKeyError("E11000 duplicate key error")
-    mocker.patch('pymongo.errors.DuplicateKeyError.details', new_callable=mocker.PropertyMock, return_value={"keyValue": updated_resource_data if method == 'put' else {field_required: valid_resource_data.get(field_required)}})
+    mock_details = mocker.patch('pymongo.errors.DuplicateKeyError.details', new_callable=mocker.PropertyMock, return_value={"keyValue": updated_resource_data if method == 'put' else {field_required: valid_resource_data.get(field_required)}})
+    details_return_value = str(mock_details.return_value.get('keyValue'))
     response = None
     if method == 'post':
         mock_db.insert_one.side_effect = error
@@ -100,32 +102,39 @@ def request_invalid_resource_duplicate_key_error(client, mock_db, mocker, method
         response = client.put(url_resource, json=updated_resource_data)
     assert response.status_code == 409
     assert 'err' in response.json
+    assert details_return_value in response.json['err']
 
 
-def request_invalid_resource_validation_error(client, mock_db, mocker, method: str, url_resource: str, invalid_resource_data: dict):
-    error = mocker.Mock(spec=ValidationError)
+def request_invalid_resource_validation_error(client, mock_db, method: str, url_resource: str, invalid_resource_data: dict):
     response = None
     if method == 'post':
-        mock_db.insert_one.side_effect = error
+        mock_db.insert_one.side_effect = ValidationError
         response = client.post(url_resource, json=invalid_resource_data)
     elif method == 'put':
-        mock_db.update_one.side_effect = error
+        mock_db.update_one.side_effect = ValidationError
         response = client.put(url_resource, json=invalid_resource_data)
     assert response.status_code == 400
     assert 'err' in response.json
 
 
-def request_unexpected_error(client, mocker, request: str, url_resource: str):
-    mocker.patch(f'src.routes.setting_route.coll_settings.{request}', side_effect=Exception("Unexpected Error"))
+def request_unexpected_error(client, mock_db, request: str, url_resource: str):
     response = None
-    if any([request == 'find', request == 'find_one']):
+    if request == 'find':
+        mock_db.find.side_effect = Exception("Unexpected Error")
+        response = client.get(url_resource)
+    elif request == 'find_one':
+        mock_db.find_one.side_effect = Exception("Unexpected Error")
         response = client.get(url_resource)
     elif request == 'insert_one':
+        mock_db.insert_one.side_effect = Exception("Unexpected Error")
         response = client.post(url_resource)
     elif request == 'find_one_and_update':
+        mock_db.find_one_and_update.side_effect = Exception("Unexpected Error")
         response = client.put(url_resource)
     elif request == 'delete_one':
+        mock_db.delete_one.side_effect = Exception("Unexpected Error")
         response = client.delete(url_resource)
+
     assert response.status_code == 500
     assert 'err' in response.json
 

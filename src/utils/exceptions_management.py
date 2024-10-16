@@ -9,7 +9,7 @@ class ResourceNotFoundError(Exception):
         self.resource = resource
 
     def json_response(self) -> tuple[Response, int]:
-        return jsonify(err=f"El/la {self.resource} con id '{self.user_id}' no ha sido encontrado/a."), 404
+        return jsonify(err=f"El/la {self.resource} '{self.user_id}' no ha sido encontrado/a."), 404
 
 
 # Función para manejar errores de campos no permitidos

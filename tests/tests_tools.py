@@ -135,4 +135,3 @@ def request_unexpected_error(client, mock_db, request: str, url_resource: str):
 
     assert response.status_code == 500
     assert 'err' in response.json
-

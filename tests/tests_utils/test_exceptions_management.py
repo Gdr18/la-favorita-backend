@@ -21,7 +21,7 @@ def app():
 def test_resource_not_found(app):
     with app.app_context():
         function = ResourceNotFoundError(1, "usuario").json_response()
-        expected_error_message = "El/la usuario con id '1' no ha sido encontrado/a."
+        expected_error_message = "El/la usuario '1' no ha sido encontrado/a."
         validate_error_response(function, 404, expected_error_message)
 
 

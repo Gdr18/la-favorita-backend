@@ -3,13 +3,22 @@ from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
 
 
-class ResourceNotFoundError(Exception):
-    def __init__(self, user_id: str, resource: str):
-        self.user_id = user_id
+class ClientCustomError(Exception):
+    def __init__(self, resource: str, data_resource: str = None):
         self.resource = resource
+        self.data_resource = data_resource
 
-    def json_response(self) -> tuple[Response, int]:
-        return jsonify(err=f"El/la {self.resource} '{self.user_id}' no ha sido encontrado/a."), 404
+    def json_response_not_found(self) -> tuple[Response, int]:
+        return jsonify(err=f"El/la {self.resource} '{self.data_resource}' no ha sido encontrado/a."), 404
+
+    def json_response_not_match(self) -> tuple[Response, int]:
+        return jsonify(err=f"El/la '{self.resource}' es incorrecto."), 401
+
+    def json_response_not_authorized_change(self) -> tuple[Response, int]:
+        return jsonify(err=f"No está autorizado/a para cambiar '{self.resource}'."), 401
+
+    def json_response_not_authorized_set(self) -> tuple[Response, int]:
+        return jsonify(err=f"No está autorizado/a para establecer '{self.resource}'."), 401
 
 
 # Función para manejar errores de campos no permitidos

@@ -2,9 +2,10 @@ from flask import Blueprint, request
 from bson import ObjectId
 from pymongo import ReturnDocument, errors
 from pydantic import ValidationError
+from flask_jwt_extended import jwt_required
 
 from ..utils.db_utils import db
-from ..utils.exceptions_management import ResourceNotFoundError, handle_validation_error, handle_unexpected_error, handle_duplicate_key_error
+from ..utils.exceptions_management import ClientCustomError, handle_validation_error, handle_unexpected_error, handle_duplicate_key_error
 from ..utils.successfully_responses import resource_added_msg, resource_deleted_msg, db_json_response
 from ..models.product_model import ProductModel
 
@@ -15,6 +16,7 @@ product_route = Blueprint("product", __name__)
 
 
 @product_route.route("/product", methods=["POST"])
+@jwt_required()
 def add_product():
     try:
         product_data = request.get_json()
@@ -30,6 +32,7 @@ def add_product():
 
 
 @product_route.route("/products", methods=["GET"])
+@jwt_required()
 def get_products():
     try:
         products = coll_products.find()
@@ -39,6 +42,7 @@ def get_products():
 
 
 @product_route.route("/product/<product_id>", methods=["GET", "PUT", "DELETE"])
+@jwt_required()
 def manage_product(product_id):
     if request.method == "GET":
         try:
@@ -46,9 +50,9 @@ def manage_product(product_id):
             if product:
                 return db_json_response(product)
             else:
-                raise ResourceNotFoundError(product_id, product_resource)
-        except ResourceNotFoundError as e:
-            return e.json_response()
+                raise ClientCustomError(product_resource, product_id)
+        except ClientCustomError as e:
+            return e.json_response_not_found()
         except Exception as e:
             return handle_unexpected_error(e)
 
@@ -67,9 +71,9 @@ def manage_product(product_id):
                 )
                 return db_json_response(updated_product)
             else:
-                raise ResourceNotFoundError(product_id, product_resource)
-        except ResourceNotFoundError as e:
-            return e.json_response()
+                raise ClientCustomError(product_resource, product_id)
+        except ClientCustomError as e:
+            return e.json_response_not_found()
         except errors.DuplicateKeyError as e:
             return handle_duplicate_key_error(e)
         except ValidationError as e:
@@ -83,8 +87,8 @@ def manage_product(product_id):
             if deleted_product.deleted_count > 0:
                 return resource_deleted_msg(product_id, product_resource)
             else:
-                raise ResourceNotFoundError(product_id, product_resource)
-        except ResourceNotFoundError as e:
-            return e.json_response()
+                raise ClientCustomError(product_resource, product_id)
+        except ClientCustomError as e:
+            return e.json_response_not_found()
         except Exception as e:
             return handle_unexpected_error(e)

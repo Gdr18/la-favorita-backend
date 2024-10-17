@@ -4,7 +4,7 @@ from pymongo.errors import DuplicateKeyError
 
 from src.models.user_model import UserModel
 from src.models.product_model import ProductModel
-from src.utils.exceptions_management import ResourceNotFoundError, handle_validation_error, handle_duplicate_key_error, handle_unexpected_error
+from src.utils.exceptions_management import ClientCustomError, handle_validation_error, handle_duplicate_key_error, handle_unexpected_error
 from tests.tests_tools import validate_error_response
 from run import app as real_app
 
@@ -20,7 +20,7 @@ def app():
 
 def test_resource_not_found(app):
     with app.app_context():
-        function = ResourceNotFoundError(1, "usuario").json_response()
+        function = ClientCustomError("usuario", '1').json_response_not_found()
         expected_error_message = "El/la usuario '1' no ha sido encontrado/a."
         validate_error_response(function, 404, expected_error_message)
 

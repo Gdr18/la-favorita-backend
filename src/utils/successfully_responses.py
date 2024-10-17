@@ -5,7 +5,7 @@ from bson import json_util
 def resource_added_msg(resource_id: str, resource) -> tuple[Response, int]:
     return (
         jsonify(
-            msg=f"El/la {resource} con id '{resource_id}' ha sido añadido/a de forma satisfactoria"
+            msg=f"El/la {resource} '{resource_id}' ha sido añadido/a de forma satisfactoria"
         ),
         201,
     )
@@ -14,7 +14,7 @@ def resource_added_msg(resource_id: str, resource) -> tuple[Response, int]:
 def resource_deleted_msg(resource_id: str, resource) -> tuple[Response, int]:
     return (
         jsonify(
-            msg=f"El/la {resource} con id '{resource_id}' ha sido eliminado/a de forma satisfactoria"
+            msg=f"El/la {resource} '{resource_id}' ha sido eliminado/a de forma satisfactoria"
         ),
         200,
     )

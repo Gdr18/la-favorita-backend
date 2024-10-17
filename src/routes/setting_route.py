@@ -2,9 +2,10 @@ from flask import Blueprint, request
 from bson import ObjectId
 from pymongo import errors, ReturnDocument
 from pydantic import ValidationError
+from flask_jwt_extended import jwt_required
 
 from ..utils.db_utils import db
-from ..utils.exceptions_management import handle_unexpected_error, handle_validation_error, handle_duplicate_key_error, ResourceNotFoundError
+from ..utils.exceptions_management import handle_unexpected_error, handle_validation_error, handle_duplicate_key_error, ClientCustomError
 from ..utils.successfully_responses import resource_added_msg, resource_deleted_msg, db_json_response
 
 from ..models.setting_model import SettingModel
@@ -17,6 +18,7 @@ setting_route = Blueprint("setting", __name__)
 
 
 @setting_route.route("/setting", methods=["POST"])
+@jwt_required()
 def add_setting():
     try:
         setting_data = request.get_json()
@@ -32,6 +34,7 @@ def add_setting():
 
 
 @setting_route.route("/settings", methods=['GET'])
+@jwt_required()
 def get_settings():
     try:
         settings = coll_settings.find()
@@ -41,6 +44,7 @@ def get_settings():
 
 
 @setting_route.route("/setting/<setting_id>", methods=["GET", "PUT", "DELETE"])
+@jwt_required()
 def manage_setting(setting_id):
     if request.method == "GET":
         try:
@@ -48,9 +52,9 @@ def manage_setting(setting_id):
             if setting:
                 return db_json_response(setting)
             else:
-                raise ResourceNotFoundError(setting_id, setting_resource)
-        except ResourceNotFoundError as e:
-            return e.json_response()
+                raise ClientCustomError(setting_resource, setting_id)
+        except ClientCustomError as e:
+            return e.json_response_not_found()
         except Exception as e:
             return handle_unexpected_error(e)
 
@@ -70,9 +74,9 @@ def manage_setting(setting_id):
                 reload_allowed_values()
                 return db_json_response(updated_setting)
             else:
-                raise ResourceNotFoundError(setting_id, setting_resource)
-        except ResourceNotFoundError as e:
-            return e.json_response()
+                raise ClientCustomError(setting_resource, setting_id)
+        except ClientCustomError as e:
+            return e.json_response_not_found()
         except errors.DuplicateKeyError as e:
             return handle_duplicate_key_error(e)
         except ValidationError as e:
@@ -86,8 +90,8 @@ def manage_setting(setting_id):
             if deleted_setting.deleted_count > 0:
                 return resource_deleted_msg(setting_id, setting_resource)
             else:
-                raise ResourceNotFoundError(setting_id, setting_resource)
-        except ResourceNotFoundError as e:
-            return e.json_response()
+                raise ClientCustomError(setting_resource, setting_id)
+        except ClientCustomError as e:
+            return e.json_response_not_found()
         except Exception as e:
             return handle_unexpected_error(e)

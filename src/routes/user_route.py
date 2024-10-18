@@ -39,6 +39,7 @@ def add_user():
 @jwt_required()
 def get_users():
     try:
+
         users = coll_users.find()
         return db_json_response(users)
     except Exception as e:
@@ -48,6 +49,7 @@ def get_users():
 @user_route.route("/user/<user_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
 def manage_user(user_id):
+    user_token = get_jwt()
     if request.method == "GET":
         try:
             user = coll_users.find_one({"_id": ObjectId(user_id)})
@@ -62,15 +64,10 @@ def manage_user(user_id):
 
     if request.method == "PUT":
         try:
-            user_token = get_jwt()
-            if user_token.get("sub") != user_id or user_token.get("role") != 1:
-                raise ClientCustomError("usuario")
             user = coll_users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
             if user:
                 data = request.get_json()
-                print(user_token)
-                print(user_token.get("role"))
-                if user_token.get("role") != 1 and data.get("role") != user.get("role"):
+                if all([data.get("role"), data.get("role") != user.get("role"), user_token.get("role") != 1]):
                     raise ClientCustomError("role")
                 combined_data = {**user, **data}
                 user_object = UserModel(**combined_data)

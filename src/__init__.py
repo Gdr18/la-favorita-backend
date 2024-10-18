@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_jwt_extended import JWTManager
 
-from .utils.db_utils import bcrypt
+from .utils.db_utils import bcrypt, db
 
 from .routes.user_route import user_route
 from .routes.product_route import product_route

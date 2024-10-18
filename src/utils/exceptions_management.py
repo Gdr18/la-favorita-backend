@@ -4,21 +4,24 @@ from pymongo.errors import DuplicateKeyError
 
 
 class ClientCustomError(Exception):
-    def __init__(self, resource: str, data_resource: str = None):
+    def __init__(self, resource: str, function: str = None):
         self.resource = resource
-        self.data_resource = data_resource
+        self.function = function
 
     def json_response_not_found(self) -> tuple[Response, int]:
-        return jsonify(err=f"El/la {self.resource} '{self.data_resource}' no ha sido encontrado/a."), 404
+        return jsonify(err=f"El/la {self.resource} no ha sido encontrado/a."), 404
 
     def json_response_not_match(self) -> tuple[Response, int]:
-        return jsonify(err=f"El/la '{self.resource}' es incorrecto."), 401
+        return jsonify(err=f"El/la '{self.resource}' es incorrecto/a."), 401
 
     def json_response_not_authorized_change(self) -> tuple[Response, int]:
         return jsonify(err=f"No está autorizado/a para cambiar '{self.resource}'."), 401
 
     def json_response_not_authorized_set(self) -> tuple[Response, int]:
         return jsonify(err=f"No está autorizado/a para establecer '{self.resource}'."), 401
+
+    def json_response_not_authorized_access(self) -> tuple[Response, int]:
+        return jsonify(err=f"No está autorizado/a para acceder a '{self.resource}'."), 401
 
 
 # Función para manejar errores de campos no permitidos

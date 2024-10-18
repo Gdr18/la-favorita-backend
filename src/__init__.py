@@ -1,7 +1,6 @@
 from flask import Flask
-from flask_jwt_extended import JWTManager
 
-from .utils.db_utils import bcrypt, db
+from .utils.db_utils import bcrypt, db, jwt
 
 from .routes.user_route import user_route
 from .routes.product_route import product_route
@@ -9,8 +8,6 @@ from .routes.auth_route import auth_route
 from .routes.setting_route import setting_route
 
 app = Flask(__name__)
-
-jwt = JWTManager()
 
 
 def run_app(config):

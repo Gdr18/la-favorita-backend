@@ -39,9 +39,13 @@ def add_user():
 @jwt_required()
 def get_users():
     try:
-
+        user_role = get_jwt().get("role")
+        if user_role != 1:
+            raise ClientCustomError("usuarios", "access")
         users = coll_users.find()
         return db_json_response(users)
+    except ClientCustomError as e:
+        return e.json_response_not_authorized_access()
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -49,57 +53,53 @@ def get_users():
 @user_route.route("/user/<user_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
 def manage_user(user_id):
-    user_token = get_jwt()
-    if request.method == "GET":
-        try:
-            user = coll_users.find_one({"_id": ObjectId(user_id)})
+    try:
+        token_id = get_jwt().get("sub")
+        token_role = get_jwt().get("role")
+        if all([token_id != user_id, token_role != 1]):
+            raise ClientCustomError(user_resource, "access")
+        if request.method == "GET":
+            user = coll_users.find_one({"_id": ObjectId(token_id)})
             if user:
                 return db_json_response(user)
             else:
-                raise ClientCustomError(user_resource, user_id)
-        except ClientCustomError as e:
-            return e.json_response_not_found()
-        except Exception as e:
-            return handle_unexpected_error(e)
+                raise ClientCustomError(user_resource, "not_found")
 
-    if request.method == "PUT":
-        try:
-            user = coll_users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
+        if request.method == "PUT":
+            user = coll_users.find_one({"_id": ObjectId(token_id)}, {"_id": 0})
             if user:
                 data = request.get_json()
-                if all([data.get("role"), data.get("role") != user.get("role"), user_token.get("role") != 1]):
-                    raise ClientCustomError("role")
+                if all([token_role, data.get("role") != user.get("role"), token_role != 1]):
+                    raise ClientCustomError("role", "change")
                 combined_data = {**user, **data}
                 user_object = UserModel(**combined_data)
                 # TODO: Para mejorar el rendimiento cuando se ponga a producción cambiar a update_one, o mirar si es realmente necesario
                 updated_user = coll_users.find_one_and_update(
-                    {"_id": ObjectId(user_id)},
+                    {"_id": ObjectId(token_id)},
                     {"$set": user_object.to_dict()},
                     return_document=ReturnDocument.AFTER,
                 )
                 return db_json_response(updated_user)
             else:
-                raise ClientCustomError(user_id, user_resource)
-        except ClientCustomError as e:
-            if e.data_resource:
-                return e.json_response_not_found()
-            if any([e.resource == "usuario", e.resource == "role"]):
-                return e.json_response_not_authorized_change()
-        except errors.DuplicateKeyError as e:
-            return handle_duplicate_key_error(e)
-        except ValidationError as e:
-            return handle_validation_error(e)
-        except Exception as e:
-            return handle_unexpected_error(e)
+                raise ClientCustomError(user_resource, "not_found")
 
-    if request.method == "DELETE":
-        try:
-            deleted_user = coll_users.delete_one({"_id": ObjectId(user_id)})
+        if request.method == "DELETE":
+            deleted_user = coll_users.delete_one({"_id": ObjectId(token_id)})
             if deleted_user.deleted_count > 0:
-                return resource_deleted_msg(user_id, user_resource)
+                return resource_deleted_msg(token_id, user_resource)
             else:
-                raise ClientCustomError(user_resource, user_id)
-        except ClientCustomError as e:
+                raise ClientCustomError(user_resource, "not_found")
+
+    except ClientCustomError as e:
+        if e.function == "not_found":
             return e.json_response_not_found()
-        except Exception as e:
-            return handle_unexpected_error(e)
+        if e.function == "change":
+            return e.json_response_not_authorized_change()
+        if e.function == "access":
+            return e.json_response_not_authorized_access()
+    except errors.DuplicateKeyError as e:
+        return handle_duplicate_key_error(e)
+    except ValidationError as e:
+        return handle_validation_error(e)
+    except Exception as e:
+        return handle_unexpected_error(e)

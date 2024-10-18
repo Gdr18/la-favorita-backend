@@ -2,7 +2,7 @@ from flask import Blueprint, request
 from bson import ObjectId
 from pymongo import ReturnDocument, errors
 from pydantic import ValidationError
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt
 
 from ..utils.db_utils import db
 from ..utils.exceptions_management import ClientCustomError, handle_validation_error, handle_unexpected_error, handle_duplicate_key_error
@@ -19,10 +19,15 @@ product_route = Blueprint("product", __name__)
 @jwt_required()
 def add_product():
     try:
+        token_role = get_jwt().get("role")
+        if token_role > 2:
+            raise ClientCustomError(product_resource, "set")
         product_data = request.get_json()
         product_object = ProductModel(**product_data)
         new_product = coll_products.insert_one(product_object.to_dict())
         return resource_added_msg(new_product.inserted_id, product_resource)
+    except ClientCustomError as e:
+        return e.json_response_not_authorized_set()
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
@@ -35,8 +40,13 @@ def add_product():
 @jwt_required()
 def get_products():
     try:
+        token_role = get_jwt().get("role")
+        if token_role > 2:
+            raise ClientCustomError("productos", "access")
         products = coll_products.find()
         return db_json_response(products)
+    except ClientCustomError as e:
+        return e.json_response_not_authorized_access()
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -44,20 +54,18 @@ def get_products():
 @product_route.route("/product/<product_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
 def manage_product(product_id):
-    if request.method == "GET":
-        try:
+    try:
+        token_role = get_jwt().get("role")
+        if token_role > 2:
+            raise ClientCustomError(product_resource, "access")
+        if request.method == "GET":
             product = coll_products.find_one({"_id": ObjectId(product_id)})
             if product:
                 return db_json_response(product)
             else:
-                raise ClientCustomError(product_resource, product_id)
-        except ClientCustomError as e:
-            return e.json_response_not_found()
-        except Exception as e:
-            return handle_unexpected_error(e)
+                raise ClientCustomError(product_resource, "not_found")
 
-    if request.method == "PUT":
-        try:
+        if request.method == "PUT":
             product = coll_products.find_one({"_id": ObjectId(product_id)}, {"_id": 0})
             if product:
                 data = request.get_json()
@@ -71,24 +79,22 @@ def manage_product(product_id):
                 )
                 return db_json_response(updated_product)
             else:
-                raise ClientCustomError(product_resource, product_id)
-        except ClientCustomError as e:
-            return e.json_response_not_found()
-        except errors.DuplicateKeyError as e:
-            return handle_duplicate_key_error(e)
-        except ValidationError as e:
-            return handle_validation_error(e)
-        except Exception as e:
-            return handle_unexpected_error(e)
+                raise ClientCustomError(product_resource, "not_found")
 
-    if request.method == "DELETE":
-        try:
+        if request.method == "DELETE":
             deleted_product = coll_products.delete_one({"_id": ObjectId(product_id)})
             if deleted_product.deleted_count > 0:
                 return resource_deleted_msg(product_id, product_resource)
             else:
-                raise ClientCustomError(product_resource, product_id)
-        except ClientCustomError as e:
+                raise ClientCustomError(product_resource, "not_found")
+    except ClientCustomError as e:
+        if e.function == "access":
+            return e.json_response_not_authorized_access()
+        if e.function == "not_found":
             return e.json_response_not_found()
-        except Exception as e:
-            return handle_unexpected_error(e)
+    except errors.DuplicateKeyError as e:
+        return handle_duplicate_key_error(e)
+    except ValidationError as e:
+        return handle_validation_error(e)
+    except Exception as e:
+        return handle_unexpected_error(e)

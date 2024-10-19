@@ -1,10 +1,9 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, url_for
 from flask_jwt_extended import jwt_required, get_jwt
 from datetime import datetime
+import requests
 
-from ..utils.db_utils import db
 from ..utils.exceptions_management import handle_unexpected_error, ClientCustomError
-from ..utils.successfully_responses import resource_added_msg
 from ..services.auth_service import login_user
 
 auth_route = Blueprint("auth", __name__)
@@ -32,7 +31,9 @@ def logout():
         token_jti = get_jwt().get("jti")
         token_exp = get_jwt().get("exp")
         revoked_token = {"jti": token_jti, "exp": datetime.fromtimestamp(token_exp)}
-        new_revoked_token = db.revoked_tokens.insert_one(revoked_token)
-        return resource_added_msg(new_revoked_token.inserted_id, "token revocado")
+
+        revoke_url = url_for("revoked_token.add_revoked_token", _external=True)
+        response = requests.post(revoke_url, json=revoked_token)
+        return response
     except Exception as e:
         return handle_unexpected_error(e)

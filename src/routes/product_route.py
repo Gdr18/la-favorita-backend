@@ -53,7 +53,7 @@ def get_products():
 
 @product_route.route("/product/<product_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
-def manage_product(product_id):
+def handle_product(product_id):
     try:
         token_role = get_jwt().get("role")
         if token_role > 2:

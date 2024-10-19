@@ -52,7 +52,7 @@ def get_users():
 
 @user_route.route("/user/<user_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
-def manage_user(user_id):
+def handle_user(user_id):
     try:
         token_id = get_jwt().get("sub")
         token_role = get_jwt().get("role")

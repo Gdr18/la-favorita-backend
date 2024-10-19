@@ -1,4 +1,3 @@
-import json
 from typing import Union
 from bson import ObjectId
 from pymongo.errors import DuplicateKeyError

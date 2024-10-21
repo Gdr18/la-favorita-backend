@@ -24,7 +24,7 @@ def add_revoked_token():
         if token_role != 1:
             raise ClientCustomError(tokens_revoked_resource, "set")
         data = request.get_json()
-        data["exp"] = pendulum.from_timestamp(data["exp"], tz="UTC")
+        data["exp"] = pendulum.parse(data["exp"], tz="UTC")
         revoked_token = RevokedTokenModel(**data)
         new_revoked_token = coll_tokens_revoked.insert_one(revoked_token.to_dict())
         return resource_msg(new_revoked_token.inserted_id, tokens_revoked_resource, "añadido", 201)

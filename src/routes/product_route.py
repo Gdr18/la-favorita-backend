@@ -6,7 +6,7 @@ from flask_jwt_extended import jwt_required, get_jwt
 
 from ..utils.db_utils import db
 from ..utils.exceptions_management import ClientCustomError, handle_validation_error, handle_unexpected_error, handle_duplicate_key_error
-from ..utils.successfully_responses import resource_added_msg, resource_deleted_msg, db_json_response
+from ..utils.successfully_responses import resource_msg, db_json_response
 from ..models.product_model import ProductModel
 
 coll_products = db.products
@@ -25,7 +25,7 @@ def add_product():
         product_data = request.get_json()
         product_object = ProductModel(**product_data)
         new_product = coll_products.insert_one(product_object.to_dict())
-        return resource_added_msg(new_product.inserted_id, product_resource)
+        return resource_msg(new_product.inserted_id, product_resource, "añadido", 201)
     except ClientCustomError as e:
         return e.json_response_not_authorized_set()
     except errors.DuplicateKeyError as e:
@@ -84,7 +84,7 @@ def handle_product(product_id):
         if request.method == "DELETE":
             deleted_product = coll_products.delete_one({"_id": ObjectId(product_id)})
             if deleted_product.deleted_count > 0:
-                return resource_deleted_msg(product_id, product_resource)
+                return resource_msg(product_id, product_resource, "eliminado")
             else:
                 raise ClientCustomError(product_resource, "not_found")
     except ClientCustomError as e:

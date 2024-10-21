@@ -1,10 +1,9 @@
-from flask import Blueprint, request, url_for
+from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt
-from datetime import datetime
-import requests
+from pymongo import errors
 
-from ..utils.exceptions_management import handle_unexpected_error, ClientCustomError
-from ..services.auth_service import login_user
+from ..utils.exceptions_management import handle_unexpected_error, ClientCustomError, handle_duplicate_key_error
+from ..services.auth_service import login_user, logout_user
 
 auth_route = Blueprint("auth", __name__)
 
@@ -30,10 +29,9 @@ def logout():
     try:
         token_jti = get_jwt().get("jti")
         token_exp = get_jwt().get("exp")
-        revoked_token = {"jti": token_jti, "exp": datetime.fromtimestamp(token_exp)}
-
-        revoke_url = url_for("revoked_token.add_revoked_token", _external=True)
-        response = requests.post(revoke_url, json=revoked_token)
-        return response
+        revoked_user = logout_user(token_jti, token_exp)
+        return revoked_user
+    except errors.DuplicateKeyError as e:
+        return handle_duplicate_key_error(e)
     except Exception as e:
         return handle_unexpected_error(e)

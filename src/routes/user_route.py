@@ -6,7 +6,7 @@ from flask_jwt_extended import jwt_required, get_jwt
 
 from ..utils.db_utils import db
 from ..utils.exceptions_management import handle_unexpected_error, handle_validation_error, handle_duplicate_key_error, ClientCustomError
-from ..utils.successfully_responses import resource_added_msg, resource_deleted_msg, db_json_response
+from ..utils.successfully_responses import resource_msg, db_json_response
 
 from ..models.user_model import UserModel
 
@@ -24,7 +24,7 @@ def add_user():
             raise ClientCustomError("role")
         user_object = UserModel(**user_data)
         new_user = coll_users.insert_one(user_object.to_dict())
-        return resource_added_msg(new_user.inserted_id, user_resource)
+        return resource_msg(new_user.inserted_id, user_resource, "añadido", 201)
     except ClientCustomError as e:
         return e.json_response_not_authorized_set()
     except errors.DuplicateKeyError as e:
@@ -66,7 +66,7 @@ def handle_user(user_id):
                 raise ClientCustomError(user_resource, "not_found")
 
         if request.method == "PUT":
-            user = coll_users.find_one({"_id": ObjectId(token_id)}, {"_id": 0})
+            user = coll_users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
             if user:
                 data = request.get_json()
                 if all([token_role, data.get("role") != user.get("role"), token_role != 1]):
@@ -75,7 +75,7 @@ def handle_user(user_id):
                 user_object = UserModel(**combined_data)
                 # TODO: Para mejorar el rendimiento cuando se ponga a producción cambiar a update_one, o mirar si es realmente necesario
                 updated_user = coll_users.find_one_and_update(
-                    {"_id": ObjectId(token_id)},
+                    {"_id": ObjectId(user_id)},
                     {"$set": user_object.to_dict()},
                     return_document=ReturnDocument.AFTER,
                 )
@@ -86,7 +86,7 @@ def handle_user(user_id):
         if request.method == "DELETE":
             deleted_user = coll_users.delete_one({"_id": ObjectId(token_id)})
             if deleted_user.deleted_count > 0:
-                return resource_deleted_msg(token_id, user_resource)
+                return resource_msg(token_id, user_resource, "eliminado")
             else:
                 raise ClientCustomError(user_resource, "not_found")
 

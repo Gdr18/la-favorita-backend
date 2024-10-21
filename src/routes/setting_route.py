@@ -6,7 +6,7 @@ from flask_jwt_extended import jwt_required, get_jwt
 
 from ..utils.db_utils import db
 from ..utils.exceptions_management import handle_unexpected_error, handle_validation_error, handle_duplicate_key_error, ClientCustomError
-from ..utils.successfully_responses import resource_added_msg, resource_deleted_msg, db_json_response
+from ..utils.successfully_responses import resource_msg, db_json_response
 
 from ..models.setting_model import SettingModel
 from ..models.product_model import reload_allowed_values
@@ -27,7 +27,7 @@ def add_setting():
         setting_data = request.get_json()
         setting_object = SettingModel(**setting_data)
         new_setting = coll_settings.insert_one(setting_object.to_dict())
-        return resource_added_msg(new_setting.inserted_id, setting_resource)
+        return resource_msg(new_setting.inserted_id, setting_resource, "añadida", 201)
     except ClientCustomError as e:
         return e.json_response_not_authorized_set()
     except errors.DuplicateKeyError as e:
@@ -87,7 +87,7 @@ def manage_setting(setting_id):
         if request.method == "DELETE":
             deleted_setting = coll_settings.delete_one({"_id": ObjectId(setting_id)})
             if deleted_setting.deleted_count > 0:
-                return resource_deleted_msg(setting_id, setting_resource)
+                return resource_msg(setting_id, setting_resource, "eliminada")
             else:
                 raise ClientCustomError(setting_resource, "not_found")
     except ClientCustomError as e:

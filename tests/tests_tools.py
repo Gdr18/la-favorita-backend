@@ -1,10 +1,9 @@
-import json
 from typing import Union
 from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
 from pydantic import ValidationError
 
-from src.utils.exceptions_management import ResourceNotFoundError
+from src.utils.exceptions_management import ClientCustomError
 
 
 def validate_error_response(function: tuple, expected_status_code: int, expected_error_message: Union[str, list[str]]):
@@ -73,7 +72,7 @@ def request_resource_not_found(app, client, mock_db, method: str, url_resource: 
 
 
 def request_resource_not_found_error(client, mock_db, method: str, url_resource: str, valid_resource_data: dict, resource: str):
-    error = ResourceNotFoundError(valid_resource_data.get('_id'), resource)
+    error = ClientCustomError(resource, valid_resource_data.get('_id'))
     response = None
     if method == 'delete':
         mock_db.delete_one.side_effect = error

@@ -2,21 +2,12 @@ from flask import jsonify, Response
 from bson import json_util
 
 
-def resource_added_msg(resource_id: str, resource) -> tuple[Response, int]:
+def resource_msg(resource_id: str, resource, action, status_code=200) -> tuple[Response, int]:
     return (
         jsonify(
-            msg=f"El/la {resource} con id '{resource_id}' ha sido añadido/a de forma satisfactoria"
+            msg=f"{resource.capitalize()} '{resource_id}' ha sido {action} de forma satisfactoria"
         ),
-        201,
-    )
-
-
-def resource_deleted_msg(resource_id: str, resource) -> tuple[Response, int]:
-    return (
-        jsonify(
-            msg=f"El/la {resource} con id '{resource_id}' ha sido eliminado/a de forma satisfactoria"
-        ),
-        200,
+        status_code,
     )
 
 

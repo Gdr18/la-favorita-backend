@@ -1,5 +1,5 @@
 from typing import List, Optional
-from pydantic import BaseModel, Field, field_validator, ValidationInfo, ConfigDict
+from pydantic import BaseModel, Field, field_validator, ValidationInfo
 
 from ..utils.db_utils import db
 
@@ -21,15 +21,13 @@ def reload_allowed_values() -> None:
 
 
 # Campos únicos: name. Está configurado en MongoDB Atlas.
-class ProductModel(BaseModel):
+class ProductModel(BaseModel, extra='forbid'):
     name: str = Field(..., min_length=1, max_length=50)
     categories: List[str] = Field(..., min_length=1)
     stock: int = Field(..., ge=0)
     brand: Optional[str] = None
     allergens: Optional[List[str]] = None
     notes: Optional[str] = None
-
-    model_config = ConfigDict(extra='forbid')
 
     @field_validator('categories', 'allergens', mode='before')
     def __validate_categories_and_allergens(cls, v, field: ValidationInfo):

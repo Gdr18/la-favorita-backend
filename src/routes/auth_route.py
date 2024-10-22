@@ -1,37 +1,37 @@
-from flask import Blueprint, jsonify, request
-from flask_jwt_extended import create_access_token, get_jwt, jwt_required
+from flask import Blueprint, request
+from flask_jwt_extended import jwt_required, get_jwt
+from pymongo import errors
 
-
-from ..utils.db_utils import db, bcrypt
-from ..utils.exceptions_management import handle_unexpected_error, ResourceNotFoundError
+from ..utils.exceptions_management import handle_unexpected_error, ClientCustomError, handle_duplicate_key_error
+from ..services.auth_service import login_user, logout_user
 
 auth_route = Blueprint("auth", __name__)
 
-coll_users = db.users
-
 
 @auth_route.route("/login", methods=["POST"])
-def login_user():
-    data = request.get_json()
+def login():
     try:
-        user_request = coll_users.find_one({"email": data.get("email")})
-        if user_request:
-            if bcrypt.check_password_hash(user_request.get("password"), data.get("password")):
-                access_token = create_access_token(
-                    identity={"id": str(user_request["_id"]), "role": user_request["role"]}
-                )
-                return jsonify(access_token=access_token), 200
-            else:
-                return jsonify(err="La contraseña no coincide"), 401
-        else:
-            raise ResourceNotFoundError(data.get("email"), "usuario")
-    except ResourceNotFoundError as e:
-        return e.json_response()
+        user_data = request.get_json()
+        authenticated_user = login_user(user_data)
+        return authenticated_user
+    except ClientCustomError as e:
+        if e.function == "not_found":
+            return e.json_response_not_found()
+        if e.resource == "password":
+            return e.json_response_not_match()
     except Exception as e:
         return handle_unexpected_error(e)
 
 
-@auth_route.route("/logout", methods=["DELETE"])
+@auth_route.route("/logout", methods=["POST"])
 @jwt_required()
 def logout():
-    pass
+    try:
+        token_jti = get_jwt().get("jti")
+        token_exp = get_jwt().get("exp")
+        revoked_user = logout_user(token_jti, token_exp)
+        return revoked_user
+    except errors.DuplicateKeyError as e:
+        return handle_duplicate_key_error(e)
+    except Exception as e:
+        return handle_unexpected_error(e)

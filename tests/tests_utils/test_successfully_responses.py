@@ -1,7 +1,7 @@
 import pytest
 from flask import Response
 
-from src.utils.successfully_responses import resource_deleted_msg, resource_msg, db_json_response
+from src.utils.successfully_responses import resource_msg, db_json_response
 from tests.tests_tools import validate_success_response
 from run import app as real_app
 
@@ -12,18 +12,11 @@ def app():
     return real_app
 
 
-def test_resource_added_msg(app):
+def test_resource_msg(app):
     with app.app_context():
-        function = resource_msg("234525", "usuario")
-        expected_msg = "El/la usuario '234525' ha sido añadido/a de forma satisfactoria"
+        function = resource_msg("234525", "usuario", "añadido", 201)
+        expected_msg = "Usuario '234525' ha sido añadido de forma satisfactoria"
         validate_success_response(function, 201, expected_msg)
-
-
-def test_resource_deleted_msg(app):
-    with app.app_context():
-        function = resource_deleted_msg("234525", "usuario")
-        expected_msg = "El/la usuario '234525' ha sido eliminado/a de forma satisfactoria"
-        validate_success_response(function, 200, expected_msg)
 
 
 def test_db_json_response():

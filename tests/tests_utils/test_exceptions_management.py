@@ -18,11 +18,39 @@ def app():
     return real_app
 
 
-def test_resource_not_found(app):
+def test_json_response_not_found(app):
     with app.app_context():
-        function = ClientCustomError("usuario", '1').json_response_not_found()
-        expected_error_message = "El/la usuario '1' no ha sido encontrado/a."
+        function = ClientCustomError("usuario").json_response_not_found()
+        expected_error_message = "Usuario no encontrado"
         validate_error_response(function, 404, expected_error_message)
+
+
+def test_json_response_not_match(app):
+    with app.app_context():
+        function = ClientCustomError("password").json_response_not_match()
+        expected_error_message = "'Password' no coincide"
+        validate_error_response(function, 401, expected_error_message)
+
+
+def test_json_response_not_authorized_change(app):
+    with app.app_context():
+        function = ClientCustomError("role").json_response_not_authorized_change()
+        expected_error_message = "No está autorizado para cambiar 'role'"
+        validate_error_response(function, 401, expected_error_message)
+
+
+def test_json_response_not_authorized_set(app):
+    with app.app_context():
+        function = ClientCustomError("role").json_response_not_authorized_set()
+        expected_error_message = "No está autorizado para establecer 'role'"
+        validate_error_response(function, 401, expected_error_message)
+
+
+def test_json_response_not_authorized_access(app):
+    with app.app_context():
+        function = ClientCustomError("usuario").json_response_not_authorized_access()
+        expected_error_message = "No está autorizado para acceder a la ruta 'usuario'"
+        validate_error_response(function, 401, expected_error_message)
 
 
 # tests para manejar errores de campos no permitidos

@@ -3,11 +3,10 @@ from typing import List
 
 
 # Campos únicos: name. Está configurado en MongoDB Atlas.
-class SettingModel(BaseModel):
+class SettingModel(BaseModel, extra='forbid'):
     name: str = Field(..., min_length=1, max_length=50)
     values: List[str] = Field(..., min_length=1)
 
-    model_config = ConfigDict(extra='forbid')
 
     @field_validator("values", mode="before")
     def __validate_values(cls, v):

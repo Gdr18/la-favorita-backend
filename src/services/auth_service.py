@@ -38,4 +38,14 @@ def check_if_token_revoked(jwt_header, jwt_payload):
 
 @jwt.revoked_token_loader
 def revoked_token_callback(jwt_header, jwt_payload):
-    return jsonify({"err": "El token ha sido revocado. Por favor, inicie sesión de nuevo."}), 401
+    return jsonify(err="El token ha sido revocado. Por favor, inicie sesión de nuevo."), 401
+
+
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    return jsonify(err="El token ha expirado"), 401
+
+
+@jwt.unauthorized_loader
+def unauthorized_callback(error_message):
+    return jsonify(err="Necesita un token autorizado para acceder a esta ruta."), 401

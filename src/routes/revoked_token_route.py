@@ -39,6 +39,7 @@ def add_revoked_token():
 
 
 @token_revoked_route.route("/revoked_tokens", methods=["GET"])
+# @jwt_required()
 def get_revoked_tokens():
     try:
         # token_role = get_jwt().get("role")

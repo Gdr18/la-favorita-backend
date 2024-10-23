@@ -9,13 +9,13 @@ from src.utils.exceptions_management import ClientCustomError
 def validate_error_response(function: tuple, expected_status_code: int, expected_error_message: Union[str, list[str]]):
     response, status_code = function
     assert status_code == expected_status_code
-    assert response.get_json()['err'] == expected_error_message
+    assert response.json['err'] == expected_error_message
 
 
 def validate_success_response(function: tuple, expected_status_code: int, expected_success_message: str):
     response, status_code = function
     assert status_code == expected_status_code
-    assert response.get_json()['msg'] == expected_success_message
+    assert response.json['msg'] == expected_success_message
 
 
 # Funciones reutilizables para los tests de las rutas
@@ -53,6 +53,21 @@ def request_deleting_resource(client, mock_db, header, url_resource: str):
     response = client.delete(url_resource, headers=header)
     assert response.status_code == 200
     assert 'msg' in response.json
+
+
+def request_unauthorized_access(client, header, mock_jwt, request, url_resource: str, valid_resource_data: dict):
+    response = None
+    mock_jwt.return_value = {'role': 3}
+    if request == 'post':
+        response = client.post(url_resource, json=valid_resource_data, headers=header)
+    elif request == 'get':
+        response = client.get(url_resource, headers=header)
+    elif request == 'put':
+        response = client.put(url_resource, json=valid_resource_data, headers=header)
+    elif request == 'delete':
+        response = client.delete(url_resource, headers=header)
+    assert response.status_code == 401
+    assert 'err' in response.json
 
 
 def request_resource_not_found(app, client, mock_db, header, method: str, url_resource: str):

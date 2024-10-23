@@ -10,7 +10,7 @@ from ..utils.db_utils import db
 from ..utils.exceptions_management import handle_unexpected_error, ClientCustomError, handle_validation_error, handle_duplicate_key_error
 from ..utils.successfully_responses import resource_msg, db_json_response
 
-coll_tokens_revoked = db.revoked_tokens
+coll_revoked_tokens = db.revoked_tokens
 tokens_revoked_resource = "token revocado"
 
 token_revoked_route = Blueprint("revoked_token", __name__)
@@ -24,9 +24,10 @@ def add_revoked_token():
         if token_role != 1:
             raise ClientCustomError(tokens_revoked_resource, "set")
         data = request.get_json()
-        data["exp"] = pendulum.parse(data["exp"], tz="UTC")
+        if isinstance(data["exp"], str):
+            data["exp"] = pendulum.parse(data["exp"], tz="UTC")
         revoked_token = RevokedTokenModel(**data)
-        new_revoked_token = coll_tokens_revoked.insert_one(revoked_token.to_dict())
+        new_revoked_token = coll_revoked_tokens.insert_one(revoked_token.to_dict())
         return resource_msg(new_revoked_token.inserted_id, tokens_revoked_resource, "añadido", 201)
     except ClientCustomError as e:
         return e.json_response_not_authorized_set()
@@ -45,7 +46,7 @@ def get_revoked_tokens():
         # token_role = get_jwt().get("role")
         # if token_role != 1:
         #     raise ClientCustomError(tokens_revoked_resource, "get")
-        revoked_tokens = coll_tokens_revoked.find()
+        revoked_tokens = coll_revoked_tokens.find()
         return db_json_response(revoked_tokens)
     except ClientCustomError as e:
         return e.json_response_not_authorized_access()
@@ -61,7 +62,7 @@ def handle_revoked_token(revoked_token_id):
         if token_role != 1:
             raise ClientCustomError(tokens_revoked_resource, "access")
         if request.method == "GET":
-            revoked_token = coll_tokens_revoked.find_one({"_id": ObjectId(revoked_token_id)})
+            revoked_token = coll_revoked_tokens.find_one({"_id": ObjectId(revoked_token_id)})
             if revoked_token:
                 return db_json_response(revoked_token)
             else:
@@ -69,13 +70,13 @@ def handle_revoked_token(revoked_token_id):
 
         # TODO: Comprobar como podría hacer PATCH para poder optimizar el rendimiento de la base de datos
         if request.method == "PUT":
-            revoked_token = coll_tokens_revoked.find_one({"_id": ObjectId(revoked_token_id)}, {"_id": 0})
+            revoked_token = coll_revoked_tokens.find_one({"_id": ObjectId(revoked_token_id)}, {"_id": 0})
             if revoked_token:
                 data = request.get_json()
                 mixed_data = {**revoked_token, **data}
                 data["exp"] = pendulum.parse(data["exp"])
                 revoked_token_object = RevokedTokenModel(**mixed_data)
-                updated_revoked_token = coll_tokens_revoked.find_one_and_update(
+                updated_revoked_token = coll_revoked_tokens.find_one_and_update(
                     {"_id": ObjectId(revoked_token_id)},
                     {"$set": revoked_token_object.to_dict()},
                     return_document=ReturnDocument.AFTER,
@@ -85,7 +86,7 @@ def handle_revoked_token(revoked_token_id):
                 raise ClientCustomError(tokens_revoked_resource, "not_found")
 
         if request.method == "DELETE":
-            deleted_revoked_token = coll_tokens_revoked.delete_one({"_id": ObjectId(revoked_token_id)})
+            deleted_revoked_token = coll_revoked_tokens.delete_one({"_id": ObjectId(revoked_token_id)})
             if deleted_revoked_token.deleted_count > 0:
                 return resource_msg(revoked_token_id, tokens_revoked_resource, "eliminado")
             else:

@@ -47,7 +47,7 @@ def mock_jwt(mocker):
 @pytest.fixture
 def valid_revoked_token_data():
     return {
-        "exp": pendulum.datetime(2024, 12, 31, 23, 59, 59),
+        "exp": 1919068218,
         "jti": "bb53e637-8627-457c-840f-6cae52a12e8b"
     }
 
@@ -55,14 +55,14 @@ def valid_revoked_token_data():
 @pytest.fixture
 def invalid_revoked_token_data():
     return {
-        "exp": "hola",
-        "jti": "bb53e637-8627-457c-840f-6cae52a12e8b"
+        "exp": 1919068218666,
+        "jti": "bb53e63744-8627-457c-840f-6cae52a12e8b"
     }
 
 
 @pytest.fixture
 def updated_revoked_token_data():
-    return {"exp": pendulum.datetime(2025, 12, 31, 23, 59, 59)}
+    return {"exp": 1919068250}
 
 
 def test_add_revoked_token(client, mock_db, auth_header, valid_revoked_token_data):

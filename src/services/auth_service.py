@@ -24,7 +24,6 @@ def login_user(user_data):
 
 
 def logout_user(token_jti, token_exp):
-    token_exp = pendulum.from_timestamp(token_exp, tz="UTC")
     token_object = RevokedTokenModel(jti=token_jti, exp=token_exp)
     token_revoked = db.revoked_tokens.insert_one(token_object.to_dict())
     return resource_msg(token_revoked.inserted_id, "token revocado", "añadido", 201)

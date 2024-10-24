@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from src.models.revoked_token_model import RevokedTokenModel
 
 VALID_DATA = {
-    "exp": pendulum.datetime(2024, 12, 31, 23, 59, 59),
+    "exp": 1919068218,
     "jti": "bb53e637-8627-457c-840f-6cae52a12e8b"
 }
 
@@ -36,4 +36,3 @@ def test_revoked_token_model_invalid_exp():
 def test_revoked_token_model_to_dict():
     revoked_token = (RevokedTokenModel(**VALID_DATA)).to_dict()
     assert isinstance(revoked_token, dict)
-    assert revoked_token == VALID_DATA

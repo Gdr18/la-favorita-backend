@@ -24,8 +24,6 @@ def add_revoked_token():
         if token_role != 1:
             raise ClientCustomError(tokens_revoked_resource, "set")
         data = request.get_json()
-        if isinstance(data["exp"], str):
-            data["exp"] = pendulum.parse(data["exp"], tz="UTC")
         revoked_token = RevokedTokenModel(**data)
         new_revoked_token = coll_revoked_tokens.insert_one(revoked_token.to_dict())
         return resource_msg(new_revoked_token.inserted_id, tokens_revoked_resource, "añadido", 201)
@@ -40,12 +38,12 @@ def add_revoked_token():
 
 
 @token_revoked_route.route("/revoked_tokens", methods=["GET"])
-# @jwt_required()
+@jwt_required()
 def get_revoked_tokens():
     try:
-        # token_role = get_jwt().get("role")
-        # if token_role != 1:
-        #     raise ClientCustomError(tokens_revoked_resource, "get")
+        token_role = get_jwt().get("role")
+        if token_role != 1:
+            raise ClientCustomError(tokens_revoked_resource, "get")
         revoked_tokens = coll_revoked_tokens.find()
         return db_json_response(revoked_tokens)
     except ClientCustomError as e:
@@ -74,7 +72,6 @@ def handle_revoked_token(revoked_token_id):
             if revoked_token:
                 data = request.get_json()
                 mixed_data = {**revoked_token, **data}
-                data["exp"] = pendulum.parse(data["exp"])
                 revoked_token_object = RevokedTokenModel(**mixed_data)
                 updated_revoked_token = coll_revoked_tokens.find_one_and_update(
                     {"_id": ObjectId(revoked_token_id)},

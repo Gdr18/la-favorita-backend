@@ -34,7 +34,7 @@ def request_getting_resources(client, mock_db, header, url_resource: str, valid_
 
 
 def request_getting_resource(client, mock_db, header, url_resource: str, valid_resource_data: dict):
-    mock_db.find_one.return_value = {'_id': ObjectId(), **valid_resource_data}
+    mock_db.find_one.return_value = valid_resource_data
     response = client.get(url_resource, headers=header)
     assert response.status_code == 200
     assert isinstance(response.json, dict)

@@ -1,16 +1,12 @@
 import pytest
-from flask_jwt_extended import create_access_token
-import pendulum
 
 from src import app as real_app
 from src.services.auth_service import login_user, logout_user, check_if_token_revoked, revoked_token_callback, expired_token_callback, unauthorized_callback
 from src.utils.exceptions_management import ClientCustomError
-from src.utils.successfully_responses import resource_msg
-from src.models.revoked_token_model import RevokedTokenModel
 
 VALID_JWT = {
     "jti": "bb53e637-8627-457c-840f-6cae52a12e8b",
-    "exp": int(pendulum.datetime(2024, 12, 31, 23, 59, 59).timestamp())
+    "exp": 1919068218
 }
 
 

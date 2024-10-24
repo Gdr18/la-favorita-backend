@@ -11,9 +11,9 @@ class RevokedTokenModel(BaseModel, extra="forbid", arbitrary_types_allowed=True)
     @field_validator('exp', mode='before')
     @classmethod
     def check_exp(cls, v):
-        if isinstance(v, pendulum.DateTime) and v > pendulum.now("UTC"):
-            return v
-        raise ValueError("La fecha de expiración debe ser tipo datetime y mayor que la fecha actual.")
+        if isinstance(v, int) and len(str(v)) == 10 and v > pendulum.now("UTC").int_timestamp:
+            return pendulum.from_timestamp(v, tz="UTC")
+        raise ValueError("'Exp' debe ser de tipo unix timestamp y mayor que la fecha actual")
 
     def to_dict(self):
         return self.model_dump()

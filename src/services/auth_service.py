@@ -1,6 +1,5 @@
 from flask_jwt_extended import create_access_token
 from flask import jsonify
-import pendulum
 
 from ..models.revoked_token_model import RevokedTokenModel
 from ..utils.exceptions_management import ClientCustomError
@@ -24,7 +23,6 @@ def login_user(user_data):
 
 
 def logout_user(token_jti, token_exp):
-    token_exp = pendulum.from_timestamp(token_exp, tz="UTC")
     token_object = RevokedTokenModel(jti=token_jti, exp=token_exp)
     token_revoked = db.revoked_tokens.insert_one(token_object.to_dict())
     return resource_msg(token_revoked.inserted_id, "token revocado", "añadido", 201)
@@ -38,7 +36,7 @@ def check_if_token_revoked(jwt_header, jwt_payload):
 
 @jwt.revoked_token_loader
 def revoked_token_callback(jwt_header, jwt_payload):
-    return jsonify(err="El token ha sido revocado. Por favor, inicie sesión de nuevo."), 401
+    return jsonify(err="El token ha sido revocado"), 401
 
 
 @jwt.expired_token_loader
@@ -48,4 +46,4 @@ def expired_token_callback(jwt_header, jwt_payload):
 
 @jwt.unauthorized_loader
 def unauthorized_callback(error_message):
-    return jsonify(err="Necesita un token autorizado para acceder a esta ruta."), 401
+    return jsonify(err="Necesita un token autorizado para acceder a esta ruta"), 401

@@ -9,19 +9,19 @@ class ClientCustomError(Exception):
         self.function = function
 
     def json_response_not_found(self) -> tuple[Response, int]:
-        return jsonify(err=f"El/la {self.resource} no ha sido encontrado/a."), 404
+        return jsonify(err=f"{self.resource.capitalize()} no encontrado"), 404
 
     def json_response_not_match(self) -> tuple[Response, int]:
-        return jsonify(err=f"El/la '{self.resource}' es incorrecto/a."), 401
+        return jsonify(err=f"'{self.resource.capitalize()}' no coincide"), 401
 
     def json_response_not_authorized_change(self) -> tuple[Response, int]:
-        return jsonify(err=f"No está autorizado/a para cambiar '{self.resource}'."), 401
+        return jsonify(err=f"No está autorizado para cambiar '{self.resource}'"), 401
 
     def json_response_not_authorized_set(self) -> tuple[Response, int]:
-        return jsonify(err=f"No está autorizado/a para establecer '{self.resource}'."), 401
+        return jsonify(err=f"No está autorizado para establecer '{self.resource}'"), 401
 
     def json_response_not_authorized_access(self) -> tuple[Response, int]:
-        return jsonify(err=f"No está autorizado/a para acceder a '{self.resource}'."), 401
+        return jsonify(err=f"No está autorizado para acceder a la ruta '{self.resource}'"), 401
 
 
 # Función para manejar errores de campos no permitidos

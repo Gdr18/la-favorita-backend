@@ -7,8 +7,8 @@ class SettingModel(BaseModel, extra='forbid'):
     name: str = Field(..., min_length=1, max_length=50)
     values: List[str] = Field(..., min_length=1)
 
-
     @field_validator("values", mode="before")
+    @classmethod
     def __validate_values(cls, v):
         if isinstance(v, list) and all(isinstance(item, str) and len(item) > 1 for item in v):
             return v

@@ -18,6 +18,16 @@ def test_get_allowed_values(mock_db):
     mock_db.find_one.assert_called_once_with({"name": "test_name"}, {"name": 0, "_id": 0})
 
 
+def test_product_validate_name_too_short():
+    with pytest.raises(ValidationError):
+        ProductModel(name="", stock=345, categories=["snack"], allergens=["cacahuete"], brand="marca", notes="notas")
+
+
+def test_product_validate_name_too_long():
+    with pytest.raises(ValidationError):
+        ProductModel(name="a" * 51, stock=345, categories=["snack"], allergens=["cacahuete"], brand="marca", notes="notas")
+
+
 def test_product_validate_categories_allergens_non_list_or_none():
     with pytest.raises(ValidationError):
         ProductModel(name="Patatas", stock=345, categories=None)
@@ -48,9 +58,24 @@ def test_product_validate_categories_allergens_valid():
     assert all(isinstance(item, str) for item in product.allergens)
 
 
+def test_product_validate_stock_negative():
+    with pytest.raises(ValidationError):
+        ProductModel(name="Cacahuetes", stock=-345, categories=["snack"], allergens=["cacahuete"], brand="marca", notes="notas")
+
+
+def test_product_validate_brand_too_long():
+    with pytest.raises(ValidationError):
+        ProductModel(name="Cacahuetes", stock=345, categories=["snack"], allergens=["cacahuete"], brand="a" * 51, notes="notas")
+
+
 def test_product_validate_allergens_valid_none():
     product = ProductModel(name="Cacahuetes", stock=345, categories=["snack", "otro"], allergens=None, brand="marca", notes="notas")
     assert product.allergens is None
+
+
+def test_product_validate_notes_too_long():
+    with pytest.raises(ValidationError):
+        ProductModel(name="Cacahuetes", stock=345, categories=["snack"], allergens=["cacahuete"], brand="marca", notes="a" * 501)
 
 
 def test_product_checking_in_list_invalid_values():

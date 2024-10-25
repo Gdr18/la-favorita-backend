@@ -6,8 +6,8 @@ from src import app as real_app
 from src.utils.exceptions_management import ClientCustomError
 
 
-VALID_USER_DATA = {"username": "test_user", "password": "_Test1234"}
-INVALID_USER_DATA = {"username": "test_user", "password": "wrong_password"}
+VALID_LOGIN_DATA = {"username": "test_user", "password": "_Test1234"}
+INVALID_LOGIN_DATA = {"username": "test_user", "password": "wrong_password"}
 
 URL_LOGIN = "/login"
 URL_LOGOUT = "/logout"
@@ -42,35 +42,35 @@ def mock_logout_user_function(mocker):
 
 
 def test_login_successful(client, mock_login_user_function):
-    mock_login_user_function.return_value = ({"msg": "User logged in successfully"}, 200)
-    response = client.post(URL_LOGIN, json=VALID_USER_DATA)
+    mock_login_user_function.return_value = ({"msg": "Token '234' ha sido creado de forma satisfactoria"}, 200)
+    response = client.post(URL_LOGIN, json=VALID_LOGIN_DATA)
     assert response.status_code == 200
     assert "msg" in response.json
 
 
 def test_login_user_not_found(client, mock_login_user_function):
     mock_login_user_function.side_effect = ClientCustomError("usuario", "not_found")
-    response = client.post(URL_LOGIN, json=INVALID_USER_DATA)
+    response = client.post(URL_LOGIN, json=INVALID_LOGIN_DATA)
     assert response.status_code == 404
     assert "err" in response.json
 
 
 def test_login_password_not_match(client, mock_login_user_function):
     mock_login_user_function.side_effect = ClientCustomError("password", "not_match")
-    response = client.post(URL_LOGIN, json=INVALID_USER_DATA)
+    response = client.post(URL_LOGIN, json=INVALID_LOGIN_DATA)
     assert response.status_code == 401
     assert "err" in response.json
 
 
 def test_login_unexpected_error(client, mock_login_user_function):
     mock_login_user_function.side_effect = Exception("Unexpected error")
-    response = client.post(URL_LOGIN, json=VALID_USER_DATA)
+    response = client.post(URL_LOGIN, json=VALID_LOGIN_DATA)
     assert response.status_code == 500
     assert "err" in response.json
 
 
 def test_logout_successful(client, mock_logout_user_function, authorized_header):
-    mock_logout_user_function.return_value = ({"msg": "User logged out successfully"}, 200)
+    mock_logout_user_function.return_value = ({"msg": "Token revocado '2345' ha sido añadido de forma satisfactoria"}, 200)
     response = client.post(URL_LOGOUT, headers=authorized_header)
     assert response.status_code == 200
     assert "msg" in response.json

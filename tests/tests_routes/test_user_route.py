@@ -2,18 +2,18 @@ import pytest
 from flask_jwt_extended import create_access_token
 
 from src import app as real_app
-from tests.tests_tools import request_adding_valid_resource, request_invalid_resource_duplicate_key_error, request_invalid_resource_validation_error, request_unexpected_error, request_getting_resources, request_getting_resource, request_resource_not_found, request_resource_not_found_error, request_updating_resource, request_deleting_resource, request_unauthorized_access
-
+from tests.tests_tools import request_adding_valid_resource, request_invalid_resource_duplicate_key_error, request_invalid_resource_validation_error, request_unexpected_error, request_getting_resources, request_getting_resource, request_resource_not_found, request_resource_not_found_error, request_updating_resource, request_deleting_resource, request_unauthorized_access, request_unauthorized_set
 
 URL_USER = '/user'
 URL_USERS = '/users'
 URL_USER_ID = '/user/507f1f77bcf86cd799439011'
 RESOURCE = 'usuario'
 
-
 VALID_USER_DATA = {"name": "John Doe", "email": "john.doe@example.com", "password": "ValidPass123!"}
+VALID_USER_DATA_ROLE = {**VALID_USER_DATA, "role": 2}
 INVALID_USER_DATA = {"name": 12345, "email": "john.doe", "password": "invalid_pass"}
 UPDATED_USER_DATA = {'name': 'new_value'}
+UPDATED_USER_DATA_ROLE = {"role": 3}
 
 
 @pytest.fixture
@@ -67,9 +67,14 @@ def test_delete_user(client, mock_db, auth_header):
 
 
 def test_user_route_unauthorized_access(client, auth_header, mock_jwt):
-    request_unauthorized_access(client, auth_header, mock_jwt, 'get', URL_USERS, VALID_USER_DATA)
-    request_unauthorized_access(client, auth_header, mock_jwt, 'put', URL_USER_ID, VALID_USER_DATA)
-    request_unauthorized_access(client, auth_header, mock_jwt, 'delete', URL_USER_ID, VALID_USER_DATA)
+    request_unauthorized_access(client, auth_header, mock_jwt, 'get', URL_USERS, {**VALID_USER_DATA, "role": 3})
+    request_unauthorized_access(client, auth_header, mock_jwt, 'put', URL_USER_ID, {**VALID_USER_DATA, "role": 3})
+    request_unauthorized_access(client, auth_header, mock_jwt, 'delete', URL_USER_ID, {**VALID_USER_DATA, "role": 3})
+
+
+def test_user_route_unauthorized_set(client, mock_db, auth_header, mock_jwt):
+    request_unauthorized_set(client, mock_db, auth_header, mock_jwt, 'post', URL_USER, VALID_USER_DATA_ROLE)
+    request_unauthorized_set(client, mock_db, auth_header, mock_jwt, 'put', URL_USER_ID, VALID_USER_DATA_ROLE, UPDATED_USER_DATA_ROLE)
 
 
 def test_user_route_duplicate_key_error(client, mock_db, auth_header, mocker):

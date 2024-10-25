@@ -1,6 +1,5 @@
 from flask_jwt_extended import create_access_token
 from flask import jsonify
-import pendulum
 
 from ..models.revoked_token_model import RevokedTokenModel
 from ..utils.exceptions_management import ClientCustomError

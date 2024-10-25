@@ -3,7 +3,6 @@ from flask_jwt_extended import jwt_required, get_jwt
 from bson import ObjectId
 from pymongo import errors, ReturnDocument
 from pydantic import ValidationError
-import pendulum
 
 from ..models.revoked_token_model import RevokedTokenModel
 from ..utils.db_utils import db

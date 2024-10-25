@@ -10,14 +10,14 @@ def get_allowed_values(name: str) -> list[str]:
     return settings_request.get("values") if settings_request else []
 
 
-allowed_allergens = get_allowed_values("allergens")
-allowed_categories = get_allowed_values("categories")
+_allowed_allergens = get_allowed_values("allergens")
+_allowed_categories = get_allowed_values("categories")
 
 
 def reload_allowed_values() -> None:
-    global allowed_allergens, allowed_categories
-    allowed_allergens = get_allowed_values("allergens")
-    allowed_categories = get_allowed_values("categories")
+    global _allowed_allergens, _allowed_categories
+    _allowed_allergens = get_allowed_values("allergens")
+    _allowed_categories = get_allowed_values("categories")
 
 
 # Campos únicos: name. Está configurado en MongoDB Atlas.
@@ -25,18 +25,19 @@ class ProductModel(BaseModel, extra='forbid'):
     name: str = Field(..., min_length=1, max_length=50)
     categories: List[str] = Field(..., min_length=1)
     stock: int = Field(..., ge=0)
-    brand: Optional[str] = None
+    brand: Optional[str] = Field(None, max_length=50)
     allergens: Optional[List[str]] = None
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=500)
 
     @field_validator('categories', 'allergens', mode='before')
+    @classmethod
     def __validate_categories_and_allergens(cls, v, field: ValidationInfo):
         field = field.field_name
         if field == 'allergens':
             if v is None:
                 return v
         if isinstance(v, list) and all(isinstance(i, str) and len(i) > 1 for i in v):
-            return cls.checking_in_list(field, v, allowed_allergens if field == 'allergens' else allowed_categories)
+            return cls.checking_in_list(field, v, _allowed_allergens if field == 'allergens' else _allowed_categories)
         raise ValueError(f"El campo '{field}' debe ser una lista de strings con al menos un caracter en cada string{' o None' if field == 'allergens' else None}.")
 
     @staticmethod

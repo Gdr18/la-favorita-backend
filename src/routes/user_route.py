@@ -69,7 +69,7 @@ def handle_user(user_id):
             user = coll_users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
             if user:
                 data = request.get_json()
-                if all([token_role, data.get("role") != user.get("role"), token_role != 1]):
+                if all([data.get("role"), data.get("role") != user.get("role"), token_role != 1]):
                     raise ClientCustomError("role", "change")
                 combined_data = {**user, **data}
                 user_object = UserModel(**combined_data)

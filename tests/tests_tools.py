@@ -6,16 +6,28 @@ from pydantic import ValidationError
 from src.utils.exceptions_management import ClientCustomError
 
 
-def validate_error_response(function: tuple, expected_status_code: int, expected_error_message: Union[str, list[str]]):
+def validate_error_response_specific(function: tuple, expected_status_code: int, expected_error_message: Union[str, list[str]]):
     response, status_code = function
     assert status_code == expected_status_code
     assert response.json['err'] == expected_error_message
 
 
-def validate_success_response(function: tuple, expected_status_code: int, expected_success_message: str):
+def validate_success_response_specific(function: tuple, expected_status_code: int, expected_success_message: str):
     response, status_code = function
     assert status_code == expected_status_code
     assert response.json['msg'] == expected_success_message
+
+
+def validate_error_response_generic(function: tuple, expected_status_code: int):
+    response, status_code = function
+    assert status_code == expected_status_code
+    assert "err" in response.json
+
+
+def validate_success_response_generic(function: tuple, expected_status_code: int):
+    response, status_code = function
+    assert status_code == expected_status_code
+    assert "msg" in response.json
 
 
 # Funciones reutilizables para los tests de las rutas
@@ -66,6 +78,18 @@ def request_unauthorized_access(client, header, mock_jwt, request, url_resource:
         response = client.put(url_resource, json=valid_resource_data, headers=header)
     elif request == 'delete':
         response = client.delete(url_resource, headers=header)
+    assert response.status_code == 401
+    assert 'err' in response.json
+
+
+def request_unauthorized_set(client, mock_db, header, mock_jwt, request, url_resource: str, valid_resource_data: dict, updated_resource_data: dict = None):
+    response = None
+    if request == 'post':
+        response = client.post(url_resource, json=valid_resource_data, headers=header)
+    if request == 'put':
+        mock_jwt.return_value = {"role": valid_resource_data["role"], 'sub': "507f1f77bcf86cd799439011"}
+        mock_db.find_one.return_value = valid_resource_data
+        response = client.put(url_resource, json=updated_resource_data, headers=header)
     assert response.status_code == 401
     assert 'err' in response.json
 

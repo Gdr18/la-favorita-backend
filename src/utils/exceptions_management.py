@@ -3,13 +3,25 @@ from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
 
 
-class ResourceNotFoundError(Exception):
-    def __init__(self, user_id: int, resource: str):
-        self.user_id = user_id
+class ClientCustomError(Exception):
+    def __init__(self, resource: str, function: str = None):
         self.resource = resource
+        self.function = function
 
-    def json_response(self) -> tuple[Response, int]:
-        return jsonify(err=f"El {self.resource} con id {self.user_id} no ha sido encontrado"), 404
+    def json_response_not_found(self) -> tuple[Response, int]:
+        return jsonify(err=f"{self.resource.capitalize()} no encontrado"), 404
+
+    def json_response_not_match(self) -> tuple[Response, int]:
+        return jsonify(err=f"'{self.resource.capitalize()}' no coincide"), 401
+
+    def json_response_not_authorized_change(self) -> tuple[Response, int]:
+        return jsonify(err=f"No está autorizado para cambiar '{self.resource}'"), 401
+
+    def json_response_not_authorized_set(self) -> tuple[Response, int]:
+        return jsonify(err=f"No está autorizado para establecer '{self.resource}'"), 401
+
+    def json_response_not_authorized_access(self) -> tuple[Response, int]:
+        return jsonify(err=f"No está autorizado para acceder a la ruta '{self.resource}'"), 401
 
 
 # Función para manejar errores de campos no permitidos
@@ -65,9 +77,6 @@ def items_should_be_in_collection(errors: list) -> tuple[Response, int]:
 def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
     errors_list = error.errors()
     for e in errors_list:
-        if e["msg"] == "Field required":
-            errors_field_required = [error for error in errors_list if error["msg"] == "Field required"]
-            return field_required(errors_field_required)
         if e["msg"].startswith("Input should be"):
             errors_input_should_be = [error for error in errors_list if error["msg"].startswith("Input should be")]
             return input_should_be(errors_input_should_be)
@@ -80,6 +89,9 @@ def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
         if e["msg"].startswith("List should have at least"):
             errors_should_be_in_list = [error for error in errors_list if error["msg"].startswith("List should have at least")]
             return items_should_be_in_collection(errors_should_be_in_list)
+        if e["msg"] == "Field required":
+            errors_field_required = [error for error in errors_list if error["msg"] == "Field required"]
+            return field_required(errors_field_required)
         if e["msg"].startswith("value is not a valid email address"):
             return jsonify(err="El email no es válido."), 400
     return jsonify(err=[str(e) for e in errors_list]), 400

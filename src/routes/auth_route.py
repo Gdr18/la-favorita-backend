@@ -2,8 +2,12 @@ from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt
 from pymongo import errors
 
-from ..utils.exceptions_management import handle_unexpected_error, ClientCustomError, handle_duplicate_key_error
 from ..services.auth_service import login_user, logout_user
+from ..utils.exceptions_management import (
+    handle_unexpected_error,
+    ClientCustomError,
+    handle_duplicate_key_error,
+)
 
 auth_route = Blueprint("auth", __name__)
 

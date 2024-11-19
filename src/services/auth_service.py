@@ -10,11 +10,13 @@ from ..utils.db_utils import db, bcrypt, jwt
 def login_user(user_data):
     user_request = db.users.find_one({"email": user_data.get("email")})
     if user_request:
-        if bcrypt.check_password_hash(user_request.get("password"), user_data.get("password")):
+        if bcrypt.check_password_hash(
+            user_request.get("password"), user_data.get("password")
+        ):
             access_token = create_access_token(
                 identity=str(user_request.get("_id")),
                 additional_claims={"role": user_request.get("role")},
-                fresh=True
+                fresh=True,
             )
             return resource_msg(access_token, "token", "creado")
         raise ClientCustomError("password")

@@ -6,7 +6,7 @@ from ..utils.db_utils import bcrypt
 
 
 # Campos únicos: email. Está configurado en MongoDB Atlas.
-class UserModel(BaseModel, extra='forbid'):
+class UserModel(BaseModel, extra="forbid"):
     name: str = Field(..., min_length=1, max_length=50)
     email: EmailStr = Field(..., min_length=5, max_length=100)
     password: str = Field(..., min_length=8, max_length=60)
@@ -15,10 +15,10 @@ class UserModel(BaseModel, extra='forbid'):
     addresses: Optional[List[Dict]] = None
     basket: Optional[List[Dict]] = None
 
-    @field_validator('password')
+    @field_validator("password")
     @classmethod
     def validate_password(cls, v) -> str:
-        bcrypt_pattern = re.compile(r'^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$')
+        bcrypt_pattern = re.compile(r"^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$")
         if bcrypt_pattern.match(v):
             return v
         if (
@@ -30,7 +30,9 @@ class UserModel(BaseModel, extra='forbid'):
         ):
             hashing_v = cls.hashing_password(v)
             return hashing_v
-        raise ValueError("La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-)")
+        raise ValueError(
+            "La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-)"
+        )
 
     @staticmethod
     def hashing_password(password) -> str:
@@ -46,14 +48,16 @@ class UserModel(BaseModel, extra='forbid'):
     #         return v
     #     raise ValueError("El teléfono debe tener el prefijo +34 y/o 9 dígitos, y debe ser tipo string.")
 
-    @field_validator('addresses', 'basket', mode='before')
+    @field_validator("addresses", "basket", mode="before")
     @classmethod
     def validate_addresses_and_basket(cls, v, field: ValidationInfo):
         if v is None:
             return v
         if isinstance(v, list) and all(isinstance(i, dict) for i in v):
             return v
-        raise ValueError(f"El campo '{field.field_name}' debe ser una lista de diccionarios o None.")
+        raise ValueError(
+            f"El campo '{field.field_name}' debe ser una lista de diccionarios o None."
+        )
 
     def to_dict(self) -> dict:
         return self.model_dump()

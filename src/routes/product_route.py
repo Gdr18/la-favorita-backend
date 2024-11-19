@@ -5,7 +5,12 @@ from pydantic import ValidationError
 from flask_jwt_extended import jwt_required, get_jwt
 
 from ..utils.db_utils import db
-from ..utils.exceptions_management import ClientCustomError, handle_validation_error, handle_unexpected_error, handle_duplicate_key_error
+from ..utils.exceptions_management import (
+    ClientCustomError,
+    handle_validation_error,
+    handle_unexpected_error,
+    handle_duplicate_key_error,
+)
 from ..utils.successfully_responses import resource_msg, db_json_response
 from ..models.product_model import ProductModel
 

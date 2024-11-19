@@ -30,5 +30,7 @@ def test_db_connection_failure(app, mock_mongo_client):
         error = ConnectionFailure("No se pudo conectar a la base de datos")
         mock_mongo_client.side_effect = error
         response, status_code = db_connection()
-        assert response.json == {"err": f"Error de conexión a la base de datos: {error}"}
+        assert response.json == {
+            "err": f"Error de conexión a la base de datos: {error}"
+        }
         assert status_code == 500

@@ -5,7 +5,12 @@ from pydantic import ValidationError
 from flask_jwt_extended import jwt_required, get_jwt
 
 from ..utils.db_utils import db
-from ..utils.exceptions_management import handle_unexpected_error, handle_validation_error, handle_duplicate_key_error, ClientCustomError
+from ..utils.exceptions_management import (
+    handle_unexpected_error,
+    handle_validation_error,
+    handle_duplicate_key_error,
+    ClientCustomError,
+)
 from ..utils.successfully_responses import resource_msg, db_json_response
 
 from ..models.user_model import UserModel
@@ -69,7 +74,13 @@ def handle_user(user_id):
             user = coll_users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
             if user:
                 data = request.get_json()
-                if all([data.get("role"), data.get("role") != user.get("role"), token_role != 1]):
+                if all(
+                    [
+                        data.get("role"),
+                        data.get("role") != user.get("role"),
+                        token_role != 1,
+                    ]
+                ):
                     raise ClientCustomError("role", "change")
                 combined_data = {**user, **data}
                 user_object = UserModel(**combined_data)

@@ -5,7 +5,12 @@ from pydantic import ValidationError
 from flask_jwt_extended import jwt_required, get_jwt
 
 from ..utils.db_utils import db
-from ..utils.exceptions_management import handle_unexpected_error, handle_validation_error, handle_duplicate_key_error, ClientCustomError
+from ..utils.exceptions_management import (
+    handle_unexpected_error,
+    handle_validation_error,
+    handle_duplicate_key_error,
+    ClientCustomError,
+)
 from ..utils.successfully_responses import resource_msg, db_json_response
 
 from ..models.setting_model import SettingModel
@@ -38,7 +43,7 @@ def add_setting():
         return handle_unexpected_error(e)
 
 
-@setting_route.route("/settings", methods=['GET'])
+@setting_route.route("/settings", methods=["GET"])
 @jwt_required()
 def get_settings():
     try:

@@ -6,7 +6,12 @@ from pydantic import ValidationError
 
 from ..models.revoked_token_model import RevokedTokenModel
 from ..utils.db_utils import db
-from ..utils.exceptions_management import handle_unexpected_error, ClientCustomError, handle_validation_error, handle_duplicate_key_error
+from ..utils.exceptions_management import (
+    handle_unexpected_error,
+    ClientCustomError,
+    handle_validation_error,
+    handle_duplicate_key_error,
+)
 from ..utils.successfully_responses import resource_msg, db_json_response
 
 coll_revoked_tokens = db.revoked_tokens
@@ -25,7 +30,9 @@ def add_revoked_token():
         data = request.get_json()
         revoked_token = RevokedTokenModel(**data)
         new_revoked_token = coll_revoked_tokens.insert_one(revoked_token.to_dict())
-        return resource_msg(new_revoked_token.inserted_id, tokens_revoked_resource, "añadido", 201)
+        return resource_msg(
+            new_revoked_token.inserted_id, tokens_revoked_resource, "añadido", 201
+        )
     except ClientCustomError as e:
         return e.json_response_not_authorized_set()
     except errors.DuplicateKeyError as e:
@@ -51,7 +58,9 @@ def get_revoked_tokens():
         return handle_unexpected_error(e)
 
 
-@token_revoked_route.route("/revoked_token/<revoked_token_id>", methods=["GET", "PUT", "DELETE"])
+@token_revoked_route.route(
+    "/revoked_token/<revoked_token_id>", methods=["GET", "PUT", "DELETE"]
+)
 @jwt_required()
 def handle_revoked_token(revoked_token_id):
     try:
@@ -59,7 +68,9 @@ def handle_revoked_token(revoked_token_id):
         if token_role != 1:
             raise ClientCustomError(tokens_revoked_resource, "access")
         if request.method == "GET":
-            revoked_token = coll_revoked_tokens.find_one({"_id": ObjectId(revoked_token_id)})
+            revoked_token = coll_revoked_tokens.find_one(
+                {"_id": ObjectId(revoked_token_id)}
+            )
             if revoked_token:
                 return db_json_response(revoked_token)
             else:
@@ -67,7 +78,9 @@ def handle_revoked_token(revoked_token_id):
 
         # TODO: Comprobar como podría hacer PATCH para poder optimizar el rendimiento de la base de datos
         if request.method == "PUT":
-            revoked_token = coll_revoked_tokens.find_one({"_id": ObjectId(revoked_token_id)}, {"_id": 0})
+            revoked_token = coll_revoked_tokens.find_one(
+                {"_id": ObjectId(revoked_token_id)}, {"_id": 0}
+            )
             if revoked_token:
                 data = request.get_json()
                 mixed_data = {**revoked_token, **data}
@@ -82,9 +95,13 @@ def handle_revoked_token(revoked_token_id):
                 raise ClientCustomError(tokens_revoked_resource, "not_found")
 
         if request.method == "DELETE":
-            deleted_revoked_token = coll_revoked_tokens.delete_one({"_id": ObjectId(revoked_token_id)})
+            deleted_revoked_token = coll_revoked_tokens.delete_one(
+                {"_id": ObjectId(revoked_token_id)}
+            )
             if deleted_revoked_token.deleted_count > 0:
-                return resource_msg(revoked_token_id, tokens_revoked_resource, "eliminado")
+                return resource_msg(
+                    revoked_token_id, tokens_revoked_resource, "eliminado"
+                )
             else:
                 raise ClientCustomError(tokens_revoked_resource, "not_found")
     except ClientCustomError as e:

@@ -129,16 +129,31 @@ def test_handle_validation_error_value_error_formatting(app):
             )
 
 
-# Test para manejar errores de listas con menos elementos de los requeridos
-def test_handle_validation_error_items_should_be_in_collection(app):
+# Tests para manejar errores de longitud de campos
+def test_handle_validation_error_field_length_too_short(app):
     with app.app_context():
         try:
             ProductModel(name="Tomato", stock=44, categories=[])
         except ValidationError as error:
             function = handle_validation_error(error)
-            expected_error_message = (
-                "El campo 'categories' debe ser de tipo 'list' con al menos 1 elemento."
+            expected_error_message = "La longitud del campo 'categories' es demasiado corta. Debe tener al menos 1."
+            validate_error_response_specific(
+                function, code_validation_error, expected_error_message
             )
+
+
+def test_handle_validation_error_field_length_too_long(app):
+    with app.app_context():
+        try:
+            ProductModel(
+                name="Tomato",
+                stock=44,
+                categories=["otro"],
+                brand="T" * 51,
+            )
+        except ValidationError as error:
+            function = handle_validation_error(error)
+            expected_error_message = "La longitud del campo 'brand' es demasiado larga. Debe tener como máximo 50."
             validate_error_response_specific(
                 function, code_validation_error, expected_error_message
             )

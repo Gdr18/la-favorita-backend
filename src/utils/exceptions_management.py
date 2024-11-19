@@ -78,30 +78,15 @@ def value_error_formatting(errors: list) -> tuple[Response, int]:
     return jsonify({"err": " ".join(msg)}), 400
 
 
-def items_should_be_in_collection(errors: list) -> tuple[Response, int]:
-    source_selected = []
-    for error in errors:
-        field = error["loc"][0]
-        type_field = error["msg"][: error["msg"].find(" ")]
-        first_index_items_number = error["msg"].find("at least ") + 9
-        last_index_items_number = error["msg"].find(" ", first_index_items_number)
-        items_number = error["msg"][first_index_items_number:last_index_items_number]
-        source_selected.append((field, type_field, items_number))
-    msg = [
-        f"El campo '{field}' debe ser de tipo '{type_field.lower()}' con al menos {items_number} elemento."
-        for field, type_field, items_number in source_selected
-    ]
-    return jsonify({"err": " ".join(msg)}), 400
-
-
+# Función para manejar errores de longitud de campos
 def field_length(errors: list) -> tuple[Response, int]:
     fields = []
     for error in errors:
-        if error["type"] == "string_too_short":
-            too_short = f"La longitud del campo '{error['loc'][0]}' es demasiado corta. Debe tener al menos {error['ctx']['min_length']} caracter/es."
+        if "too_short" in error["type"]:
+            too_short = f"La longitud del campo '{error['loc'][0]}' es demasiado corta. Debe tener al menos {error['ctx']['min_length']}."
             fields.append(too_short)
-        if error["type"] == "string_too_long":
-            too_long = f"La longitud del campo '{error['loc'][0]}' es demasiado larga. Debe tener como máximo {error['ctx']['max_length']} caracter/es."
+        if "too_long" in error["type"]:
+            too_long = f"La longitud del campo '{error['loc'][0]}' es demasiado larga. Debe tener como máximo {error['ctx']['max_length']}."
             fields.append(too_long)
     return jsonify(err=" ".join(fields)), 400
 
@@ -117,12 +102,11 @@ def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
                 if error["msg"].startswith("Input should be")
             ]
             return field_type(errors_input_should_be)
-        if e["type"] == "string_too_long" or e["type"] == "string_too_short":
+        if "too_long" in e["type"] or "too_short" in e["type"]:
             errors_string_length = [
                 error
                 for error in errors_list
-                if error["type"] == "string_too_long"
-                or error["type"] == "string_too_short"
+                if "too_long" in error["type"] or "too_short" in error["type"]
             ]
             return field_length(errors_string_length)
         if e["msg"] == "Extra inputs are not permitted":
@@ -137,13 +121,6 @@ def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
                 error for error in errors_list if error["msg"].startswith("Value error")
             ]
             return value_error_formatting(errors_value_error)
-        if e["msg"].startswith("List should have at least"):
-            errors_should_be_in_list = [
-                error
-                for error in errors_list
-                if error["msg"].startswith("List should have at least")
-            ]
-            return items_should_be_in_collection(errors_should_be_in_list)
         if e["msg"] == "Field required":
             errors_field_required = [
                 error for error in errors_list if error["msg"] == "Field required"

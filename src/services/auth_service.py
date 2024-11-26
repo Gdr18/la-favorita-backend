@@ -2,10 +2,10 @@ from authlib.integrations.flask_client import OAuth
 from flask import jsonify
 from flask_jwt_extended import create_access_token, JWTManager
 
+from config import google_client_id, google_client_secret
 from ..models.revoked_token_model import RevokedTokenModel
 from ..utils.db_utils import db
 from ..utils.successfully_responses import resource_msg
-from ...config import google_client_id, google_client_secret
 
 jwt = JWTManager()
 oauth = OAuth()

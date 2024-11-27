@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from authlib.integrations.flask_client import OAuth
 from flask import jsonify
 from flask_jwt_extended import create_access_token, JWTManager
@@ -18,10 +20,13 @@ google = oauth.register(
 )
 
 
-def generate_token(user_data):
+def generate_token(user_data, time):
     access_token = create_access_token(
-        identity=str(user_data.get("_id")), additional_claims={"role": user_data.get("role")}, fresh=True
+        identity=str(user_data.get("_id")),
+        additional_claims={"role": user_data.get("role")},
+        expires_delta=timedelta(minutes=time),
     )
+    # TODO: Crear un token de refresco y guardarlo en la base de datos.
     return access_token
 
 

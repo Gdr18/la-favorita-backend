@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from authlib.integrations.flask_client import OAuth
 from flask import jsonify
-from flask_jwt_extended import create_access_token, JWTManager
+from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager
 
 from config import google_client_id, google_client_secret
 from ..models.revoked_token_model import RevokedTokenModel
@@ -20,14 +20,40 @@ google = oauth.register(
 )
 
 
-def generate_token(user_data, time):
-    access_token = create_access_token(
-        identity=str(user_data.get("_id")),
-        additional_claims={"role": user_data.get("role")},
-        expires_delta=timedelta(minutes=time),
-    )
-    # TODO: Crear un token de refresco y guardarlo en la base de datos.
-    return access_token
+def generate_token(user_data):
+    user_role = user_data.get("role")
+    user_identity = user_data.get("_id")
+
+    token_info = {
+        "identity": str(user_identity),
+        "additional_claims": {"role": user_role},
+        "expires_delta": get_expiration_time_access_token(user_role),
+    }
+
+    access_token = create_access_token(**token_info)
+    refresh_token = create_refresh_token(**token_info)
+
+    # TODO: Guardar refresh token en la base de datos.
+
+    return access_token, refresh_token
+
+
+def get_expiration_time_access_token(role):
+    if role == 1:
+        return timedelta(minutes=30)
+    elif role == 2:
+        return timedelta(hours=3)
+    else:
+        return timedelta(days=1)
+
+
+def get_expiration_time_refresh_token(role):
+    if role == 1:
+        return timedelta(hours=3)
+    elif role == 2:
+        return timedelta(hours=6)
+    else:
+        return timedelta(days=30)
 
 
 def revoke_token(token_jti, token_exp):

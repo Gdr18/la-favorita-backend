@@ -13,13 +13,15 @@ auth_route = Blueprint("auth", __name__)
 def login():
     try:
         user_data = request.get_json()
-        user_request = db.users.find_one({"email": user_data.get("email")})
-        if user_request:
-            if bcrypt.check_password_hash(user_request.get("password"), user_data.get("password")):
-                token = generate_token(user_request)
+        user_requested = db.users.find_one({"email": user_data.get("email")})
+        if user_requested:
+            if bcrypt.check_password_hash(user_requested.get("password"), user_data.get("password")):
+                access_token, refresh_token = generate_token(user_requested)
                 return (
                     jsonify(
-                        msg=f"El usuario '{user_request.get('_id')}' ha iniciado sesión de forma manual", token=token
+                        msg=f"El usuario '{user_requested.get('_id')}' ha iniciado sesión de forma manual",
+                        access_token=access_token,
+                        refresh_token=refresh_token,
                     ),
                     200,
                 )
@@ -41,6 +43,9 @@ def logout():
         token_jti = get_jwt().get("jti")
         token_exp = get_jwt().get("exp")
         revoked_user = revoke_token(token_jti, token_exp)
+
+        # TODO: Eliminar refresh token de la base de datos.
+
         return revoked_user
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
@@ -60,12 +65,9 @@ def login_google():
 @auth_route.route("/auth/google")
 def authorize_google():
     try:
-        token = google.authorize_access_token()
-        # userinfo_endpoint = google.server_metadata["userinfo_endpoint"]
-        # response = google.get(userinfo_endpoint)
-        # user_info = response.json()
+        google_token = google.authorize_access_token()
         nonce = request.args.get("nonce")
-        user_info = google.parse_id_token(token, nonce=nonce)
+        user_info = google.parse_id_token(google_token, nonce=nonce)
 
         user_data = {"name": user_info.get("name"), "auth_provider": "google", "confirmed": True}
 
@@ -73,10 +75,14 @@ def authorize_google():
             {"email": user_info.get("email")}, {"$set": user_data}, upsert=True, return_document=ReturnDocument.AFTER
         )
         if user:
-            jwt_token = generate_token(user)
+            access_token, refresh_token = generate_token(user)
             return (
                 jsonify(
-                    {"msg": f"""El usuario '{user.get("_id")}' ha iniciado sesión con Google""", "token": jwt_token}
+                    {
+                        "msg": f"""El usuario '{user.get("_id")}' ha iniciado sesión con Google""",
+                        "access_token": access_token,
+                        "refresh_token": refresh_token,
+                    }
                 ),
                 200,
             )

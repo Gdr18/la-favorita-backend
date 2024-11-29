@@ -20,7 +20,7 @@ google = oauth.register(
 )
 
 
-def generate_token(user_data):
+def generate_access_token(user_data, token_email=False) -> str:
     user_role = user_data.get("role")
     user_identity = user_data.get("_id")
 
@@ -31,16 +31,36 @@ def generate_token(user_data):
     }
 
     access_token = create_access_token(**token_info)
+
+    return access_token
+
+
+def generate_refresh_token(user_data) -> str:
+    user_role = user_data.get("role")
+    user_identity = user_data.get("_id") | user_data.get("sub")
+
+    token_info = {"identity": str(user_identity), "expires_delta": get_expiration_time_refresh_token(user_role)}
+
     refresh_token = create_refresh_token(**token_info)
 
     # TODO: Guardar refresh token en la base de datos.
 
-    return access_token, refresh_token
+    return refresh_token
+
+
+def generate_email_token(user_data) -> str:
+    user_identity = user_data.get("_id")
+
+    token_info = {"identity": str(user_identity), "expires_delta": timedelta(hours=2)}
+
+    email_token = create_access_token(**token_info)
+
+    return email_token
 
 
 def get_expiration_time_access_token(role):
     if role == 1:
-        return timedelta(minutes=30)
+        return timedelta(minutes=15)
     elif role == 2:
         return timedelta(hours=3)
     else:
@@ -56,7 +76,9 @@ def get_expiration_time_refresh_token(role):
         return timedelta(days=30)
 
 
-def revoke_token(token_jti, token_exp):
+def revoke_token(token):
+    token_jti = token.get("jti")
+    token_exp = token.get("exp")
     token_object = RevokedTokenModel(jti=token_jti, exp=token_exp)
     token_revoked = db.revoked_tokens.insert_one(token_object.to_dict())
     return resource_msg(token_revoked.inserted_id, "token revocado", "añadido", 201)

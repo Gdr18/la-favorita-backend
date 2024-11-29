@@ -2,7 +2,7 @@ from flask import Blueprint, request, url_for, jsonify
 from flask_jwt_extended import jwt_required, get_jwt
 from pymongo import errors, ReturnDocument
 
-from ..services.auth_service import generate_token, revoke_token, google
+from ..services.auth_service import generate_access_token, generate_refresh_token, revoke_token, google
 from ..utils.db_utils import db, bcrypt
 from ..utils.exceptions_management import handle_unexpected_error, ClientCustomError, handle_duplicate_key_error
 
@@ -16,7 +16,8 @@ def login():
         user_requested = db.users.find_one({"email": user_data.get("email")})
         if user_requested:
             if bcrypt.check_password_hash(user_requested.get("password"), user_data.get("password")):
-                access_token, refresh_token = generate_token(user_requested)
+                access_token = generate_access_token(user_requested)
+                refresh_token = generate_refresh_token(user_requested)
                 return (
                     jsonify(
                         msg=f"El usuario '{user_requested.get('_id')}' ha iniciado sesión de forma manual",
@@ -40,13 +41,12 @@ def login():
 @jwt_required()
 def logout():
     try:
-        token_jti = get_jwt().get("jti")
-        token_exp = get_jwt().get("exp")
-        revoked_user = revoke_token(token_jti, token_exp)
+        token = get_jwt()
+        revoked_token = revoke_token(token)
 
         # TODO: Eliminar refresh token de la base de datos.
 
-        return revoked_user
+        return revoked_token
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except Exception as e:
@@ -67,15 +67,19 @@ def authorize_google():
     try:
         google_token = google.authorize_access_token()
         nonce = request.args.get("nonce")
-        user_info = google.parse_id_token(google_token, nonce=nonce)
+        google_user_info = google.parse_id_token(google_token, nonce=nonce)
 
-        user_data = {"name": user_info.get("name"), "auth_provider": "google", "confirmed": True}
+        user_data = {"name": google_user_info.get("name"), "auth_provider": "google", "confirmed": True}
 
         user = db.users.find_one_and_update(
-            {"email": user_info.get("email")}, {"$set": user_data}, upsert=True, return_document=ReturnDocument.AFTER
+            {"email": google_user_info.get("email")},
+            {"$set": user_data},
+            upsert=True,
+            return_document=ReturnDocument.AFTER,
         )
         if user:
-            access_token, refresh_token = generate_token(user)
+            access_token = generate_access_token(user)
+            refresh_token = generate_refresh_token(user)
             return (
                 jsonify(
                     {
@@ -89,3 +93,17 @@ def authorize_google():
         raise Exception("Error al escribir en la base de datos")
     except Exception as e:
         return handle_unexpected_error(e)
+
+
+@auth_route.route("/auth/refresh")
+@jwt_required(refresh=True)
+def refresh_users_token():
+    token_jti = get_jwt().get("jti")
+
+    # TODO: Verificar si el token está en la base de datos.
+
+    user_id = get_jwt().get("sub")
+    user_data = db.users.find_one({"_id": user_id})
+    access_token = generate_access_token(user_data)
+
+    return jsonify(access_token=access_token), 200

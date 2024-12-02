@@ -5,6 +5,7 @@ from pydantic import ValidationError
 from pymongo import ReturnDocument, errors
 
 from ..models.user_model import UserModel
+from ..services.auth_service import revoke_token
 from ..utils.db_utils import db
 from ..utils.exceptions_management import (
     handle_unexpected_error,
@@ -87,9 +88,10 @@ def handle_user(user_id):
                 raise ClientCustomError(user_resource, "not_found")
 
         if request.method == "DELETE":
-            # TODO: Revocar el token del usuario eliminado
+            # TODO: Revocar el refresh token del usuario eliminado
             deleted_user = coll_users.delete_one({"_id": ObjectId(user_id)})
             if deleted_user.deleted_count > 0:
+                revoke_token(get_jwt())
                 return resource_msg(token_id, user_resource, "eliminado")
             else:
                 raise ClientCustomError(user_resource, "not_found")

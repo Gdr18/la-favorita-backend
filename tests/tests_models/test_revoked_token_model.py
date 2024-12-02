@@ -3,7 +3,7 @@ import re
 import pendulum
 from pydantic import ValidationError
 
-from src.models.revoked_token_model import RevokedTokenModel
+from src.models.token_model import RevokedTokenModel
 
 VALID_DATA = {"exp": 1919068218, "jti": "bb53e637-8627-457c-840f-6cae52a12e8b"}
 

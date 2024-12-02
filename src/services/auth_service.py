@@ -5,7 +5,7 @@ from flask import jsonify
 from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager
 
 from config import google_client_id, google_client_secret
-from ..models.revoked_token_model import RevokedTokenModel
+from ..models.token_model import TokenModel
 from ..utils.db_utils import db
 from ..utils.successfully_responses import resource_msg
 
@@ -20,7 +20,7 @@ google = oauth.register(
 )
 
 
-def generate_access_token(user_data, token_email=False) -> str:
+def generate_access_token(user_data) -> str:
     user_role = user_data.get("role")
     user_identity = user_data.get("_id")
 
@@ -37,7 +37,7 @@ def generate_access_token(user_data, token_email=False) -> str:
 
 def generate_refresh_token(user_data) -> str:
     user_role = user_data.get("role")
-    user_identity = user_data.get("_id") | user_data.get("sub")
+    user_identity = user_data.get("_id")
 
     token_info = {"identity": str(user_identity), "expires_delta": get_expiration_time_refresh_token(user_role)}
 
@@ -79,7 +79,8 @@ def get_expiration_time_refresh_token(role):
 def revoke_token(token):
     token_jti = token.get("jti")
     token_exp = token.get("exp")
-    token_object = RevokedTokenModel(jti=token_jti, exp=token_exp)
+    token_sub = token.get("sub")
+    token_object = TokenModel(jti=token_jti, exp=token_exp, sub=token_sub)
     token_revoked = db.revoked_tokens.insert_one(token_object.to_dict())
     return resource_msg(token_revoked.inserted_id, "token revocado", "añadido", 201)
 

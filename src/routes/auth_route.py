@@ -18,6 +18,7 @@ def login():
             if bcrypt.check_password_hash(user_requested.get("password"), user_data.get("password")):
                 access_token = generate_access_token(user_requested)
                 refresh_token = generate_refresh_token(user_requested)
+                # TODO: Guardar refresh token en la base de datos.
                 return (
                     jsonify(
                         msg=f"El usuario '{user_requested.get('_id')}' ha iniciado sesión de forma manual",
@@ -80,6 +81,7 @@ def authorize_google():
         if user:
             access_token = generate_access_token(user)
             refresh_token = generate_refresh_token(user)
+            # TODO: Guardar refresh token en la base de datos.
             return (
                 jsonify(
                     {

@@ -40,12 +40,19 @@ def generate_refresh_token(user_data) -> str:
     user_identity = user_data.get("_id")
 
     token_info = {"identity": str(user_identity), "expires_delta": get_expiration_time_refresh_token(user_role)}
-
     refresh_token = create_refresh_token(**token_info)
 
-    # TODO: Guardar refresh token en la base de datos.
+    data_refresh_token_db = {
+        "user_id": refresh_token.get("sub"),
+        "jti": refresh_token.get("jti"),
+        "expires_at": refresh_token.get("exp"),
+    }
+    response = TokenModel(**data_refresh_token_db).insert_refresh_token()
 
-    return refresh_token
+    if response:
+        return refresh_token
+    else:
+        raise Exception("Error al guardar el refresh token en la base de datos")
 
 
 def generate_email_token(user_data) -> str:
@@ -76,6 +83,7 @@ def get_expiration_time_refresh_token(role):
         return timedelta(days=30)
 
 
+# TODO: Eliminar esta función cuando se refactorice token_model.py
 def revoke_token(token):
     token_jti = token.get("jti")
     token_exp = token.get("exp")

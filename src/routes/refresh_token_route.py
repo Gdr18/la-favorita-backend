@@ -1,11 +1,9 @@
-from bson import ObjectId
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
-from pymongo import errors, ReturnDocument
+from pymongo import errors
 
 from ..models.token_model import TokenModel
-from ..utils.db_utils import db
 from ..utils.exceptions_management import (
     handle_unexpected_error,
     ClientCustomError,
@@ -14,7 +12,6 @@ from ..utils.exceptions_management import (
 )
 from ..utils.successfully_responses import resource_msg, db_json_response
 
-coll_refresh_tokens = db.refresh_tokens
 refresh_tokens_resource = "refresh token"
 
 refresh_token_route = Blueprint("refresh_token", __name__)
@@ -29,7 +26,7 @@ def add_refresh_token():
             raise ClientCustomError(refresh_tokens_resource, "set")
         data = request.get_json()
         refresh_token = TokenModel(**data)
-        new_refresh_token = coll_refresh_tokens.insert_one(refresh_token.to_dict())
+        new_refresh_token = refresh_token.insert_refresh_token()
         return resource_msg(new_refresh_token.inserted_id, refresh_tokens_resource, "añadido", 201)
     except ClientCustomError as e:
         return e.json_response_not_authorized_set()
@@ -48,7 +45,7 @@ def get_refresh_tokens():
         token_role = get_jwt().get("role")
         if token_role != 1:
             raise ClientCustomError(refresh_tokens_resource, "get")
-        refresh_tokens = coll_refresh_tokens.find()
+        refresh_tokens = TokenModel.get_refresh_tokens()
         return db_json_response(refresh_tokens)
     except ClientCustomError as e:
         return e.json_response_not_authorized_access()
@@ -64,7 +61,7 @@ def handle_refresh_token(refresh_token_id):
         if token_role != 1:
             raise ClientCustomError(refresh_tokens_resource, "access")
         if request.method == "GET":
-            refresh_token = coll_refresh_tokens.find_one({"_id": ObjectId(refresh_token_id)})
+            refresh_token = TokenModel.get_refresh_token(refresh_token_id)
             if refresh_token:
                 return db_json_response(refresh_token)
             else:
@@ -72,22 +69,18 @@ def handle_refresh_token(refresh_token_id):
 
         # TODO: Comprobar como podría hacer PATCH para poder optimizar el rendimiento de la base de datos
         if request.method == "PUT":
-            refresh_token = coll_refresh_tokens.find_one({"_id": ObjectId(refresh_token_id)}, {"_id": 0})
+            refresh_token = TokenModel.get_refresh_token(refresh_token_id)
             if refresh_token:
                 data = request.get_json()
                 mixed_data = {**refresh_token, **data}
                 refresh_token_object = TokenModel(**mixed_data)
-                refresh_token_updated = coll_refresh_tokens.find_one_and_update(
-                    {"_id": ObjectId(refresh_token_id)},
-                    {"$set": refresh_token_object.to_dict()},
-                    return_document=ReturnDocument.AFTER,
-                )
+                refresh_token_updated = refresh_token_object.update_refresh_token()
                 return db_json_response(refresh_token_updated)
             else:
                 raise ClientCustomError(refresh_tokens_resource, "not_found")
 
         if request.method == "DELETE":
-            refresh_token_deleted = coll_refresh_tokens.delete_one({"_id": ObjectId(refresh_token_id)})
+            refresh_token_deleted = TokenModel.delete_refresh_token(refresh_token_id)
             if refresh_token_deleted.deleted_count > 0:
                 return resource_msg(refresh_token_id, refresh_tokens_resource, "eliminado")
             else:

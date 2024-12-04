@@ -3,7 +3,7 @@ import pytest
 from src import app as real_app
 from src.services.auth_service import (
     login_user,
-    logout_user,
+    revoke_token,
     check_if_token_revoked,
     revoked_token_callback,
     expired_token_callback,
@@ -65,7 +65,7 @@ def test_login_user_email_not_found(mock_db):
 def test_logout_user(app, mock_db):
     with app.app_context():
         mock_db.revoked_tokens.insert_one.return_value.inserted_id = "inserted_id_example"
-        validate_success_response_generic(logout_user(VALID_JWT["jti"], VALID_JWT["exp"]), 201)
+        validate_success_response_generic(revoke_token(VALID_JWT["jti"], VALID_JWT["exp"]), 201)
 
 
 def test_check_if_token_revoked(mock_db):

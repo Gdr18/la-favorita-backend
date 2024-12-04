@@ -1,9 +1,11 @@
-from flask import Blueprint, request
 from bson import ObjectId
-from pymongo import ReturnDocument, errors
-from pydantic import ValidationError
+from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt
+from pydantic import ValidationError
+from pymongo import ReturnDocument, errors
 
+from ..models.user_model import UserModel
+from ..services.auth_service import revoke_token
 from ..utils.db_utils import db
 from ..utils.exceptions_management import (
     handle_unexpected_error,
@@ -12,8 +14,6 @@ from ..utils.exceptions_management import (
     ClientCustomError,
 )
 from ..utils.successfully_responses import resource_msg, db_json_response
-
-from ..models.user_model import UserModel
 
 coll_users = db.users
 user_resource = "usuario"
@@ -74,29 +74,24 @@ def handle_user(user_id):
             user = coll_users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
             if user:
                 data = request.get_json()
-                if all(
-                    [
-                        data.get("role"),
-                        data.get("role") != user.get("role"),
-                        token_role != 1,
-                    ]
-                ):
+                if all([data.get("role"), data.get("role") != user.get("role"), token_role != 1]):
                     raise ClientCustomError("role", "change")
+                # TODO: Combined_data dará problemas con eliminación de elementos de una lista o diccionario
                 combined_data = {**user, **data}
                 user_object = UserModel(**combined_data)
                 # TODO: Para mejorar el rendimiento cuando se ponga a producción cambiar a update_one, o mirar si es realmente necesario
                 updated_user = coll_users.find_one_and_update(
-                    {"_id": ObjectId(user_id)},
-                    {"$set": user_object.to_dict()},
-                    return_document=ReturnDocument.AFTER,
+                    {"_id": ObjectId(user_id)}, {"$set": user_object.to_dict()}, return_document=ReturnDocument.AFTER
                 )
                 return db_json_response(updated_user)
             else:
                 raise ClientCustomError(user_resource, "not_found")
 
         if request.method == "DELETE":
-            deleted_user = coll_users.delete_one({"_id": ObjectId(token_id)})
+            # TODO: Revocar el refresh token del usuario eliminado
+            deleted_user = coll_users.delete_one({"_id": ObjectId(user_id)})
             if deleted_user.deleted_count > 0:
+                revoke_token(get_jwt())
                 return resource_msg(token_id, user_resource, "eliminado")
             else:
                 raise ClientCustomError(user_resource, "not_found")

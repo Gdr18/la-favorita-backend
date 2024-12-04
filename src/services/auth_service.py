@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from authlib.integrations.flask_client import OAuth
 from flask import jsonify
-from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager
+from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager, decode_token
 
 from config import google_client_id, google_client_secret
 from ..models.token_model import TokenModel
@@ -42,10 +42,11 @@ def generate_refresh_token(user_data) -> str:
     token_info = {"identity": str(user_identity), "expires_delta": get_expiration_time_refresh_token(user_role)}
     refresh_token = create_refresh_token(**token_info)
 
+    refresh_token_decoded = decode_token(refresh_token)
     data_refresh_token_db = {
-        "user_id": refresh_token.get("sub"),
-        "jti": refresh_token.get("jti"),
-        "expires_at": refresh_token.get("exp"),
+        "user_id": refresh_token_decoded.get("sub"),
+        "jti": refresh_token_decoded.get("jti"),
+        "expires_at": refresh_token_decoded.get("exp"),
     }
     response = TokenModel(**data_refresh_token_db).insert_refresh_token()
 
@@ -88,7 +89,7 @@ def revoke_token(token):
     token_jti = token.get("jti")
     token_exp = token.get("exp")
     token_sub = token.get("sub")
-    token_object = TokenModel(jti=token_jti, exp=token_exp, sub=token_sub)
+    token_object = TokenModel(user_id=token_sub, jti=token_jti, expires_at=token_exp)
     token_revoked = db.revoked_tokens.insert_one(token_object.to_dict())
     return resource_msg(token_revoked.inserted_id, "token revocado", "añadido", 201)
 

@@ -1,7 +1,9 @@
+from bson import ObjectId
 from flask import Blueprint, request, url_for, jsonify
 from flask_jwt_extended import jwt_required, get_jwt
 from pymongo import errors, ReturnDocument
 
+from ..models.token_model import TokenModel
 from ..services.auth_service import generate_access_token, generate_refresh_token, revoke_token, google
 from ..utils.db_utils import db, bcrypt
 from ..utils.exceptions_management import handle_unexpected_error, ClientCustomError, handle_duplicate_key_error
@@ -18,7 +20,6 @@ def login():
             if bcrypt.check_password_hash(user_requested.get("password"), user_data.get("password")):
                 access_token = generate_access_token(user_requested)
                 refresh_token = generate_refresh_token(user_requested)
-                # TODO: Guardar refresh token en la base de datos.
                 return (
                     jsonify(
                         msg=f"El usuario '{user_requested.get('_id')}' ha iniciado sesión de forma manual",
@@ -43,11 +44,12 @@ def login():
 def logout():
     try:
         token = get_jwt()
+        # TODO: Refactorizar cuando se cambie TokenModel
         revoked_token = revoke_token(token)
-
-        # TODO: Eliminar refresh token de la base de datos.
-
-        return revoked_token
+        refresh_token_deleted = TokenModel.delete_refresh_token_by_user_id(token.get("sub"))
+        if revoked_token and refresh_token_deleted:
+            return revoked_token
+        raise Exception("Error al revocar el token")
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except Exception as e:
@@ -81,7 +83,6 @@ def authorize_google():
         if user:
             access_token = generate_access_token(user)
             refresh_token = generate_refresh_token(user)
-            # TODO: Guardar refresh token en la base de datos.
             return (
                 jsonify(
                     {
@@ -100,12 +101,15 @@ def authorize_google():
 @auth_route.route("/auth/refresh")
 @jwt_required(refresh=True)
 def refresh_users_token():
-    token_jti = get_jwt().get("jti")
-
-    # TODO: Verificar si el token está en la base de datos.
-
-    user_id = get_jwt().get("sub")
-    user_data = db.users.find_one({"_id": user_id})
-    access_token = generate_access_token(user_data)
-
-    return jsonify(access_token=access_token), 200
+    try:
+        user_id = get_jwt().get("sub")
+        check_refresh_token = TokenModel.get_refresh_token_by_user_id(user_id)
+        if check_refresh_token:
+            user_data = db.users.find_one({"_id": ObjectId(user_id)})
+            access_token = generate_access_token(user_data)
+            return jsonify(access_token=access_token, msg="El token de acceso se ha generado"), 200
+        raise ClientCustomError("refresh token", "not_found")
+    except ClientCustomError as e:
+        return e.json_response_not_found()
+    except Exception as e:
+        return handle_unexpected_error(e)

@@ -74,7 +74,7 @@ def handle_refresh_token(refresh_token_id):
                 data = request.get_json()
                 mixed_data = {**refresh_token, **data}
                 refresh_token_object = TokenModel(**mixed_data)
-                refresh_token_updated = refresh_token_object.update_refresh_token()
+                refresh_token_updated = refresh_token_object.update_refresh_token(refresh_token_id)
                 return db_json_response(refresh_token_updated)
             else:
                 raise ClientCustomError(refresh_tokens_resource, "not_found")

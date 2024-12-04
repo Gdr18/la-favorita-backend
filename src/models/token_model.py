@@ -39,16 +39,26 @@ class TokenModel(BaseModel, extra="forbid"):
         refresh_token = db.refresh_tokens.find_one({"_id": ObjectId(token_id)}, {"_id": 0})
         return refresh_token
 
-    def update_refresh_token(self):
-        updated_refresh_token = db.refresh_tokens.find_one_and_update(
-            {"_id": ObjectId(self.user_id)}, {"$set": self.to_dict()}, return_document=ReturnDocument.AFTER
+    @staticmethod
+    def get_refresh_token_by_user_id(user_id):
+        refresh_token = db.refresh_tokens.find_one({"user_id": user_id})
+        return refresh_token
+
+    def update_refresh_token(self, token_id):
+        refresh_token_updated = db.refresh_tokens.find_one_and_update(
+            {"_id": ObjectId(token_id)}, {"$set": self.to_dict()}, return_document=ReturnDocument.AFTER
         )
-        return updated_refresh_token
+        return refresh_token_updated
 
     @staticmethod
     def delete_refresh_token(token_id):
-        deleted_refresh_token = db.refresh_tokens.delete_one({"_id": ObjectId(token_id)})
-        return deleted_refresh_token
+        refresh_token_deleted = db.refresh_tokens.delete_one({"_id": ObjectId(token_id)})
+        return refresh_token_deleted
+
+    @staticmethod
+    def delete_refresh_token_by_user_id(user_id):
+        refresh_token_deleted = db.refresh_tokens.delete_one({"user_id": user_id})
+        return refresh_token_deleted
 
     def to_dict(self):
         return self.model_dump()

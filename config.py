@@ -4,9 +4,11 @@ from dotenv import load_dotenv
 
 load_dotenv(".env")
 
-database_uri = os.getenv("MONGO_DB_URI")
-google_client_id = os.getenv("CLIENT_ID")
-google_client_secret = os.getenv("CLIENT_SECRET")
+DATABASE_URI = os.getenv("MONGO_DB_URI")
+GOOGLE_CLIENT_ID = os.getenv("CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
+DEFAULT_SENDER_EMAIL = os.getenv("DEFAULT_SENDER_EMAIL")
 
 
 class Config:

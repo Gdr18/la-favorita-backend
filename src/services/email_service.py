@@ -1,19 +1,38 @@
-import os
+from flask import Response
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
-import sendgrid
-from sendgrid.helpers.mail import Mail, Email, To, Content
+from config import SENDGRID_API_KEY, config, DEFAULT_SENDER_EMAIL
+from ..utils.exceptions_management import handle_unexpected_error
+from ..utils.successfully_responses import resource_msg
 
-sg = sendgrid.SendGridAPIClient(api_key=os.environ.get("SENDGRID_API_KEY"))
-from_email = Email("test@example.com")  # Change to your verified sender
-to_email = To("test@example.com")  # Change to your recipient
-subject = "Sending with SendGrid is Fun"
-content = Content("text/plain", "and easy to do anywhere, even with Python")
-mail = Mail(from_email, to_email, subject, content)
 
-# Get a JSON-ready representation of the Mail object
-mail_json = mail.get()
+def send_email(token: str, user_info: dict) -> tuple[Response, int]:
+    user_name = user_info.get("name")
+    user_email = user_info.get("email")
+    if config == "config.DevelopmentConfig":
+        confirmation_link = f"http://localhost:5000/auth/confirm_email/{token}"
+    else:
+        # TODO: Cambiar la URL de producción
+        confirmation_link = f"https://gador-auth.herokuapp.com/auth/confirm_email/{token}"
 
-# Send an HTTP POST request to /mail/send
-response = sg.client.mail.send.post(request_body=mail_json)
-print(response.status_code)
-print(response.headers)
+    with open("src/utils/email_template.html", encoding="utf-8") as file:
+        email_template = file.read()
+        email_template = email_template.replace("{{ confirmation_link }}", confirmation_link).replace(
+            "{{ user_name }}", user_name
+        )
+    mail = Mail(
+        from_email=DEFAULT_SENDER_EMAIL,
+        to_emails=user_email,
+        subject="Confirma el email de registro",
+        html_content=email_template,
+    )
+    try:
+        sg = SendGridAPIClient(api_key=SENDGRID_API_KEY)
+        response = sg.send(mail)
+        print(response.status_code)
+        print(response.body)
+        print(response.headers)
+        return resource_msg(user_name, "email de confirmación", "enviado", response.status_code)
+    except Exception as e:
+        return handle_unexpected_error(e)

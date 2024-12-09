@@ -121,13 +121,13 @@ def refresh_users_token():
 
 
 # TODO: Verificar si se puede comprobar que la entrada es a través de un email
-@auth_route.route("/confirm_email/<token>", methods=["GET"])
+@auth_route.route("/auth/confirm_email/<token>", methods=["GET"])
 def confirm_email(token):
     try:
         user_identity = decode_token(token)
-        user_email = user_identity.get("email")
-        user_updated = db.users.update_one({"email": user_email}, {"$set": {"confirmed": True}})
-        if user_updated.modified_count > 0:
+        user_id = user_identity.get("sub")
+        user_updated = db.users.find_one_and_update({"_id": ObjectId(user_id)}, {"$set": {"confirmed": True}})
+        if user_updated:
             return resource_msg(user_identity.get("sub"), "usuario", "confirmado")
         raise ClientCustomError("email", "not_found")
     except ClientCustomError as e:

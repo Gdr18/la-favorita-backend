@@ -4,7 +4,7 @@ from authlib.integrations.flask_client import OAuth
 from flask import jsonify
 from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager, decode_token
 
-from config import google_client_id, google_client_secret
+from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
 from ..models.token_model import TokenModel
 from ..utils.db_utils import db
 from ..utils.successfully_responses import resource_msg
@@ -14,8 +14,8 @@ oauth = OAuth()
 
 google = oauth.register(
     name="google",
-    client_id=google_client_id,
-    client_secret=google_client_secret,
+    client_id=GOOGLE_CLIENT_ID,
+    client_secret=GOOGLE_CLIENT_SECRET,
     server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
     client_kwargs={"scope": "openid email profile"},
 )
@@ -60,7 +60,7 @@ def generate_refresh_token(user_data) -> str:
 def generate_email_token(user_data) -> str:
     user_identity = user_data.get("_id")
 
-    token_info = {"identity": str(user_identity), "expires_delta": timedelta(hours=2)}
+    token_info = {"identity": str(user_identity), "expires_delta": timedelta(days=1)}
 
     email_token = create_access_token(**token_info)
 

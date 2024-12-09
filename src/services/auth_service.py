@@ -11,6 +11,7 @@ from ..utils.successfully_responses import resource_msg
 
 jwt = JWTManager()
 oauth = OAuth()
+
 google = oauth.register(
     name="google",
     client_id=google_client_id,
@@ -94,6 +95,21 @@ def revoke_token(token):
     return resource_msg(token_revoked.inserted_id, "token revocado", "añadido", 201)
 
 
+# TODO: Comprobar si esto es más seguro y no afecta mucho al rendimiento. En vez de meter el rol en el token, se puede hacer una consulta a la base de datos.
+# @jwt.user_lookup_loader
+# def user_lookup_callback(_jwt_headers, jwt_data):
+#     user_id = jwt_data["sub"]
+#     return db.users.find_one({"_id": user_id})
+
+# Prueba de rendimiento
+# import time
+# start_time = time.time()
+# your_function()
+# end_time = time.time()
+# execution_time = end_time - start_time
+# print(f"Tiempo de ejecución: {execution_time} segundos")
+
+
 @jwt.token_in_blocklist_loader
 def check_if_token_revoked(jwt_header, jwt_payload):
     check_token = db.revoked_tokens.find_one({"jti": jwt_payload.get("jti")})
@@ -112,4 +128,4 @@ def expired_token_callback(jwt_header, jwt_payload):
 
 @jwt.unauthorized_loader
 def unauthorized_callback(error_message):
-    return jsonify(err="Necesita un token autorizado para acceder a esta ruta"), 401
+    return jsonify(err="Necesita un token válido para acceder a esta ruta"), 401

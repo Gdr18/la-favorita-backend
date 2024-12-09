@@ -1,12 +1,13 @@
 from bson import ObjectId
 from flask import Blueprint, request, url_for, jsonify
-from flask_jwt_extended import jwt_required, get_jwt
+from flask_jwt_extended import jwt_required, get_jwt, decode_token
 from pymongo import errors, ReturnDocument
 
 from ..models.token_model import TokenModel
 from ..services.auth_service import generate_access_token, generate_refresh_token, revoke_token, google
 from ..utils.db_utils import db, bcrypt
 from ..utils.exceptions_management import handle_unexpected_error, ClientCustomError, handle_duplicate_key_error
+from ..utils.successfully_responses import resource_msg
 
 auth_route = Blueprint("auth", __name__)
 
@@ -18,16 +19,18 @@ def login():
         user_requested = db.users.find_one({"email": user_data.get("email")})
         if user_requested:
             if bcrypt.check_password_hash(user_requested.get("password"), user_data.get("password")):
-                access_token = generate_access_token(user_requested)
-                refresh_token = generate_refresh_token(user_requested)
-                return (
-                    jsonify(
-                        msg=f"El usuario '{user_requested.get('_id')}' ha iniciado sesión de forma manual",
-                        access_token=access_token,
-                        refresh_token=refresh_token,
-                    ),
-                    200,
-                )
+                if user_requested.get("confirmed"):
+                    access_token = generate_access_token(user_requested)
+                    refresh_token = generate_refresh_token(user_requested)
+                    return (
+                        jsonify(
+                            msg=f"El usuario '{user_requested.get('_id')}' ha iniciado sesión de forma manual",
+                            access_token=access_token,
+                            refresh_token=refresh_token,
+                        ),
+                        200,
+                    )
+                raise ClientCustomError.json_response_not_confirmed()
             raise ClientCustomError("password")
         raise ClientCustomError("email", "not_found")
     except ClientCustomError as e:
@@ -35,6 +38,8 @@ def login():
             return e.json_response_not_found()
         if e.resource == "password":
             return e.json_response_not_match()
+        # TODO: Verificar si se puede hacer un refactor de la función json_response_not_confirmed
+        return e
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -109,6 +114,22 @@ def refresh_users_token():
             access_token = generate_access_token(user_data)
             return jsonify(access_token=access_token, msg="El token de acceso se ha generado"), 200
         raise ClientCustomError("refresh token", "not_found")
+    except ClientCustomError as e:
+        return e.json_response_not_found()
+    except Exception as e:
+        return handle_unexpected_error(e)
+
+
+# TODO: Verificar si se puede comprobar que la entrada es a través de un email
+@auth_route.route("/confirm_email/<token>", methods=["GET"])
+def confirm_email(token):
+    try:
+        user_identity = decode_token(token)
+        user_email = user_identity.get("email")
+        user_updated = db.users.update_one({"email": user_email}, {"$set": {"confirmed": True}})
+        if user_updated.modified_count > 0:
+            return resource_msg(user_identity.get("sub"), "usuario", "confirmado")
+        raise ClientCustomError("email", "not_found")
     except ClientCustomError as e:
         return e.json_response_not_found()
     except Exception as e:

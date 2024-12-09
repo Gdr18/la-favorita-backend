@@ -1,3 +1,4 @@
+from email_validator import EmailNotValidError
 from flask import jsonify, Response
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
@@ -14,6 +15,10 @@ class ClientCustomError(Exception):
     def json_response_not_match(self) -> tuple[Response, int]:
         return jsonify(err=f"'{self.resource.capitalize()}' no coincide"), 401
 
+    @staticmethod
+    def json_response_not_confirmed() -> tuple[Response, int]:
+        return jsonify(err=f"El usuario no ha confirmado el email"), 401
+
     def json_response_not_authorized_change(self) -> tuple[Response, int]:
         return jsonify(err=f"No está autorizado para cambiar '{self.resource}'"), 401
 
@@ -21,10 +26,7 @@ class ClientCustomError(Exception):
         return jsonify(err=f"No está autorizado para establecer '{self.resource}'"), 401
 
     def json_response_not_authorized_access(self) -> tuple[Response, int]:
-        return (
-            jsonify(err=f"No está autorizado para acceder a la ruta '{self.resource}'"),
-            401,
-        )
+        return jsonify(err=f"No está autorizado para acceder a la ruta '{self.resource}'"), 401
 
 
 # Función para manejar errores de campos no permitidos
@@ -38,9 +40,7 @@ def extra_inputs_are_not_permitted(errors: list) -> tuple[Response, int]:
 
 # Función para manejar errores de campos requeridos
 def field_required(errors: list) -> tuple[Response, int]:
-    formatting_fields_required = ", ".join(
-        [f"""'{error['loc'][0]}'""" for error in errors]
-    )
+    formatting_fields_required = ", ".join([f"""'{error['loc'][0]}'""" for error in errors])
     response = jsonify(
         err=f"{f'Faltan {len(errors)} campos requeridos' if len(errors) > 1 else f'Falta {len(errors)} campo requerido'}: {formatting_fields_required}."
     )
@@ -55,11 +55,7 @@ def field_type(errors: list) -> tuple[Response, int]:
         first_index_type_field = error["msg"].find("valid") + 6
         last_index_type_field = error["msg"].find(" ", first_index_type_field)
         type_field = error["msg"][
-            first_index_type_field : (
-                last_index_type_field
-                if last_index_type_field != -1
-                else len(error["msg"])
-            )
+            first_index_type_field : (last_index_type_field if last_index_type_field != -1 else len(error["msg"]))
         ]
         fields.append((field, type_field))
 
@@ -96,35 +92,23 @@ def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
     errors_list = error.errors()
     for e in errors_list:
         if e["msg"].startswith("Input should be"):
-            errors_input_should_be = [
-                error
-                for error in errors_list
-                if error["msg"].startswith("Input should be")
-            ]
+            errors_input_should_be = [error for error in errors_list if error["msg"].startswith("Input should be")]
             return field_type(errors_input_should_be)
         if "too_long" in e["type"] or "too_short" in e["type"]:
             errors_string_length = [
-                error
-                for error in errors_list
-                if "too_long" in error["type"] or "too_short" in error["type"]
+                error for error in errors_list if "too_long" in error["type"] or "too_short" in error["type"]
             ]
             return field_length(errors_string_length)
         if e["msg"] == "Extra inputs are not permitted":
             errors_extra_inputs_are_not_permitted = [
-                error
-                for error in errors_list
-                if error["msg"] == "Extra inputs are not permitted"
+                error for error in errors_list if error["msg"] == "Extra inputs are not permitted"
             ]
             return extra_inputs_are_not_permitted(errors_extra_inputs_are_not_permitted)
         if e["msg"].startswith("Value error"):
-            errors_value_error = [
-                error for error in errors_list if error["msg"].startswith("Value error")
-            ]
+            errors_value_error = [error for error in errors_list if error["msg"].startswith("Value error")]
             return value_error_formatting(errors_value_error)
         if e["msg"] == "Field required":
-            errors_field_required = [
-                error for error in errors_list if error["msg"] == "Field required"
-            ]
+            errors_field_required = [error for error in errors_list if error["msg"] == "Field required"]
             return field_required(errors_field_required)
         if e["msg"].startswith("value is not a valid email address"):
             return jsonify(err="El email no es válido."), 400
@@ -132,12 +116,11 @@ def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
 
 
 def handle_duplicate_key_error(error: DuplicateKeyError) -> tuple[Response, int]:
-    return (
-        jsonify(
-            err=f"Error de clave duplicada en MongoDB: {error.details['keyValue']}"
-        ),
-        409,
-    )
+    return jsonify(err=f"Error de clave duplicada en MongoDB: {error.details['keyValue']}"), 409
+
+
+def handle_email_not_valid_error(error: EmailNotValidError) -> tuple[Response, int]:
+    return jsonify(err=f"El valor de 'email' no es válido: {str(error)}"), 400
 
 
 def handle_unexpected_error(error: Exception) -> tuple[Response, int]:

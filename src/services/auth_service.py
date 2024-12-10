@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from authlib.integrations.flask_client import OAuth
-from flask import jsonify
+from flask import jsonify, Response
 from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager, decode_token
 
 from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
@@ -21,7 +21,7 @@ google = oauth.register(
 )
 
 
-def generate_access_token(user_data) -> str:
+def generate_access_token(user_data: dict) -> str:
     user_role = user_data.get("role")
     user_identity = user_data.get("_id")
 
@@ -36,7 +36,7 @@ def generate_access_token(user_data) -> str:
     return access_token
 
 
-def generate_refresh_token(user_data) -> str:
+def generate_refresh_token(user_data: dict) -> str:
     user_role = user_data.get("role")
     user_identity = user_data.get("_id")
 
@@ -57,7 +57,7 @@ def generate_refresh_token(user_data) -> str:
         raise Exception("Error al guardar el refresh token en la base de datos")
 
 
-def generate_email_token(user_data) -> str:
+def generate_email_token(user_data: dict) -> str:
     user_identity = user_data.get("_id")
 
     token_info = {"identity": str(user_identity), "expires_delta": timedelta(days=1)}
@@ -67,7 +67,7 @@ def generate_email_token(user_data) -> str:
     return email_token
 
 
-def get_expiration_time_access_token(role):
+def get_expiration_time_access_token(role: int) -> timedelta:
     if role == 1:
         return timedelta(minutes=15)
     elif role == 2:
@@ -76,7 +76,7 @@ def get_expiration_time_access_token(role):
         return timedelta(days=1)
 
 
-def get_expiration_time_refresh_token(role):
+def get_expiration_time_refresh_token(role: int) -> timedelta:
     if role == 1:
         return timedelta(hours=3)
     elif role == 2:
@@ -86,7 +86,7 @@ def get_expiration_time_refresh_token(role):
 
 
 # TODO: Eliminar esta función cuando se refactorice token_model.py
-def revoke_token(token):
+def revoke_token(token: dict) -> tuple[Response, int]:
     token_jti = token.get("jti")
     token_exp = token.get("exp")
     token_sub = token.get("sub")

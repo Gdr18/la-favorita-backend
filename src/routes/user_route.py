@@ -1,12 +1,11 @@
 from bson import ObjectId
-from email_validator import validate_email, EmailNotValidError
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
 from pymongo import ReturnDocument, errors
 
 from ..models.user_model import UserModel
-from ..services.auth_service import revoke_token, generate_email_token
+from ..services.auth_service import revoke_token
 from ..services.email_service import send_email
 from ..utils.db_utils import db
 from ..utils.exceptions_management import (
@@ -14,7 +13,6 @@ from ..utils.exceptions_management import (
     handle_validation_error,
     handle_duplicate_key_error,
     ClientCustomError,
-    handle_email_not_valid_error,
 )
 from ..utils.successfully_responses import resource_msg, db_json_response
 
@@ -28,22 +26,17 @@ user_route = Blueprint("user", __name__)
 def add_user():
     try:
         user_data = request.get_json()
-        # TODO: Si es mejor la validación del email de pydantic o de email_validator
-        validate_email(user_data.get("email"))
         if user_data.get("role"):
             raise ClientCustomError("role")
         user_object = UserModel(**user_data)
         user_dict = user_object.to_dict()
         new_user = coll_users.insert_one(user_dict)
         if new_user:
-            email_token = generate_email_token(user_dict)
-            send_email(email_token, user_dict)
+            send_email(user_dict)
             return resource_msg(new_user.inserted_id, user_resource, "añadido", 201)
         raise Exception("Error al añadir el usuario")
     except ClientCustomError as e:
         return e.json_response_not_authorized_set()
-    except EmailNotValidError as e:
-        return handle_email_not_valid_error(e)
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
@@ -92,7 +85,6 @@ def handle_user(user_id):
                 combined_data = {**user, **data}
                 user_object = UserModel(**combined_data)
                 if user_object.email != user["email"]:
-                    validate_email(user_object.email)
                     user_object.confirmed = False
                 # TODO: Para mejorar el rendimiento cuando se ponga a producción cambiar a update_one, o mirar si es realmente necesario
                 updated_user = coll_users.find_one_and_update(
@@ -100,8 +92,7 @@ def handle_user(user_id):
                 )
                 if updated_user and updated_user.get("email") != user.get("email"):
                     revoke_token(get_jwt())
-                    email_token = generate_email_token(data)
-                    send_email(email_token, user_object.to_dict())
+                    send_email(user_object.to_dict())
                 return db_json_response(updated_user)
             else:
                 raise ClientCustomError(user_resource, "not_found")

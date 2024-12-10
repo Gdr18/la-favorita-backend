@@ -4,7 +4,9 @@ from flask_jwt_extended import jwt_required, get_jwt, decode_token
 from pymongo import errors, ReturnDocument
 
 from ..models.token_model import TokenModel
+from ..models.user_model import UserModel
 from ..services.auth_service import generate_access_token, generate_refresh_token, revoke_token, google
+from ..services.email_service import send_email
 from ..utils.db_utils import db, bcrypt
 from ..utils.exceptions_management import handle_unexpected_error, ClientCustomError, handle_duplicate_key_error
 from ..utils.successfully_responses import resource_msg
@@ -30,7 +32,7 @@ def login():
                         ),
                         200,
                     )
-                raise ClientCustomError.json_response_not_confirmed()
+                raise ClientCustomError(user_requested.get("_id"), "not_confirmed")
             raise ClientCustomError("password")
         raise ClientCustomError("email", "not_found")
     except ClientCustomError as e:
@@ -38,8 +40,8 @@ def login():
             return e.json_response_not_found()
         if e.resource == "password":
             return e.json_response_not_match()
-        # TODO: Verificar si se puede hacer un refactor de la función json_response_not_confirmed
-        return e
+        if e.function == "not_confirmed":
+            return e.json_response_not_confirmed()
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -126,11 +128,34 @@ def confirm_email(token):
     try:
         user_identity = decode_token(token)
         user_id = user_identity.get("sub")
-        user_updated = db.users.find_one_and_update({"_id": ObjectId(user_id)}, {"$set": {"confirmed": True}})
+        user_requested = db.users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
+        user_requested["confirmed"] = True
+        user_object = UserModel(**user_requested)
+        user_updated = db.users.update_one({"_id": ObjectId(user_id)}, {"$set": user_object.to_dict()})
         if user_updated:
             return resource_msg(user_identity.get("sub"), "usuario", "confirmado")
         raise ClientCustomError("email", "not_found")
     except ClientCustomError as e:
         return e.json_response_not_found()
+    except Exception as e:
+        return handle_unexpected_error(e)
+
+
+@auth_route.route("/auth/resend_email/<user_id>", methods=["POST"])
+def resend_email(user_id):
+    try:
+        user_token = TokenModel.get_email_tokens_by_user_id(user_id)
+        if len(user_token) < 5:
+            user_data = db.users.find_one({"_id": ObjectId(user_id)})
+            if user_data:
+                send_email(user_data)
+                return resource_msg(user_id, "email de confirmación", "reenviado")
+            raise ClientCustomError(f"usuario '{user_id}'", "not_found")
+        raise ClientCustomError("email", "too_many_requests")
+    except ClientCustomError as e:
+        if e.function == "not_found":
+            return e.json_response_not_found()
+        if e.function == "too_many_requests":
+            return e.json_response_too_many_requests()
     except Exception as e:
         return handle_unexpected_error(e)

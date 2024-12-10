@@ -1,4 +1,3 @@
-from email_validator import EmailNotValidError
 from flask import jsonify, Response
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
@@ -15,9 +14,11 @@ class ClientCustomError(Exception):
     def json_response_not_match(self) -> tuple[Response, int]:
         return jsonify(err=f"'{self.resource.capitalize()}' no coincide"), 401
 
-    @staticmethod
-    def json_response_not_confirmed() -> tuple[Response, int]:
-        return jsonify(err=f"El usuario no ha confirmado el email"), 401
+    def json_response_not_confirmed(self) -> tuple[Response, int]:
+        return jsonify(err=f"El usuario '{self.resource}' no ha confirmado el email"), 401
+
+    def json_response_too_many_requests(self) -> tuple[Response, int]:
+        return jsonify(err=f"Se han reenviado demasiados {self.resource}. Inténtalo más tarde."), 429
 
     def json_response_not_authorized_change(self) -> tuple[Response, int]:
         return jsonify(err=f"No está autorizado para cambiar '{self.resource}'"), 401
@@ -110,17 +111,11 @@ def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
         if e["msg"] == "Field required":
             errors_field_required = [error for error in errors_list if error["msg"] == "Field required"]
             return field_required(errors_field_required)
-        if e["msg"].startswith("value is not a valid email address"):
-            return jsonify(err="El email no es válido."), 400
     return jsonify(err=[str(e) for e in errors_list]), 400
 
 
 def handle_duplicate_key_error(error: DuplicateKeyError) -> tuple[Response, int]:
     return jsonify(err=f"Error de clave duplicada en MongoDB: {error.details['keyValue']}"), 409
-
-
-def handle_email_not_valid_error(error: EmailNotValidError) -> tuple[Response, int]:
-    return jsonify(err=f"El valor de 'email' no es válido: {str(error)}"), 400
 
 
 def handle_unexpected_error(error: Exception) -> tuple[Response, int]:

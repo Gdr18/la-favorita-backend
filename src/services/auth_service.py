@@ -95,21 +95,6 @@ def revoke_token(token: dict) -> tuple[Response, int]:
     return resource_msg(token_revoked.inserted_id, "token revocado", "añadido", 201)
 
 
-# TODO: Comprobar si esto es más seguro y no afecta mucho al rendimiento. En vez de meter el rol en el token, se puede hacer una consulta a la base de datos.
-# @jwt.user_lookup_loader
-# def user_lookup_callback(_jwt_headers, jwt_data):
-#     user_id = jwt_data["sub"]
-#     return db.users.find_one({"_id": user_id})
-
-# Prueba de rendimiento
-# import time
-# start_time = time.time()
-# your_function()
-# end_time = time.time()
-# execution_time = end_time - start_time
-# print(f"Tiempo de ejecución: {execution_time} segundos")
-
-
 @jwt.token_in_blocklist_loader
 def check_if_token_revoked(jwt_header, jwt_payload):
     check_token = db.revoked_tokens.find_one({"jti": jwt_payload.get("jti")})

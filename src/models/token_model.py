@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from bson import ObjectId
 from pydantic import BaseModel, Field, field_validator
@@ -19,9 +19,18 @@ class TokenModel(BaseModel, extra="forbid"):
     @field_validator("expires_at", mode="before")
     @classmethod
     def check_exp(cls, v):
-        if isinstance(v, int) and len(str(v)) == 10 and v > datetime.utcnow().timestamp():
-            return datetime.utcfromtimestamp(v)
-        raise ValueError("El campo 'expires_at' debe ser de tipo unix timestamp y mayor que la fecha actual")
+        try:
+            if isinstance(v, str):
+                v = datetime.fromisoformat(v.replace("Z", "+00:00")).astimezone(timezone.utc)
+                if v < datetime.now(timezone.utc):
+                    raise ValueError
+                return v
+            if isinstance(v, int) and len(str(v)) == 10 and v > datetime.now(timezone.utc).timestamp():
+                return datetime.utcfromtimestamp(v)
+        except ValueError:
+            raise ValueError(
+                "El campo 'expires_at' debe ser de tipo unix timestamp o cadena en formato ISO, además de mayor que la fecha actual UTC"
+            )
 
     # Solicitudes refresh token
     def insert_refresh_token(self):

@@ -1,26 +1,27 @@
 from datetime import timedelta
 
 from authlib.integrations.flask_client import OAuth
-from flask import jsonify
+from flask import jsonify, Response
 from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager, decode_token
 
-from config import google_client_id, google_client_secret
+from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
 from ..models.token_model import TokenModel
 from ..utils.db_utils import db
 from ..utils.successfully_responses import resource_msg
 
 jwt = JWTManager()
 oauth = OAuth()
+
 google = oauth.register(
     name="google",
-    client_id=google_client_id,
-    client_secret=google_client_secret,
+    client_id=GOOGLE_CLIENT_ID,
+    client_secret=GOOGLE_CLIENT_SECRET,
     server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
     client_kwargs={"scope": "openid email profile"},
 )
 
 
-def generate_access_token(user_data) -> str:
+def generate_access_token(user_data: dict) -> str:
     user_role = user_data.get("role")
     user_identity = user_data.get("_id")
 
@@ -35,7 +36,7 @@ def generate_access_token(user_data) -> str:
     return access_token
 
 
-def generate_refresh_token(user_data) -> str:
+def generate_refresh_token(user_data: dict) -> str:
     user_role = user_data.get("role")
     user_identity = user_data.get("_id")
 
@@ -56,17 +57,17 @@ def generate_refresh_token(user_data) -> str:
         raise Exception("Error al guardar el refresh token en la base de datos")
 
 
-def generate_email_token(user_data) -> str:
+def generate_email_token(user_data: dict) -> str:
     user_identity = user_data.get("_id")
 
-    token_info = {"identity": str(user_identity), "expires_delta": timedelta(hours=2)}
+    token_info = {"identity": str(user_identity), "expires_delta": timedelta(days=1)}
 
     email_token = create_access_token(**token_info)
 
     return email_token
 
 
-def get_expiration_time_access_token(role):
+def get_expiration_time_access_token(role: int) -> timedelta:
     if role == 1:
         return timedelta(minutes=15)
     elif role == 2:
@@ -75,7 +76,7 @@ def get_expiration_time_access_token(role):
         return timedelta(days=1)
 
 
-def get_expiration_time_refresh_token(role):
+def get_expiration_time_refresh_token(role: int) -> timedelta:
     if role == 1:
         return timedelta(hours=3)
     elif role == 2:
@@ -85,7 +86,7 @@ def get_expiration_time_refresh_token(role):
 
 
 # TODO: Eliminar esta función cuando se refactorice token_model.py
-def revoke_token(token):
+def revoke_token(token: dict) -> tuple[Response, int]:
     token_jti = token.get("jti")
     token_exp = token.get("exp")
     token_sub = token.get("sub")
@@ -112,4 +113,4 @@ def expired_token_callback(jwt_header, jwt_payload):
 
 @jwt.unauthorized_loader
 def unauthorized_callback(error_message):
-    return jsonify(err="Necesita un token autorizado para acceder a esta ruta"), 401
+    return jsonify(err="Necesita un token válido para acceder a esta ruta"), 401

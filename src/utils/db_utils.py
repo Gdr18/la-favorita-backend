@@ -6,12 +6,12 @@ from pymongo.database import Database
 from pymongo.errors import ConnectionFailure
 from pymongo.mongo_client import MongoClient
 
-from config import database_uri
+from config import DATABASE_URI
 
 
 def db_connection() -> Union[Database, tuple[Response, int]]:
     try:
-        client = MongoClient(database_uri)
+        client = MongoClient(DATABASE_URI)
         database = client["test_la_favorita"]
         return database
     except ConnectionFailure as e:

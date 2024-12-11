@@ -1,6 +1,7 @@
 from flask import Flask
 
 from .routes.auth_route import auth_route
+from .routes.email_token_route import email_token_route
 from .routes.product_route import product_route
 from .routes.refresh_token_route import refresh_token_route
 from .routes.revoked_token_route import token_revoked_route
@@ -25,5 +26,6 @@ def run_app(config):
     app.register_blueprint(auth_route)
     app.register_blueprint(token_revoked_route)
     app.register_blueprint(refresh_token_route)
+    app.register_blueprint(email_token_route)
 
     return app

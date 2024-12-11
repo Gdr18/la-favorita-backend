@@ -1,7 +1,8 @@
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Union
 
+from email_validator import validate_email, EmailNotValidError
 from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationInfo
 
 from ..utils.db_utils import bcrypt
@@ -19,6 +20,18 @@ class UserModel(BaseModel, extra="forbid"):
     basket: Optional[List[Dict]] = None
     confirmed: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.now)
+    expires_at: Union[datetime, None] = Field(default_factory=lambda: datetime.utcnow() + timedelta(days=7))
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def validate_email(cls, v) -> EmailStr:
+        if v is None:
+            raise ValueError("El campo 'email' es obligatorio.")
+        try:
+            validate_email(v)
+            return v
+        except EmailNotValidError as e:
+            raise EmailNotValidError(f"El campo 'email' no es válido: {str(e)}")
 
     @field_validator("password", mode="before")
     @classmethod
@@ -56,6 +69,16 @@ class UserModel(BaseModel, extra="forbid"):
         if isinstance(v, list) and all(isinstance(i, dict) for i in v):
             return v
         raise ValueError(f"El campo '{field.field_name}' debe ser una lista de diccionarios o None.")
+
+    @field_validator("expires_at", mode="before")
+    @classmethod
+    def validate_expires_at(cls, v, values: ValidationInfo) -> Union[datetime, None]:
+        value_confirmed = values.data.get("confirmed")
+        if value_confirmed:
+            return None
+        if isinstance(v, datetime):
+            return v
+        raise ValueError("El campo 'expires_at' debe ser de tipo datetime o None.")
 
     def to_dict(self) -> dict:
         return self.model_dump()

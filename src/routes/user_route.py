@@ -6,6 +6,7 @@ from pymongo import ReturnDocument, errors
 
 from ..models.user_model import UserModel
 from ..services.auth_service import revoke_token
+from ..services.email_service import send_email
 from ..utils.db_utils import db
 from ..utils.exceptions_management import (
     handle_unexpected_error,
@@ -28,8 +29,12 @@ def add_user():
         if user_data.get("role"):
             raise ClientCustomError("role")
         user_object = UserModel(**user_data)
-        new_user = coll_users.insert_one(user_object.to_dict())
-        return resource_msg(new_user.inserted_id, user_resource, "añadido", 201)
+        user_dict = user_object.to_dict()
+        new_user = coll_users.insert_one(user_dict)
+        if new_user:
+            send_email(user_dict)
+            return resource_msg(new_user.inserted_id, user_resource, "añadido", 201)
+        raise Exception("Error al añadir el usuario")
     except ClientCustomError as e:
         return e.json_response_not_authorized_set()
     except errors.DuplicateKeyError as e:
@@ -79,10 +84,15 @@ def handle_user(user_id):
                 # TODO: Combined_data dará problemas con eliminación de elementos de una lista o diccionario
                 combined_data = {**user, **data}
                 user_object = UserModel(**combined_data)
+                if user_object.email != user["email"]:
+                    user_object.confirmed = False
                 # TODO: Para mejorar el rendimiento cuando se ponga a producción cambiar a update_one, o mirar si es realmente necesario
                 updated_user = coll_users.find_one_and_update(
                     {"_id": ObjectId(user_id)}, {"$set": user_object.to_dict()}, return_document=ReturnDocument.AFTER
                 )
+                if updated_user and updated_user.get("email") != user.get("email"):
+                    revoke_token(get_jwt())
+                    send_email(user_object.to_dict())
                 return db_json_response(updated_user)
             else:
                 raise ClientCustomError(user_resource, "not_found")

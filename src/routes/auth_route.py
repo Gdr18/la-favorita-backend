@@ -1,6 +1,7 @@
 from bson import ObjectId
 from flask import Blueprint, request, url_for, jsonify
 from flask_jwt_extended import jwt_required, get_jwt, decode_token
+from pydantic import ValidationError
 from pymongo import errors, ReturnDocument
 
 from ..models.token_model import TokenModel
@@ -8,7 +9,12 @@ from ..models.user_model import UserModel
 from ..services.auth_service import generate_access_token, generate_refresh_token, revoke_token, google
 from ..services.email_service import send_email
 from ..utils.db_utils import db, bcrypt
-from ..utils.exceptions_management import handle_unexpected_error, ClientCustomError, handle_duplicate_key_error
+from ..utils.exceptions_management import (
+    handle_unexpected_error,
+    ClientCustomError,
+    handle_duplicate_key_error,
+    handle_validation_error,
+)
 from ..utils.successfully_responses import resource_msg
 
 auth_route = Blueprint("auth", __name__)
@@ -32,16 +38,14 @@ def login():
                         ),
                         200,
                     )
-                raise ClientCustomError(user_requested.get("_id"), "not_confirmed")
-            raise ClientCustomError("password")
-        raise ClientCustomError("email", "not_found")
+                else:
+                    raise ClientCustomError("not_confirmed")
+            else:
+                raise ClientCustomError("not_match")
+        else:
+            raise ClientCustomError("not_found", "usuario")
     except ClientCustomError as e:
-        if e.function == "not_found":
-            return e.json_response_not_found()
-        if e.resource == "password":
-            return e.json_response_not_match()
-        if e.function == "not_confirmed":
-            return e.json_response_not_confirmed()
+        return e.response
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -53,10 +57,8 @@ def logout():
         token = get_jwt()
         # TODO: Refactorizar cuando se cambie TokenModel
         revoked_token = revoke_token(token)
-        refresh_token_deleted = TokenModel.delete_refresh_token_by_user_id(token.get("sub"))
-        if revoked_token and refresh_token_deleted:
-            return revoked_token
-        raise Exception("Error al revocar el token")
+        TokenModel.delete_refresh_token_by_user_id(token.get("sub"))
+        return revoked_token
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except Exception as e:
@@ -87,20 +89,22 @@ def authorize_google():
             upsert=True,
             return_document=ReturnDocument.AFTER,
         )
-        if user:
-            access_token = generate_access_token(user)
-            refresh_token = generate_refresh_token(user)
-            return (
-                jsonify(
-                    {
-                        "msg": f"""El usuario '{user.get("_id")}' ha iniciado sesión con Google""",
-                        "access_token": access_token,
-                        "refresh_token": refresh_token,
-                    }
-                ),
-                200,
-            )
-        raise Exception("Error al escribir en la base de datos")
+        access_token = generate_access_token(user)
+        refresh_token = generate_refresh_token(user)
+        return (
+            jsonify(
+                {
+                    "msg": f"""El usuario '{user.get("_id")}' ha iniciado sesión con Google""",
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                }
+            ),
+            200,
+        )
+    except errors.DuplicateKeyError as e:
+        return handle_duplicate_key_error(e)
+    except ValidationError as e:
+        return handle_validation_error(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -115,14 +119,14 @@ def refresh_users_token():
             user_data = db.users.find_one({"_id": ObjectId(user_id)})
             access_token = generate_access_token(user_data)
             return jsonify(access_token=access_token, msg="El token de acceso se ha generado"), 200
-        raise ClientCustomError("refresh token", "not_found")
+        else:
+            raise ClientCustomError("not_found", "refresh_token")
     except ClientCustomError as e:
-        return e.json_response_not_found()
+        return e.response
     except Exception as e:
         return handle_unexpected_error(e)
 
 
-# TODO: Verificar si se puede comprobar que la entrada es a través de un email
 @auth_route.route("/auth/confirm_email/<token>", methods=["GET"])
 def confirm_email(token):
     try:
@@ -132,13 +136,12 @@ def confirm_email(token):
         if user_requested:
             user_requested["confirmed"] = True
             user_object = UserModel(**user_requested)
-            user_updated = db.users.update_one({"_id": ObjectId(user_id)}, {"$set": user_object.to_dict()})
-            if user_updated.modified_count == 1:
-                return resource_msg(user_identity.get("sub"), "usuario", "confirmado")
-            raise Exception("Error al actualizar el usuario")
-        raise ClientCustomError("usuario", "not_found")
+            db.users.update_one({"_id": ObjectId(user_id)}, {"$set": user_object.to_dict()})
+            return resource_msg(user_id, "usuario", "confirmado")
+        else:
+            raise ClientCustomError("not_found", "usuario")
     except ClientCustomError as e:
-        return e.json_response_not_found()
+        return e.response
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -152,12 +155,11 @@ def resend_email(user_id):
             if user_data:
                 send_email(user_data)
                 return resource_msg(user_id, "email de confirmación", "reenviado")
-            raise ClientCustomError(f"usuario '{user_id}'", "not_found")
-        raise ClientCustomError("email", "too_many_requests")
+            else:
+                raise ClientCustomError("not_found", "usuario")
+        else:
+            raise ClientCustomError("too_many_requests")
     except ClientCustomError as e:
-        if e.function == "not_found":
-            return e.json_response_not_found()
-        if e.function == "too_many_requests":
-            return e.json_response_too_many_requests()
+        return e.response
     except Exception as e:
         return handle_unexpected_error(e)

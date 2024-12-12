@@ -32,7 +32,7 @@ def add_revoked_token():
         new_revoked_token = coll_revoked_tokens.insert_one(revoked_token.to_dict())
         return resource_msg(new_revoked_token.inserted_id, tokens_revoked_resource, "añadido", 201)
     except ClientCustomError as e:
-        return e.json_response_not_authorized_set()
+        return e.json_response_not_authorized()
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:

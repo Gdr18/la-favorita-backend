@@ -4,30 +4,39 @@ from pymongo.errors import DuplicateKeyError
 
 
 class ClientCustomError(Exception):
-    def __init__(self, resource: str, function: str = None):
-        self.resource = resource
+    def __init__(self, function: str, resource: str = None):
         self.function = function
+        self.resource = resource
+
+        if self.function == "not_authorized":
+            self.response = self.json_response_not_authorized()
+        elif self.function == "not_found":
+            self.response = self.json_response_not_found()
+        elif self.function == "not_match":
+            self.response = self.json_response_not_match()
+        elif self.function == "not_confirmed":
+            self.response = self.json_response_not_confirmed()
+        elif self.function == "too_many_requests":
+            self.response = self.json_response_too_many_requests()
 
     def json_response_not_found(self) -> tuple[Response, int]:
         return jsonify(err=f"{self.resource.capitalize()} no encontrado"), 404
 
-    def json_response_not_match(self) -> tuple[Response, int]:
-        return jsonify(err=f"'{self.resource.capitalize()}' no coincide"), 401
+    @staticmethod
+    def json_response_not_match() -> tuple[Response, int]:
+        return jsonify(err="La contraseña no coincide"), 401
 
-    def json_response_not_confirmed(self) -> tuple[Response, int]:
-        return jsonify(err=f"El usuario '{self.resource}' no ha confirmado el email"), 401
+    @staticmethod
+    def json_response_not_confirmed() -> tuple[Response, int]:
+        return jsonify(err=f"El email no está confirmado"), 401
 
-    def json_response_too_many_requests(self) -> tuple[Response, int]:
-        return jsonify(err=f"Se han reenviado demasiados {self.resource}. Inténtalo más tarde."), 429
+    @staticmethod
+    def json_response_too_many_requests() -> tuple[Response, int]:
+        return jsonify(err=f"Se han reenviado demasiados emails de confirmación. Inténtalo mañana."), 429
 
-    def json_response_not_authorized_change(self) -> tuple[Response, int]:
-        return jsonify(err=f"No está autorizado para cambiar '{self.resource}'"), 401
-
-    def json_response_not_authorized_set(self) -> tuple[Response, int]:
-        return jsonify(err=f"No está autorizado para establecer '{self.resource}'"), 401
-
-    def json_response_not_authorized_access(self) -> tuple[Response, int]:
-        return jsonify(err=f"No está autorizado para acceder a la ruta '{self.resource}'"), 401
+    @staticmethod
+    def json_response_not_authorized() -> tuple[Response, int]:
+        return jsonify(err=f"El token no está autorizado a acceder a esta ruta"), 401
 
 
 # Función para manejar errores de campos no permitidos

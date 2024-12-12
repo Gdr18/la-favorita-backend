@@ -1,9 +1,11 @@
-from flask import Blueprint, request
 from bson import ObjectId
-from pymongo import errors, ReturnDocument
-from pydantic import ValidationError
+from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt
+from pydantic import ValidationError
+from pymongo import errors, ReturnDocument
 
+from ..models.product_model import reload_allowed_values
+from ..models.setting_model import SettingModel
 from ..utils.db_utils import db
 from ..utils.exceptions_management import (
     handle_unexpected_error,
@@ -12,9 +14,6 @@ from ..utils.exceptions_management import (
     ClientCustomError,
 )
 from ..utils.successfully_responses import resource_msg, db_json_response
-
-from ..models.setting_model import SettingModel
-from ..models.product_model import reload_allowed_values
 
 coll_settings = db.settings
 setting_resource = "configuración"
@@ -34,7 +33,7 @@ def add_setting():
         new_setting = coll_settings.insert_one(setting_object.to_dict())
         return resource_msg(new_setting.inserted_id, setting_resource, "añadida", 201)
     except ClientCustomError as e:
-        return e.json_response_not_authorized_set()
+        return e.json_response_not_authorized()
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:

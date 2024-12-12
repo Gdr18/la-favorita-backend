@@ -23,13 +23,14 @@ def add_email_token():
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
-            raise ClientCustomError(email_tokens_resource, "set")
-        data = request.get_json()
-        email_token = TokenModel(**data)
-        new_email_token = email_token.insert_email_token()
-        return resource_msg(new_email_token.inserted_id, email_tokens_resource, "añadido", 201)
+            raise ClientCustomError("not_authorized")
+        else:
+            data = request.get_json()
+            email_token = TokenModel(**data)
+            new_email_token = email_token.insert_email_token()
+            return resource_msg(new_email_token.inserted_id, email_tokens_resource, "añadido", 201)
     except ClientCustomError as e:
-        return e.json_response_not_authorized_set()
+        return e.response
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
@@ -44,11 +45,12 @@ def get_email_tokens():
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
-            raise ClientCustomError(email_tokens_resource, "get")
-        email_tokens = TokenModel.get_email_tokens()
-        return db_json_response(email_tokens)
+            raise ClientCustomError("not_authorized")
+        else:
+            email_tokens = TokenModel.get_email_tokens()
+            return db_json_response(email_tokens)
     except ClientCustomError as e:
-        return e.json_response_not_authorized_access()
+        return e.response
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -59,13 +61,13 @@ def handle_email_token(email_token_id):
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
-            raise ClientCustomError(email_tokens_resource, "access")
+            raise ClientCustomError("not_authorized")
         if request.method == "GET":
             email_token = TokenModel.get_email_token(email_token_id)
             if email_token:
                 return db_json_response(email_token)
             else:
-                raise ClientCustomError(email_tokens_resource, "not_found")
+                raise ClientCustomError("not_found", email_tokens_resource)
 
         # TODO: Comprobar como podría hacer PATCH para poder optimizar el rendimiento de la base de datos
         if request.method == "PUT":
@@ -77,19 +79,16 @@ def handle_email_token(email_token_id):
                 email_token_updated = email_token_object.update_email_token(email_token_id)
                 return db_json_response(email_token_updated)
             else:
-                raise ClientCustomError(email_tokens_resource, "not_found")
+                raise ClientCustomError("not_found", email_tokens_resource)
 
         if request.method == "DELETE":
             email_token_deleted = TokenModel.delete_email_token(email_token_id)
             if email_token_deleted.deleted_count > 0:
                 return resource_msg(email_token_id, email_tokens_resource, "eliminado")
             else:
-                raise ClientCustomError(email_tokens_resource, "not_found")
+                raise ClientCustomError("not_found", email_tokens_resource)
     except ClientCustomError as e:
-        if e.function == "not_found":
-            return e.json_response_not_found()
-        if e.function == "access":
-            return e.json_response_not_authorized_access()
+        return e.response
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:

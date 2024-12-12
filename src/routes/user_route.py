@@ -36,7 +36,7 @@ def add_user():
             return resource_msg(new_user.inserted_id, user_resource, "añadido", 201)
         raise Exception("Error al añadir el usuario")
     except ClientCustomError as e:
-        return e.json_response_not_authorized_set()
+        return e.json_response_not_authorized()
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:

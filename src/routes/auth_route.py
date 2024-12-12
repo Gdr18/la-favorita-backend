@@ -129,12 +129,14 @@ def confirm_email(token):
         user_identity = decode_token(token)
         user_id = user_identity.get("sub")
         user_requested = db.users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
-        user_requested["confirmed"] = True
-        user_object = UserModel(**user_requested)
-        user_updated = db.users.update_one({"_id": ObjectId(user_id)}, {"$set": user_object.to_dict()})
-        if user_updated:
-            return resource_msg(user_identity.get("sub"), "usuario", "confirmado")
-        raise ClientCustomError("email", "not_found")
+        if user_requested:
+            user_requested["confirmed"] = True
+            user_object = UserModel(**user_requested)
+            user_updated = db.users.update_one({"_id": ObjectId(user_id)}, {"$set": user_object.to_dict()})
+            if user_updated.modified_count == 1:
+                return resource_msg(user_identity.get("sub"), "usuario", "confirmado")
+            raise Exception("Error al actualizar el usuario")
+        raise ClientCustomError("usuario", "not_found")
     except ClientCustomError as e:
         return e.json_response_not_found()
     except Exception as e:

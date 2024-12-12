@@ -81,7 +81,6 @@ def handle_user(user_id):
                 data = request.get_json()
                 if all([data.get("role"), data.get("role") != user.get("role"), token_role != 1]):
                     raise ClientCustomError("role", "change")
-                # TODO: Combined_data dará problemas con eliminación de elementos de una lista o diccionario
                 combined_data = {**user, **data}
                 user_object = UserModel(**combined_data)
                 if user_object.email != user["email"]:
@@ -98,7 +97,6 @@ def handle_user(user_id):
                 raise ClientCustomError(user_resource, "not_found")
 
         if request.method == "DELETE":
-            # TODO: Revocar el refresh token del usuario eliminado
             deleted_user = coll_users.delete_one({"_id": ObjectId(user_id)})
             if deleted_user.deleted_count > 0:
                 revoke_token(get_jwt())

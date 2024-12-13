@@ -27,16 +27,15 @@ def add_user():
     try:
         user_data = request.get_json()
         if user_data.get("role"):
-            raise ClientCustomError("role")
-        user_object = UserModel(**user_data)
-        user_dict = user_object.to_dict()
-        new_user = coll_users.insert_one(user_dict)
-        if new_user:
+            raise ClientCustomError("not_authorized_to_set_role")
+        else:
+            user_object = UserModel(**user_data)
+            user_dict = user_object.to_dict()
+            new_user = coll_users.insert_one(user_dict)
             send_email(user_dict)
             return resource_msg(new_user.inserted_id, user_resource, "añadido", 201)
-        raise Exception("Error al añadir el usuario")
     except ClientCustomError as e:
-        return e.json_response_not_authorized()
+        return e.response
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
@@ -51,11 +50,12 @@ def get_users():
     try:
         user_role = get_jwt().get("role")
         if user_role != 1:
-            raise ClientCustomError("usuarios", "access")
-        users = coll_users.find()
-        return db_json_response(users)
+            raise ClientCustomError("not_authorized")
+        else:
+            users = coll_users.find()
+            return db_json_response(users)
     except ClientCustomError as e:
-        return e.json_response_not_authorized_access()
+        return e.response
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -67,34 +67,37 @@ def handle_user(user_id):
         token_id = get_jwt().get("sub")
         token_role = get_jwt().get("role")
         if all([token_id != user_id, token_role != 1]):
-            raise ClientCustomError(user_resource, "access")
+            raise ClientCustomError("not_authorized")
         if request.method == "GET":
             user = coll_users.find_one({"_id": ObjectId(token_id)})
             if user:
                 return db_json_response(user)
             else:
-                raise ClientCustomError(user_resource, "not_found")
+                raise ClientCustomError("not_found", user_resource)
 
         if request.method == "PUT":
             user = coll_users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
             if user:
                 data = request.get_json()
                 if all([data.get("role"), data.get("role") != user.get("role"), token_role != 1]):
-                    raise ClientCustomError("role", "change")
-                combined_data = {**user, **data}
-                user_object = UserModel(**combined_data)
-                if user_object.email != user["email"]:
-                    user_object.confirmed = False
-                # TODO: Para mejorar el rendimiento cuando se ponga a producción cambiar a update_one, o mirar si es realmente necesario
-                updated_user = coll_users.find_one_and_update(
-                    {"_id": ObjectId(user_id)}, {"$set": user_object.to_dict()}, return_document=ReturnDocument.AFTER
-                )
-                if updated_user and updated_user.get("email") != user.get("email"):
-                    revoke_token(get_jwt())
-                    send_email(user_object.to_dict())
-                return db_json_response(updated_user)
+                    raise ClientCustomError("not_authorized_to_set_role")
+                else:
+                    combined_data = {**user, **data}
+                    user_object = UserModel(**combined_data)
+                    if user_object.email != user["email"]:
+                        user_object.confirmed = False
+                    # TODO: Para mejorar el rendimiento cuando se ponga a producción cambiar a update_one, o mirar si es realmente necesario
+                    updated_user = coll_users.find_one_and_update(
+                        {"_id": ObjectId(user_id)},
+                        {"$set": user_object.to_dict()},
+                        return_document=ReturnDocument.AFTER,
+                    )
+                    if updated_user.get("email") != user.get("email"):
+                        revoke_token(get_jwt())
+                        send_email(updated_user)
+                    return db_json_response(updated_user)
             else:
-                raise ClientCustomError(user_resource, "not_found")
+                raise ClientCustomError("not_found", user_resource)
 
         if request.method == "DELETE":
             deleted_user = coll_users.delete_one({"_id": ObjectId(user_id)})
@@ -102,15 +105,10 @@ def handle_user(user_id):
                 revoke_token(get_jwt())
                 return resource_msg(token_id, user_resource, "eliminado")
             else:
-                raise ClientCustomError(user_resource, "not_found")
+                raise ClientCustomError("not_found", user_resource)
 
     except ClientCustomError as e:
-        if e.function == "not_found":
-            return e.json_response_not_found()
-        if e.function == "change":
-            return e.json_response_not_authorized_change()
-        if e.function == "access":
-            return e.json_response_not_authorized_access()
+        return e.response
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:

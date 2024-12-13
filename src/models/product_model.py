@@ -1,4 +1,5 @@
 from typing import List, Optional
+
 from pydantic import BaseModel, Field, field_validator, ValidationInfo
 
 from ..utils.db_utils import db
@@ -37,31 +38,21 @@ class ProductModel(BaseModel, extra="forbid"):
             if v is None:
                 return v
         if isinstance(v, list) and all(isinstance(i, str) and len(i) > 1 for i in v):
-            return cls.checking_in_list(
-                field,
-                v,
-                _allowed_allergens if field == "allergens" else _allowed_categories,
-            )
+            return cls.checking_in_list(field, v, _allowed_allergens if field == "allergens" else _allowed_categories)
         raise ValueError(
             f"El campo '{field}' debe ser una lista de strings con al menos un caracter en cada string{' o None' if field == 'allergens' else None}."
         )
 
     @staticmethod
-    def checking_in_list(
-        name_field: str, value: list[str], allowed_values: list[str]
-    ) -> list[str]:
-        invalid_values = [
-            item
-            for item in value
-            if item not in allowed_values
-            if isinstance(value, list)
-        ]
+    def checking_in_list(name_field: str, value: list[str], allowed_values: list[str]) -> list[str]:
+        invalid_values = [item for item in value if item not in allowed_values if isinstance(value, list)]
         if invalid_values:
             invalid_values_str = ", ".join(f"'{item}'" for item in invalid_values)
             raise ValueError(
                 f"""{f"Los valores {invalid_values_str} no son válidos en el campo '{name_field}'." if len(invalid_values) > 1 else f"El valor '{invalid_values[0]}' no es válido en el campo '{name_field}'."}"""
             )
-        return value
+        else:
+            return value
 
     def to_dict(self) -> dict:
         return self.model_dump()

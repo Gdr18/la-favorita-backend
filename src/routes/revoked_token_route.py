@@ -26,13 +26,14 @@ def add_revoked_token():
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
-            raise ClientCustomError(tokens_revoked_resource, "set")
-        data = request.get_json()
-        revoked_token = TokenModel(**data)
-        new_revoked_token = coll_revoked_tokens.insert_one(revoked_token.to_dict())
-        return resource_msg(new_revoked_token.inserted_id, tokens_revoked_resource, "añadido", 201)
+            raise ClientCustomError("not_authorized")
+        else:
+            data = request.get_json()
+            revoked_token = TokenModel(**data)
+            new_revoked_token = coll_revoked_tokens.insert_one(revoked_token.to_dict())
+            return resource_msg(new_revoked_token.inserted_id, tokens_revoked_resource, "añadido", 201)
     except ClientCustomError as e:
-        return e.json_response_not_authorized()
+        return e.response
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
@@ -47,11 +48,12 @@ def get_revoked_tokens():
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
-            raise ClientCustomError(tokens_revoked_resource, "get")
-        revoked_tokens = coll_revoked_tokens.find()
-        return db_json_response(revoked_tokens)
+            raise ClientCustomError("not_authorized")
+        else:
+            revoked_tokens = coll_revoked_tokens.find()
+            return db_json_response(revoked_tokens)
     except ClientCustomError as e:
-        return e.json_response_not_authorized_access()
+        return e.response
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -62,13 +64,13 @@ def handle_revoked_token(revoked_token_id):
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
-            raise ClientCustomError(tokens_revoked_resource, "access")
+            raise ClientCustomError("not_authorized")
         if request.method == "GET":
             revoked_token = coll_revoked_tokens.find_one({"_id": ObjectId(revoked_token_id)})
             if revoked_token:
                 return db_json_response(revoked_token)
             else:
-                raise ClientCustomError(tokens_revoked_resource, "not_found")
+                raise ClientCustomError("not_found", tokens_revoked_resource)
 
         # TODO: Comprobar como podría hacer PATCH para poder optimizar el rendimiento de la base de datos
         if request.method == "PUT":
@@ -84,19 +86,16 @@ def handle_revoked_token(revoked_token_id):
                 )
                 return db_json_response(revoked_token_updated)
             else:
-                raise ClientCustomError(tokens_revoked_resource, "not_found")
+                raise ClientCustomError("not_found", tokens_revoked_resource)
 
         if request.method == "DELETE":
             revoked_token_deleted = coll_revoked_tokens.delete_one({"_id": ObjectId(revoked_token_id)})
             if revoked_token_deleted.deleted_count > 0:
                 return resource_msg(revoked_token_id, tokens_revoked_resource, "eliminado")
             else:
-                raise ClientCustomError(tokens_revoked_resource, "not_found")
+                raise ClientCustomError("not_found", tokens_revoked_resource)
     except ClientCustomError as e:
-        if e.function == "not_found":
-            return e.json_response_not_found()
-        if e.function == "access":
-            return e.json_response_not_authorized_access()
+        return e.response
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:

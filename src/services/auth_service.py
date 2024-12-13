@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Union
 
 from authlib.integrations.flask_client import OAuth
 from flask import jsonify, Response
@@ -7,6 +8,7 @@ from flask_jwt_extended import create_access_token, create_refresh_token, JWTMan
 from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
 from ..models.token_model import TokenModel
 from ..utils.db_utils import db
+from ..utils.exceptions_management import handle_unexpected_error
 from ..utils.successfully_responses import resource_msg
 
 jwt = JWTManager()
@@ -24,19 +26,16 @@ google = oauth.register(
 def generate_access_token(user_data: dict) -> str:
     user_role = user_data.get("role")
     user_identity = user_data.get("_id")
-
     token_info = {
         "identity": str(user_identity),
         "additional_claims": {"role": user_role},
         "expires_delta": get_expiration_time_access_token(user_role),
     }
-
     access_token = create_access_token(**token_info)
-
     return access_token
 
 
-def generate_refresh_token(user_data: dict) -> str:
+def generate_refresh_token(user_data: dict) -> Union[str, tuple[Response, int]]:
     user_role = user_data.get("role")
     user_identity = user_data.get("_id")
 
@@ -49,22 +48,28 @@ def generate_refresh_token(user_data: dict) -> str:
         "jti": refresh_token_decoded.get("jti"),
         "expires_at": refresh_token_decoded.get("exp"),
     }
-    response = TokenModel(**data_refresh_token_db).insert_refresh_token()
-
-    if response:
+    try:
+        TokenModel(**data_refresh_token_db).insert_refresh_token()
         return refresh_token
-    else:
-        raise Exception("Error al guardar el refresh token en la base de datos")
+    except Exception as e:
+        return handle_unexpected_error(e)
 
 
-def generate_email_token(user_data: dict) -> str:
+def generate_email_token(user_data: dict) -> Union[str, tuple[Response, int]]:
     user_identity = user_data.get("_id")
-
     token_info = {"identity": str(user_identity), "expires_delta": timedelta(days=1)}
-
     email_token = create_access_token(**token_info)
-
-    return email_token
+    decoded_token_email = decode_token(email_token)
+    data_email_token_db = {
+        "user_id": decoded_token_email.get("sub"),
+        "jti": decoded_token_email.get("jti"),
+        "expires_at": decoded_token_email.get("exp"),
+    }
+    try:
+        TokenModel(**data_email_token_db).insert_email_token()
+        return email_token
+    except Exception as e:
+        return handle_unexpected_error(e)
 
 
 def get_expiration_time_access_token(role: int) -> timedelta:

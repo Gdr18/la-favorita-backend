@@ -31,7 +31,7 @@ class UserModel(BaseModel, extra="forbid"):
             validate_email(v)
             return v
         except EmailNotValidError as e:
-            raise EmailNotValidError(f"El campo 'email' no es válido: {str(e)}")
+            raise ValueError(f"El campo 'email' no es válido: {str(e)}")
 
     @field_validator("password", mode="before")
     @classmethod
@@ -53,9 +53,10 @@ class UserModel(BaseModel, extra="forbid"):
         ):
             hashing_v = cls.hashing_password(v)
             return hashing_v
-        raise ValueError(
-            "El campo 'password' debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-)"
-        )
+        else:
+            raise ValueError(
+                "El campo 'password' debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-)"
+            )
 
     @staticmethod
     def hashing_password(password) -> str:
@@ -68,7 +69,8 @@ class UserModel(BaseModel, extra="forbid"):
             return v
         if isinstance(v, list) and all(isinstance(i, dict) for i in v):
             return v
-        raise ValueError(f"El campo '{field.field_name}' debe ser una lista de diccionarios o None.")
+        else:
+            raise ValueError(f"El campo '{field.field_name}' debe ser una lista de diccionarios o None.")
 
     @field_validator("expires_at", mode="before")
     @classmethod
@@ -78,7 +80,8 @@ class UserModel(BaseModel, extra="forbid"):
             return None
         if isinstance(v, datetime):
             return v
-        raise ValueError("El campo 'expires_at' debe ser de tipo datetime o None.")
+        else:
+            raise ValueError("El campo 'expires_at' debe ser de tipo datetime o None.")
 
     def to_dict(self) -> dict:
         return self.model_dump()

@@ -27,13 +27,14 @@ def add_setting():
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
-            raise ClientCustomError(setting_resource, "set")
-        setting_data = request.get_json()
-        setting_object = SettingModel(**setting_data)
-        new_setting = coll_settings.insert_one(setting_object.to_dict())
-        return resource_msg(new_setting.inserted_id, setting_resource, "añadida", 201)
+            raise ClientCustomError("not_authorized")
+        else:
+            setting_data = request.get_json()
+            setting_object = SettingModel(**setting_data)
+            new_setting = coll_settings.insert_one(setting_object.to_dict())
+            return resource_msg(new_setting.inserted_id, setting_resource, "añadida", 201)
     except ClientCustomError as e:
-        return e.json_response_not_authorized()
+        return e.response
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
@@ -48,11 +49,12 @@ def get_settings():
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
-            raise ClientCustomError(setting_resource, "get")
-        settings = coll_settings.find()
-        return db_json_response(settings)
+            raise ClientCustomError("not_authorized")
+        else:
+            settings = coll_settings.find()
+            return db_json_response(settings)
     except ClientCustomError as e:
-        return e.json_response_not_authorized_access()
+        return e.response
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -63,13 +65,13 @@ def manage_setting(setting_id):
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
-            raise ClientCustomError(setting_resource, "access")
+            raise ClientCustomError("not_authorized")
         if request.method == "GET":
             setting = coll_settings.find_one({"_id": ObjectId(setting_id)})
             if setting:
                 return db_json_response(setting)
             else:
-                raise ClientCustomError(setting_resource, "not_found")
+                raise ClientCustomError("not_found", setting_resource)
 
         # TODO: Comprobar como podría hacer PATCH para poder optimizar el rendimiento de la base de datos
         if request.method == "PUT":
@@ -86,19 +88,16 @@ def manage_setting(setting_id):
                 reload_allowed_values()
                 return db_json_response(updated_setting)
             else:
-                raise ClientCustomError(setting_resource, "not_found")
+                raise ClientCustomError("not_found", setting_resource)
 
         if request.method == "DELETE":
             deleted_setting = coll_settings.delete_one({"_id": ObjectId(setting_id)})
             if deleted_setting.deleted_count > 0:
                 return resource_msg(setting_id, setting_resource, "eliminada")
             else:
-                raise ClientCustomError(setting_resource, "not_found")
+                raise ClientCustomError("not_found", setting_resource)
     except ClientCustomError as e:
-        if e.function == "not_found":
-            return e.json_response_not_found()
-        if e.function == "access":
-            return e.json_response_not_authorized_access()
+        return e.response
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:

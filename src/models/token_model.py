@@ -22,12 +22,14 @@ class TokenModel(BaseModel, extra="forbid"):
         try:
             if isinstance(v, str):
                 v = datetime.fromisoformat(v.replace("Z", "+00:00")).astimezone(timezone.utc)
-                if v < datetime.now(timezone.utc):
-                    raise ValueError
+            elif isinstance(v, int) and len(str(v)) == 10:
+                v = datetime.utcfromtimestamp(v)
+            if v < datetime.now(timezone.utc):
+                raise ValueError
+            else:
                 return v
-            if isinstance(v, int) and len(str(v)) == 10 and v > datetime.now(timezone.utc).timestamp():
-                return datetime.utcfromtimestamp(v)
-        except ValueError:
+
+        except (ValueError, TypeError):
             raise ValueError(
                 "El campo 'expires_at' debe ser de tipo unix timestamp o cadena en formato ISO, además de mayor que la fecha actual UTC"
             )

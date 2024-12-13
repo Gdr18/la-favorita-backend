@@ -8,7 +8,9 @@ class ClientCustomError(Exception):
         self.function = function
         self.resource = resource
 
-        if self.function == "not_authorized":
+        if self.function == "not_authorized_to_set_role":
+            self.response = self.json_response_not_authorized_to_set_role()
+        elif self.function == "not_authorized":
             self.response = self.json_response_not_authorized()
         elif self.function == "not_found":
             self.response = self.json_response_not_found()
@@ -37,6 +39,10 @@ class ClientCustomError(Exception):
     @staticmethod
     def json_response_not_authorized() -> tuple[Response, int]:
         return jsonify(err=f"El token no está autorizado a acceder a esta ruta"), 401
+
+    @staticmethod
+    def json_response_not_authorized_to_set_role() -> tuple[Response, int]:
+        return jsonify(err=f"El token no está autorizado a establecer el rol"), 401
 
 
 # Función para manejar errores de campos no permitidos
@@ -91,7 +97,7 @@ def field_length(errors: list) -> tuple[Response, int]:
         if "too_short" in error["type"]:
             too_short = f"La longitud del campo '{error['loc'][0]}' es demasiado corta. Debe tener al menos {error['ctx']['min_length']}."
             fields.append(too_short)
-        if "too_long" in error["type"]:
+        elif "too_long" in error["type"]:
             too_long = f"La longitud del campo '{error['loc'][0]}' es demasiado larga. Debe tener como máximo {error['ctx']['max_length']}."
             fields.append(too_long)
     return jsonify(err=" ".join(fields)), 400
@@ -121,6 +127,27 @@ def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
             errors_field_required = [error for error in errors_list if error["msg"] == "Field required"]
             return field_required(errors_field_required)
     return jsonify(err=[str(e) for e in errors_list]), 400
+
+
+# TODO: Probar la siguiente función
+# def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
+#     errors_list = error.errors()
+#     error_handlers = {
+#         "Input should be": field_type,
+#         "too_long": field_length,
+#         "too_short": field_length,
+#         "Extra inputs are not permitted": extra_inputs_are_not_permitted,
+#         "Value error": value_error_formatting,
+#         "Field required": field_required,
+#     }
+#
+#     for e in errors_list:
+#         for key, handler in error_handlers.items():
+#             if e["msg"].startswith(key) or key in e["type"]:
+#                 relevant_errors = [err for err in errors_list if err["msg"].startswith(key) or key in err["type"]]
+#                 return handler(relevant_errors)
+#
+#     return jsonify(err=[str(e) for e in errors_list]), 400
 
 
 def handle_duplicate_key_error(error: DuplicateKeyError) -> tuple[Response, int]:

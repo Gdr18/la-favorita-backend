@@ -1,6 +1,8 @@
 from typing import List, Optional
 
+from bson import ObjectId
 from pydantic import BaseModel, Field, field_validator, ValidationInfo
+from pymongo import ReturnDocument
 
 from src.services.db_services import db
 
@@ -54,5 +56,28 @@ class ProductModel(BaseModel, extra="forbid"):
         else:
             return value
 
-    def to_dict(self) -> dict:
-        return self.model_dump()
+    # Solicitudes a la base de datos
+    def insert_product(self):
+        new_product = db.products.insert_one(self.to_dict())
+        return new_product
+
+    @staticmethod
+    def get_products():
+        products = db.products.find()
+        return products
+
+    @staticmethod
+    def get_product(product_id):
+        product = db.products.find_one({"_id": ObjectId(product_id)}, {"_id": 0})
+        return product
+
+    def update_product(self, product_id):
+        updated_product = db.products.find_one_and_update(
+            {"_id": ObjectId(product_id)}, {"$set": self.to_dict()}, return_document=ReturnDocument.AFTER
+        )
+        return updated_product
+
+    @staticmethod
+    def delete_product(product_id):
+        deleted_product = db.products.delete_one({"_id": ObjectId(product_id)})
+        return deleted_product

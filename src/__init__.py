@@ -8,7 +8,7 @@ from .routes.refresh_token_route import refresh_token_route
 from .routes.revoked_token_route import token_revoked_route
 from .routes.setting_route import setting_route
 from .routes.user_route import user_route
-from .services.auth_service import jwt, oauth, bcrypt
+from .services.security_service import jwt, oauth, bcrypt
 
 app = Flask(__name__)
 

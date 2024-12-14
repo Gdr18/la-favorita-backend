@@ -1,7 +1,7 @@
 import pytest
 
 from src import app as real_app
-from src.services.auth_service import (
+from src.services.security_service import (
     login_user,
     revoke_token,
     check_if_token_revoked,

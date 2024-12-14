@@ -8,8 +8,8 @@ from src.services.db_services import db
 from .. import bcrypt
 from ..models.token_model import TokenModel
 from ..models.user_model import UserModel
-from ..services.auth_service import generate_access_token, generate_refresh_token, revoke_token, google
 from ..services.email_service import send_email
+from ..services.security_service import generate_access_token, generate_refresh_token, revoke_token, google
 from ..utils.exceptions_management import (
     handle_unexpected_error,
     ClientCustomError,

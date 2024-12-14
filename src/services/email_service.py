@@ -2,7 +2,7 @@ from flask import Response
 from sendgrid import SendGridAPIClient, Mail
 
 from config import config, SENDGRID_API_KEY, DEFAULT_SENDER_EMAIL
-from ..services.auth_service import generate_email_token
+from ..services.security_service import generate_email_token
 from ..utils.exceptions_management import handle_unexpected_error
 from ..utils.successfully_responses import resource_msg
 

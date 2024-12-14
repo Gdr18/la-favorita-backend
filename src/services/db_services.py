@@ -1,7 +1,6 @@
 from typing import Union
 
 from flask import jsonify, Response
-from flask_bcrypt import Bcrypt
 from pymongo.database import Database
 from pymongo.errors import ConnectionFailure
 from pymongo.mongo_client import MongoClient
@@ -20,4 +19,3 @@ def db_connection() -> Union[Database, tuple[Response, int]]:
 
 # Instancias necesarias para la conexión a la base de datos, el cifrado de contraseñas y autenticación JWT
 db = db_connection()
-bcrypt = Bcrypt()

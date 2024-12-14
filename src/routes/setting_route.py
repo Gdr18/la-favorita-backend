@@ -4,9 +4,9 @@ from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
 from pymongo import errors, ReturnDocument
 
+from src.services.db_services import db
 from ..models.product_model import reload_allowed_values
 from ..models.setting_model import SettingModel
-from ..utils.db_utils import db
 from ..utils.exceptions_management import (
     handle_unexpected_error,
     handle_validation_error,

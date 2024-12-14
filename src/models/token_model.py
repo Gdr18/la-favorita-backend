@@ -4,7 +4,7 @@ from bson import ObjectId
 from pydantic import BaseModel, Field, field_validator
 from pymongo import ReturnDocument
 
-from ..utils.db_utils import db
+from src.services.db_services import db
 
 
 # Campo único: "jti" y "user_id", configurado en MongoDB Atlas.

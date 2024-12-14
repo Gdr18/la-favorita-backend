@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator, ValidationInfo
 
-from ..utils.db_utils import db
+from src.services.db_services import db
 
 
 # Funciones para obtener y actualizar los valores permitidos para categorías y alérgenos de productos

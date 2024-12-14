@@ -4,10 +4,10 @@ from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
 from pymongo import ReturnDocument, errors
 
+from src.services.db_services import db
 from ..models.user_model import UserModel
 from ..services.auth_service import revoke_token
 from ..services.email_service import send_email
-from ..utils.db_utils import db
 from ..utils.exceptions_management import (
     handle_unexpected_error,
     handle_validation_error,

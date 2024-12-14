@@ -3,7 +3,7 @@ from pymongo.errors import ConnectionFailure
 
 from config import DATABASE_URI
 from run import app as real_app
-from src.utils.db_utils import db_connection
+from src.services.db_services import db_connection
 
 
 @pytest.fixture

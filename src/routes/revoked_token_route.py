@@ -4,15 +4,15 @@ from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
 from pymongo import errors, ReturnDocument
 
+from src.models.token_model import TokenModel
 from src.services.db_services import db
-from ..models.token_model import TokenModel
-from ..utils.exceptions_management import (
+from src.utils.exceptions_management import (
     handle_unexpected_error,
     ClientCustomError,
     handle_validation_error,
     handle_duplicate_key_error,
 )
-from ..utils.successfully_responses import resource_msg, db_json_response
+from src.utils.successfully_responses import resource_msg, db_json_response
 
 coll_revoked_tokens = db.revoked_tokens
 tokens_revoked_resource = "token revocado"

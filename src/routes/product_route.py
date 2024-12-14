@@ -4,15 +4,15 @@ from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
 from pymongo import ReturnDocument, errors
 
+from src.models.product_model import ProductModel
 from src.services.db_services import db
-from ..models.product_model import ProductModel
-from ..utils.exceptions_management import (
+from src.utils.exceptions_management import (
     ClientCustomError,
     handle_validation_error,
     handle_unexpected_error,
     handle_duplicate_key_error,
 )
-from ..utils.successfully_responses import resource_msg, db_json_response
+from src.utils.successfully_responses import resource_msg, db_json_response
 
 coll_products = db.products
 product_resource = "producto"

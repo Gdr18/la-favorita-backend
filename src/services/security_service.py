@@ -7,10 +7,10 @@ from flask_bcrypt import Bcrypt
 from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager, decode_token
 
 from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+from src.models.token_model import TokenModel
 from src.services.db_services import db
-from ..models.token_model import TokenModel
-from ..utils.exceptions_management import handle_unexpected_error
-from ..utils.successfully_responses import resource_msg
+from src.utils.exceptions_management import handle_unexpected_error
+from src.utils.successfully_responses import resource_msg
 
 bcrypt = Bcrypt()
 

@@ -4,16 +4,16 @@ from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
 from pymongo import errors, ReturnDocument
 
+from src.models.product_model import reload_allowed_values
+from src.models.setting_model import SettingModel
 from src.services.db_services import db
-from ..models.product_model import reload_allowed_values
-from ..models.setting_model import SettingModel
-from ..utils.exceptions_management import (
+from src.utils.exceptions_management import (
     handle_unexpected_error,
     handle_validation_error,
     handle_duplicate_key_error,
     ClientCustomError,
 )
-from ..utils.successfully_responses import resource_msg, db_json_response
+from src.utils.successfully_responses import resource_msg, db_json_response
 
 coll_settings = db.settings
 setting_resource = "configuración"

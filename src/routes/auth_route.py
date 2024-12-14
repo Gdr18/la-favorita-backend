@@ -4,19 +4,18 @@ from flask_jwt_extended import jwt_required, get_jwt, decode_token
 from pydantic import ValidationError
 from pymongo import errors, ReturnDocument
 
+from src.models.token_model import TokenModel
+from src.models.user_model import UserModel
 from src.services.db_services import db
-from .. import bcrypt
-from ..models.token_model import TokenModel
-from ..models.user_model import UserModel
-from ..services.email_service import send_email
-from ..services.security_service import generate_access_token, generate_refresh_token, revoke_token, google
-from ..utils.exceptions_management import (
+from src.services.email_service import send_email
+from src.services.security_service import generate_access_token, generate_refresh_token, revoke_token, google, bcrypt
+from src.utils.exceptions_management import (
     handle_unexpected_error,
     ClientCustomError,
     handle_duplicate_key_error,
     handle_validation_error,
 )
-from ..utils.successfully_responses import resource_msg
+from src.utils.successfully_responses import resource_msg
 
 auth_route = Blueprint("auth", __name__)
 

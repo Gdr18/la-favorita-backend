@@ -3,14 +3,14 @@ from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
 from pymongo import errors
 
-from ..models.token_model import TokenModel
-from ..utils.exceptions_management import (
+from src.models.token_model import TokenModel
+from src.utils.exceptions_management import (
     handle_unexpected_error,
     ClientCustomError,
     handle_validation_error,
     handle_duplicate_key_error,
 )
-from ..utils.successfully_responses import resource_msg, db_json_response
+from src.utils.successfully_responses import resource_msg, db_json_response
 
 email_tokens_resource = "email token"
 

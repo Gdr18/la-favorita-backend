@@ -2,9 +2,9 @@ from flask import Response
 from sendgrid import SendGridAPIClient, Mail
 
 from config import config, SENDGRID_API_KEY, DEFAULT_SENDER_EMAIL
-from ..services.security_service import generate_email_token
-from ..utils.exceptions_management import handle_unexpected_error
-from ..utils.successfully_responses import resource_msg
+from src.services.security_service import generate_email_token
+from src.utils.exceptions_management import handle_unexpected_error
+from src.utils.successfully_responses import resource_msg
 
 
 def send_email(user_info: dict) -> tuple[Response, int]:

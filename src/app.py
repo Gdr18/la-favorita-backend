@@ -1,14 +1,13 @@
 from flask import Flask
 
-from src.services.db_services import db
-from .routes.auth_route import auth_route
-from .routes.email_token_route import email_token_route
-from .routes.product_route import product_route
-from .routes.refresh_token_route import refresh_token_route
-from .routes.revoked_token_route import token_revoked_route
-from .routes.setting_route import setting_route
-from .routes.user_route import user_route
-from .services.security_service import jwt, oauth, bcrypt
+from src.routes.auth_route import auth_route
+from src.routes.email_token_route import email_token_route
+from src.routes.product_route import product_route
+from src.routes.refresh_token_route import refresh_token_route
+from src.routes.revoked_token_route import token_revoked_route
+from src.routes.setting_route import setting_route
+from src.routes.user_route import user_route
+from src.services.security_service import jwt, oauth, bcrypt
 
 app = Flask(__name__)
 

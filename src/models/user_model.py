@@ -5,7 +5,7 @@ from typing import List, Optional, Dict, Union
 from email_validator import validate_email, EmailNotValidError
 from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationInfo
 
-from src import bcrypt
+from src.services.security_service import bcrypt
 
 
 # Campos únicos: email. Está configurado en MongoDB Atlas.

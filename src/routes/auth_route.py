@@ -8,7 +8,14 @@ from src.models.token_model import TokenModel
 from src.models.user_model import UserModel
 from src.services.db_services import db
 from src.services.email_service import send_email
-from src.services.security_service import generate_access_token, generate_refresh_token, revoke_token, google, bcrypt
+from src.services.security_service import (
+    generate_access_token,
+    generate_refresh_token,
+    revoke_access_token,
+    delete_refresh_token,
+    google,
+    bcrypt,
+)
 from src.utils.exceptions_management import (
     handle_unexpected_error,
     ClientCustomError,
@@ -53,11 +60,10 @@ def login():
 @auth_route.route("/auth/logout", methods=["POST"])
 @jwt_required()
 def logout():
+    token = get_jwt()
     try:
-        token = get_jwt()
-        # TODO: Refactorizar cuando se cambie TokenModel
-        revoked_token = revoke_token(token)
-        TokenModel.delete_refresh_token_by_user_id(token.get("sub"))
+        revoked_token = revoke_access_token(token)
+        delete_refresh_token(token["sub"])
         return revoked_token
     except errors.DuplicateKeyError as e:
         return handle_duplicate_key_error(e)

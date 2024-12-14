@@ -24,12 +24,13 @@ class TokenModel(BaseModel, extra="forbid"):
                 v = datetime.fromisoformat(v.replace("Z", "+00:00")).astimezone(timezone.utc)
             elif isinstance(v, int) and len(str(v)) == 10:
                 v = datetime.utcfromtimestamp(v)
+            else:
+                raise ValueError
             if v < datetime.now(timezone.utc):
                 raise ValueError
             else:
                 return v
-
-        except (ValueError, TypeError):
+        except ValueError:
             raise ValueError(
                 "El campo 'expires_at' debe ser de tipo unix timestamp o cadena en formato ISO, además de mayor que la fecha actual UTC"
             )
@@ -76,6 +77,7 @@ class TokenModel(BaseModel, extra="forbid"):
         email_tokens = db.email_tokens.find()
         return email_tokens
 
+    # TODO: Mirar si la conversión a lista es mejor aquí o desde dónde es llamada.
     @staticmethod
     def get_email_tokens_by_user_id(user_id):
         email_tokens = db.email_tokens.find({"user_id": user_id})
@@ -102,5 +104,34 @@ class TokenModel(BaseModel, extra="forbid"):
         email_token_deleted = db.email_tokens.delete_one({"_id": ObjectId(token_id)})
         return email_token_deleted
 
-    def to_dict(self):
-        return self.model_dump()
+    # Solicitudes revoke token
+
+    def insert_revoke_token(self):
+        new_revoke_token = db.revoke_tokens.insert_one(self.to_dict())
+        return new_revoke_token
+
+    @staticmethod
+    def get_revoke_tokens():
+        revoke_tokens = db.revoke_tokens.find()
+        return revoke_tokens
+
+    @staticmethod
+    def get_revoke_token(token_id):
+        revoke_token = db.revoke_tokens.find_one({"_id": ObjectId(token_id)}, {"_id": 0})
+        return revoke_token
+
+    @staticmethod
+    def get_revoke_token_by_jti(jti):
+        revoke_token = db.revoke_tokens.find_one({"jti": jti})
+        return revoke_token
+
+    def update_revoke_token(self, token_id):
+        revoke_token_updated = db.revoke_tokens.find_one_and_update(
+            {"_id": ObjectId(token_id)}, {"$set": self.to_dict()}, return_document=ReturnDocument.AFTER
+        )
+        return revoke_token_updated
+
+    @staticmethod
+    def delete_revoke_token(token_id):
+        revoke_token_deleted = db.revoke_tokens.delete_one({"_id": ObjectId(token_id)})
+        return revoke_token_deleted

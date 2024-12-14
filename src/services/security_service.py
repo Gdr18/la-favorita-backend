@@ -93,14 +93,15 @@ def get_expiration_time_refresh_token(role: int) -> timedelta:
         return timedelta(days=30)
 
 
-# TODO: Eliminar esta función cuando se refactorice token_model.py
-def revoke_token(token: dict) -> tuple[Response, int]:
-    token_jti = token.get("jti")
-    token_exp = token.get("exp")
-    token_sub = token.get("sub")
-    token_object = TokenModel(user_id=token_sub, jti=token_jti, expires_at=token_exp)
-    token_revoked = db.revoked_tokens.insert_one(token_object.to_dict())
+def revoke_access_token(token: dict) -> tuple[Response, int]:
+    token_object = TokenModel(user_id=token["sub"], jti=token["jti"], expires_at=token["exp"])
+    token_revoked = token_object.insert_revoke_token()
     return resource_msg(token_revoked.inserted_id, "token revocado", "añadido", 201)
+
+
+def delete_refresh_token(user_id: int) -> tuple[Response, int]:
+    TokenModel.delete_refresh_token_by_user_id(user_id)
+    return resource_msg(str(user_id), "refresh token del usuario", "eliminado")
 
 
 @jwt.token_in_blocklist_loader

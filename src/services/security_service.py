@@ -8,7 +8,6 @@ from flask_jwt_extended import create_access_token, create_refresh_token, JWTMan
 
 from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
 from src.models.token_model import TokenModel
-from src.services.db_services import db
 from src.utils.exceptions_management import handle_unexpected_error
 from src.utils.successfully_responses import resource_msg
 
@@ -52,7 +51,8 @@ def generate_refresh_token(user_data: dict) -> Union[str, tuple[Response, int]]:
         "expires_at": refresh_token_decoded.get("exp"),
     }
     try:
-        TokenModel(**data_refresh_token_db).insert_refresh_token()
+        refresh_token_object = TokenModel(**data_refresh_token_db)
+        refresh_token_object.insert_refresh_token()
         return refresh_token
     except Exception as e:
         return handle_unexpected_error(e)
@@ -93,19 +93,20 @@ def get_expiration_time_refresh_token(role: int) -> timedelta:
         return timedelta(days=30)
 
 
-# TODO: Eliminar esta función cuando se refactorice token_model.py
-def revoke_token(token: dict) -> tuple[Response, int]:
-    token_jti = token.get("jti")
-    token_exp = token.get("exp")
-    token_sub = token.get("sub")
-    token_object = TokenModel(user_id=token_sub, jti=token_jti, expires_at=token_exp)
-    token_revoked = db.revoked_tokens.insert_one(token_object.to_dict())
+def revoke_access_token(token: dict) -> tuple[Response, int]:
+    token_object = TokenModel(user_id=token["sub"], jti=token["jti"], expires_at=token["exp"])
+    token_revoked = token_object.insert_revoke_token()
     return resource_msg(token_revoked.inserted_id, "token revocado", "añadido", 201)
+
+
+def delete_refresh_token(user_id: int) -> tuple[Response, int]:
+    TokenModel.delete_refresh_token_by_user_id(user_id)
+    return resource_msg(str(user_id), "refresh token del usuario", "eliminado")
 
 
 @jwt.token_in_blocklist_loader
 def check_if_token_revoked(jwt_header, jwt_payload):
-    check_token = db.revoked_tokens.find_one({"jti": jwt_payload.get("jti")})
+    check_token = TokenModel.get_revoke_token_by_user_id(jwt_payload["sub"])
     return True if check_token else None
 
 

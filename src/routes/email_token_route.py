@@ -63,7 +63,7 @@ def handle_email_token(email_token_id):
         if token_role != 1:
             raise ClientCustomError("not_authorized")
         if request.method == "GET":
-            email_token = TokenModel.get_email_token(email_token_id)
+            email_token = TokenModel.get_email_token_by_token_id(email_token_id)
             if email_token:
                 return db_json_response(email_token)
             else:
@@ -71,7 +71,7 @@ def handle_email_token(email_token_id):
 
         # TODO: Comprobar como podría hacer PATCH para poder optimizar el rendimiento de la base de datos
         if request.method == "PUT":
-            email_token = TokenModel.get_email_token(email_token_id)
+            email_token = TokenModel.get_email_token_by_token_id(email_token_id)
             if email_token:
                 data = request.get_json()
                 mixed_data = {**email_token, **data}

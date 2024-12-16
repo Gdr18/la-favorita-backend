@@ -37,23 +37,22 @@ class TokenModel(BaseModel, extra="forbid"):
 
     # Solicitudes refresh token
     def insert_refresh_token(self):
-        new_refresh_token = db.refresh_tokens.insert_one(self.to_dict())
+        new_refresh_token = db.refresh_tokens.insert_one(self.model_dump())
         return new_refresh_token
 
     @staticmethod
     def get_refresh_tokens():
         refresh_tokens = db.refresh_tokens.find()
-        return refresh_tokens
+        return list(refresh_tokens)
 
     @staticmethod
     def get_refresh_token(token_id):
-        # TODO: Cuando se implemente el front mirar si hace falta el "_id": 0
         refresh_token = db.refresh_tokens.find_one({"_id": ObjectId(token_id)}, {"_id": 0})
         return refresh_token
 
     def update_refresh_token(self, token_id):
         refresh_token_updated = db.refresh_tokens.find_one_and_update(
-            {"_id": ObjectId(token_id)}, {"$set": self.to_dict()}, return_document=ReturnDocument.AFTER
+            {"_id": ObjectId(token_id)}, {"$set": self.model_dump()}, return_document=ReturnDocument.AFTER
         )
         return refresh_token_updated
 
@@ -69,15 +68,14 @@ class TokenModel(BaseModel, extra="forbid"):
 
     # Solicitudes email token
     def insert_email_token(self):
-        new_email_token = db.email_tokens.insert_one(self.to_dict())
+        new_email_token = db.email_tokens.insert_one(self.model_dump())
         return new_email_token
 
     @staticmethod
     def get_email_tokens():
         email_tokens = db.email_tokens.find()
-        return email_tokens
+        return list(email_tokens)
 
-    # TODO: Mirar si la conversión a lista es mejor aquí o desde dónde es llamada.
     @staticmethod
     def get_email_tokens_by_user_id(user_id):
         email_tokens = db.email_tokens.find({"user_id": user_id})
@@ -95,7 +93,7 @@ class TokenModel(BaseModel, extra="forbid"):
 
     def update_email_token(self, token_id):
         email_token_updated = db.email_tokens.find_one_and_update(
-            {"_id": ObjectId(token_id)}, {"$set": self.to_dict()}, return_document=ReturnDocument.AFTER
+            {"_id": ObjectId(token_id)}, {"$set": self.model_dump()}, return_document=ReturnDocument.AFTER
         )
         return email_token_updated
 
@@ -107,13 +105,13 @@ class TokenModel(BaseModel, extra="forbid"):
     # Solicitudes revoke token
 
     def insert_revoke_token(self):
-        new_revoke_token = db.revoke_tokens.insert_one(self.to_dict())
+        new_revoke_token = db.revoke_tokens.insert_one(self.model_dump())
         return new_revoke_token
 
     @staticmethod
     def get_revoke_tokens():
         revoke_tokens = db.revoke_tokens.find()
-        return revoke_tokens
+        return list(revoke_tokens)
 
     @staticmethod
     def get_revoke_token(token_id):
@@ -127,7 +125,7 @@ class TokenModel(BaseModel, extra="forbid"):
 
     def update_revoke_token(self, token_id):
         revoke_token_updated = db.revoke_tokens.find_one_and_update(
-            {"_id": ObjectId(token_id)}, {"$set": self.to_dict()}, return_document=ReturnDocument.AFTER
+            {"_id": ObjectId(token_id)}, {"$set": self.model_dump()}, return_document=ReturnDocument.AFTER
         )
         return revoke_token_updated
 

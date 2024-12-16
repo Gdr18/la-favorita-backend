@@ -1,12 +1,10 @@
-from bson import ObjectId
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
-from pymongo import errors, ReturnDocument
+from pymongo import errors
 
 from src.models.product_model import reload_allowed_values
 from src.models.setting_model import SettingModel
-from src.services.db_services import db
 from src.utils.exceptions_management import (
     handle_unexpected_error,
     handle_validation_error,
@@ -15,7 +13,6 @@ from src.utils.exceptions_management import (
 )
 from src.utils.successfully_responses import resource_msg, db_json_response
 
-coll_settings = db.settings
 setting_resource = "configuración"
 
 setting_route = Blueprint("setting", __name__)
@@ -31,7 +28,7 @@ def add_setting():
         else:
             setting_data = request.get_json()
             setting_object = SettingModel(**setting_data)
-            new_setting = coll_settings.insert_one(setting_object.to_dict())
+            new_setting = setting_object.insert_setting()
             return resource_msg(new_setting.inserted_id, setting_resource, "añadida", 201)
     except ClientCustomError as e:
         return e.response
@@ -51,7 +48,7 @@ def get_settings():
         if token_role != 1:
             raise ClientCustomError("not_authorized")
         else:
-            settings = coll_settings.find()
+            settings = SettingModel.get_settings()
             return db_json_response(settings)
     except ClientCustomError as e:
         return e.response
@@ -67,7 +64,7 @@ def manage_setting(setting_id):
         if token_role != 1:
             raise ClientCustomError("not_authorized")
         if request.method == "GET":
-            setting = coll_settings.find_one({"_id": ObjectId(setting_id)})
+            setting = SettingModel.get_setting(setting_id)
             if setting:
                 return db_json_response(setting)
             else:
@@ -75,23 +72,19 @@ def manage_setting(setting_id):
 
         # TODO: Comprobar como podría hacer PATCH para poder optimizar el rendimiento de la base de datos
         if request.method == "PUT":
-            setting = coll_settings.find_one({"_id": ObjectId(setting_id)}, {"_id": 0})
+            setting = SettingModel.get_setting(setting_id)
             if setting:
                 data = request.get_json()
                 mixed_data = {**setting, **data}
                 setting_object = SettingModel(**mixed_data)
-                updated_setting = coll_settings.find_one_and_update(
-                    {"_id": ObjectId(setting_id)},
-                    {"$set": setting_object.to_dict()},
-                    return_document=ReturnDocument.AFTER,
-                )
+                updated_setting = setting_object.update_setting(setting_id)
                 reload_allowed_values()
                 return db_json_response(updated_setting)
             else:
                 raise ClientCustomError("not_found", setting_resource)
 
         if request.method == "DELETE":
-            deleted_setting = coll_settings.delete_one({"_id": ObjectId(setting_id)})
+            deleted_setting = SettingModel.delete_setting(setting_id)
             if deleted_setting.deleted_count > 0:
                 return resource_msg(setting_id, setting_resource, "eliminada")
             else:

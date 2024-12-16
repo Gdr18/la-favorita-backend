@@ -58,13 +58,13 @@ class ProductModel(BaseModel, extra="forbid"):
 
     # Solicitudes a la base de datos
     def insert_product(self):
-        new_product = db.products.insert_one(self.to_dict())
+        new_product = db.products.insert_one(self.model_dump())
         return new_product
 
     @staticmethod
     def get_products():
         products = db.products.find()
-        return products
+        return list(products)
 
     @staticmethod
     def get_product(product_id):
@@ -73,7 +73,7 @@ class ProductModel(BaseModel, extra="forbid"):
 
     def update_product(self, product_id):
         updated_product = db.products.find_one_and_update(
-            {"_id": ObjectId(product_id)}, {"$set": self.to_dict()}, return_document=ReturnDocument.AFTER
+            {"_id": ObjectId(product_id)}, {"$set": self.model_dump()}, return_document=ReturnDocument.AFTER
         )
         return updated_product
 

@@ -1,6 +1,9 @@
 from typing import List
 
+from bson import ObjectId
 from pydantic import BaseModel, Field, field_validator
+
+from src.services.db_services import db
 
 
 # Campos únicos: name. Está configurado en MongoDB Atlas.
@@ -16,5 +19,27 @@ class SettingModel(BaseModel, extra="forbid"):
         else:
             raise ValueError("El campo 'values' debe ser una lista de strings con al menos un caracter en cada string.")
 
-    def to_dict(self) -> dict:
-        return self.model_dump()
+    def insert_setting(self):
+        new_setting = db.settings.insert_one(self.model_dump())
+        return new_setting
+
+    @staticmethod
+    def get_settings():
+        settings = db.settings.find()
+        return list(settings)
+
+    @staticmethod
+    def get_setting(setting_id):
+        setting = db.settings.find_one({"_id": ObjectId(setting_id)})
+        return setting
+
+    def update_setting(self, setting_id):
+        updated_setting = db.settings.find_one_and_update(
+            {"_id": ObjectId(setting_id)}, {"$set": self.model_dump()}, return_document=True
+        )
+        return updated_setting
+
+    @staticmethod
+    def delete_setting(setting_id):
+        deleted_setting = db.settings.delete_one({"_id": ObjectId(setting_id)})
+        return deleted_setting

@@ -19,6 +19,8 @@ class SettingModel(BaseModel, extra="forbid"):
         else:
             raise ValueError("El campo 'values' debe ser una lista de strings con al menos un caracter en cada string.")
 
+    # Solicitudes a la colección settings
+
     def insert_setting(self):
         new_setting = db.settings.insert_one(self.model_dump())
         return new_setting

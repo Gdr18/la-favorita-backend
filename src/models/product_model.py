@@ -56,7 +56,7 @@ class ProductModel(BaseModel, extra="forbid"):
         else:
             return value
 
-    # Solicitudes a la base de datos
+    # Solicitudes a la colección products
     def insert_product(self):
         new_product = db.products.insert_one(self.model_dump())
         return new_product

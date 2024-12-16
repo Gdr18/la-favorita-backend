@@ -1,11 +1,9 @@
-from bson import ObjectId
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
-from pymongo import ReturnDocument, errors
+from pymongo import errors
 
 from src.models.user_model import UserModel
-from src.services.db_services import db
 from src.services.email_service import send_email
 from src.services.security_service import revoke_access_token, delete_refresh_token
 from src.utils.exceptions_management import (
@@ -16,7 +14,6 @@ from src.utils.exceptions_management import (
 )
 from src.utils.successfully_responses import resource_msg, db_json_response
 
-coll_users = db.users
 user_resource = "usuario"
 
 user_route = Blueprint("user", __name__)
@@ -30,9 +27,8 @@ def add_user():
             raise ClientCustomError("not_authorized_to_set_role")
         else:
             user_object = UserModel(**user_data)
-            user_dict = user_object.to_dict()
-            new_user = coll_users.insert_one(user_dict)
-            send_email(user_dict)
+            new_user = user_object.insert_user()
+            send_email(new_user)
             return resource_msg(new_user.inserted_id, user_resource, "añadido", 201)
     except ClientCustomError as e:
         return e.response
@@ -52,7 +48,7 @@ def get_users():
         if user_role != 1:
             raise ClientCustomError("not_authorized")
         else:
-            users = coll_users.find()
+            users = UserModel.get_users()
             return db_json_response(users)
     except ClientCustomError as e:
         return e.response
@@ -70,14 +66,14 @@ def handle_user(user_id):
         if all([token_id != user_id, token_role != 1]):
             raise ClientCustomError("not_authorized")
         if request.method == "GET":
-            user = coll_users.find_one({"_id": ObjectId(token_id)})
+            user = UserModel.get_user_by_user_id(user_id)
             if user:
                 return db_json_response(user)
             else:
                 raise ClientCustomError("not_found", user_resource)
 
         if request.method == "PUT":
-            user = coll_users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
+            user = UserModel.get_user_by_user_id(user_id)
             if user:
                 data = request.get_json()
                 if all([data.get("role"), data.get("role") != user.get("role"), token_role != 1]):
@@ -87,11 +83,7 @@ def handle_user(user_id):
                         data["confirmed"] = False
                     combined_data = {**user, **data}
                     user_object = UserModel(**combined_data)
-                    updated_user = coll_users.find_one_and_update(
-                        {"_id": ObjectId(user_id)},
-                        {"$set": user_object.to_dict()},
-                        return_document=ReturnDocument.AFTER,
-                    )
+                    updated_user = user_object.update_user(user_id)
                     if updated_user.get("email") != user.get("email"):
                         send_email(updated_user)
                     return db_json_response(updated_user)
@@ -99,7 +91,7 @@ def handle_user(user_id):
                 raise ClientCustomError("not_found", user_resource)
 
         if request.method == "DELETE":
-            deleted_user = coll_users.delete_one({"_id": ObjectId(user_id)})
+            deleted_user = UserModel.delete_user(user_id)
             if deleted_user.deleted_count > 0:
                 revoke_access_token(token)
                 delete_refresh_token(user_id)

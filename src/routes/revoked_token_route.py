@@ -63,7 +63,7 @@ def handle_revoked_token(revoked_token_id):
         if token_role != 1:
             raise ClientCustomError("not_authorized")
         if request.method == "GET":
-            revoked_token = TokenModel.get_revoke_token(revoked_token_id)
+            revoked_token = TokenModel.get_revoke_token_by_token_id(revoked_token_id)
             if revoked_token:
                 return db_json_response(revoked_token)
             else:
@@ -71,7 +71,7 @@ def handle_revoked_token(revoked_token_id):
 
         # TODO: Comprobar como podría hacer PATCH para poder optimizar el rendimiento de la base de datos
         if request.method == "PUT":
-            revoked_token = TokenModel.get_revoke_token(revoked_token_id)
+            revoked_token = TokenModel.get_revoke_token_by_token_id(revoked_token_id)
             if revoked_token:
                 data = request.get_json()
                 mixed_data = {**revoked_token, **data}

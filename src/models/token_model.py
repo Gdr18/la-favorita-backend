@@ -23,7 +23,7 @@ class TokenModel(BaseModel, extra="forbid"):
             if isinstance(v, str):
                 v = datetime.fromisoformat(v.replace("Z", "+00:00")).astimezone(timezone.utc)
             elif isinstance(v, int) and len(str(v)) == 10:
-                v = datetime.utcfromtimestamp(v)
+                v = datetime.fromtimestamp(v).astimezone(timezone.utc)
             else:
                 raise ValueError
             if v < datetime.now(timezone.utc):
@@ -35,7 +35,7 @@ class TokenModel(BaseModel, extra="forbid"):
                 "El campo 'expires_at' debe ser de tipo unix timestamp o cadena en formato ISO, además de mayor que la fecha actual UTC"
             )
 
-    # Solicitudes refresh token
+    # Solicitudes a la colección refresh_tokens
     def insert_refresh_token(self):
         new_refresh_token = db.refresh_tokens.insert_one(self.model_dump())
         return new_refresh_token
@@ -57,7 +57,7 @@ class TokenModel(BaseModel, extra="forbid"):
         return refresh_token_updated
 
     @staticmethod
-    def delete_refresh_token(token_id):
+    def delete_refresh_token_by_token_id(token_id):
         refresh_token_deleted = db.refresh_tokens.delete_one({"_id": ObjectId(token_id)})
         return refresh_token_deleted
 
@@ -66,7 +66,7 @@ class TokenModel(BaseModel, extra="forbid"):
         refresh_token_deleted = db.refresh_tokens.delete_one({"user_id": user_id})
         return refresh_token_deleted
 
-    # Solicitudes email token
+    # Solicitudes a la colección email_tokens
     def insert_email_token(self):
         new_email_token = db.email_tokens.insert_one(self.model_dump())
         return new_email_token
@@ -82,7 +82,7 @@ class TokenModel(BaseModel, extra="forbid"):
         return list(email_tokens)
 
     @staticmethod
-    def get_email_token(token_id):
+    def get_email_token_by_token_id(token_id):
         email_token = db.email_tokens.find_one({"_id": ObjectId(token_id)}, {"_id": 0})
         return email_token
 
@@ -102,7 +102,7 @@ class TokenModel(BaseModel, extra="forbid"):
         email_token_deleted = db.email_tokens.delete_one({"_id": ObjectId(token_id)})
         return email_token_deleted
 
-    # Solicitudes revoke token
+    # Solicitudes a la colección revoke_tokens
 
     def insert_revoke_token(self):
         new_revoke_token = db.revoke_tokens.insert_one(self.model_dump())
@@ -114,13 +114,13 @@ class TokenModel(BaseModel, extra="forbid"):
         return list(revoke_tokens)
 
     @staticmethod
-    def get_revoke_token(token_id):
+    def get_revoke_token_by_token_id(token_id):
         revoke_token = db.revoke_tokens.find_one({"_id": ObjectId(token_id)}, {"_id": 0})
         return revoke_token
 
     @staticmethod
-    def get_revoke_token_by_jti(jti):
-        revoke_token = db.revoke_tokens.find_one({"jti": jti})
+    def get_revoke_token_by_user_id(user_id):
+        revoke_token = db.revoke_tokens.find_one({"user_id": user_id})
         return revoke_token
 
     def update_revoke_token(self, token_id):

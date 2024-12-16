@@ -1,3 +1,4 @@
+from bson import json_util
 from flask import jsonify, Response
 
 
@@ -9,4 +10,4 @@ def resource_msg(resource_id: str, resource, action, status_code=200) -> tuple[R
 
 
 def db_json_response(response) -> tuple[Response, int]:
-    return jsonify(response), 200
+    return Response(json_util.dumps(response)), 200

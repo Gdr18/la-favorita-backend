@@ -2,9 +2,12 @@ import re
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Union
 
+from bson import ObjectId
 from email_validator import validate_email, EmailNotValidError
 from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationInfo
+from pymongo import ReturnDocument
 
+from src.services.db_services import db
 from src.services.security_service import bcrypt
 
 
@@ -83,5 +86,44 @@ class UserModel(BaseModel, extra="forbid"):
         else:
             raise ValueError("El campo 'expires_at' debe ser de tipo datetime o None.")
 
-    def to_dict(self) -> dict:
-        return self.model_dump()
+    # Solicitudes a la colección users
+    def insert_user(self):
+        user = db.users.insert_one(self.model_dump())
+        return user
+
+    def insert_or_update_user_by_email(self):
+        user = db.users.find_one_and_update(
+            {"email": self.email}, {"$set": self.model_dump()}, upsert=True, return_document=ReturnDocument.AFTER
+        )
+        return user
+
+    @staticmethod
+    def get_users():
+        users = db.users.find()
+        return list(users)
+
+    @staticmethod
+    def get_user_by_user_id(user_id):
+        user = db.users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
+        return user
+
+    @staticmethod
+    def get_user_by_user_id_with_id(user_id):
+        user = db.users.find_one({"_id": ObjectId(user_id)})
+        return user
+
+    @staticmethod
+    def get_user_by_email(email):
+        user = db.users.find_one({"email": email})
+        return user
+
+    def update_user(self, user_id):
+        updated_user = db.users.find_one_and_update(
+            {"_id": ObjectId(user_id)}, {"$set": self.model_dump()}, return_document=ReturnDocument.AFTER
+        )
+        return updated_user
+
+    @staticmethod
+    def delete_user(user_id):
+        db.users.delete_one({"_id": ObjectId(user_id)})
+        return user_id

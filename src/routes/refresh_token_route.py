@@ -81,7 +81,7 @@ def handle_refresh_token(refresh_token_id):
                 raise ClientCustomError("not_found", refresh_tokens_resource)
 
         if request.method == "DELETE":
-            refresh_token_deleted = TokenModel.delete_refresh_token(refresh_token_id)
+            refresh_token_deleted = TokenModel.delete_refresh_token_by_token_id(refresh_token_id)
             if refresh_token_deleted.deleted_count > 0:
                 return resource_msg(refresh_token_id, refresh_tokens_resource, "eliminado")
             else:

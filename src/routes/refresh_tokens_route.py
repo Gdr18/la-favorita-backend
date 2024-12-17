@@ -14,10 +14,10 @@ from src.utils.successfully_responses import resource_msg, db_json_response
 
 refresh_tokens_resource = "refresh token"
 
-refresh_token_route = Blueprint("refresh_token", __name__)
+refresh_tokens_route = Blueprint("refresh_tokens", __name__)
 
 
-@refresh_token_route.route("/refresh_token", methods=["POST"])
+@refresh_tokens_route.route("/", methods=["POST"])
 @jwt_required()
 def add_refresh_token():
     try:
@@ -39,7 +39,7 @@ def add_refresh_token():
         return handle_unexpected_error(e)
 
 
-@refresh_token_route.route("/refresh_tokens", methods=["GET"])
+@refresh_tokens_route.route("/", methods=["GET"])
 @jwt_required()
 def get_refresh_tokens():
     try:
@@ -55,7 +55,7 @@ def get_refresh_tokens():
         return handle_unexpected_error(e)
 
 
-@refresh_token_route.route("/refresh_token/<refresh_token_id>", methods=["GET", "PUT", "DELETE"])
+@refresh_tokens_route.route("/<refresh_token_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
 def handle_refresh_token(refresh_token_id):
     try:

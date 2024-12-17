@@ -12,7 +12,7 @@ from src.services.security_service import (
     revoke_access_token,
     delete_refresh_token,
     google,
-    bcrypt,
+    verify_password,
 )
 from src.utils.exceptions_management import (
     handle_unexpected_error,
@@ -25,37 +25,81 @@ from src.utils.successfully_responses import resource_msg
 auth_route = Blueprint("auth", __name__)
 
 
-@auth_route.route("/auth/login", methods=["POST"])
+# TODO: Falta testearla
+@auth_route.route("/register", methods=["POST"])
+def register():
+    try:
+        user_data = request.get_json()
+        if user_data.get("role"):
+            raise ClientCustomError("not_authorized_to_set_role")
+        else:
+            user_object = UserModel(**user_data)
+            new_user = user_object.insert_user()
+            send_email({**user_object.model_dump(), "_id": new_user.inserted_id})
+            return resource_msg(new_user.inserted_id, "usuario", "añadido", 201)
+    except ClientCustomError as e:
+        return e.response
+    except errors.DuplicateKeyError as e:
+        return handle_duplicate_key_error(e)
+    except ValidationError as e:
+        return handle_validation_error(e)
+    except Exception as e:
+        return handle_unexpected_error(e)
+
+
+# TODO: Falta testearla
+# Se precisa de un login previo gestionado por el frontend
+@auth_route.route("/change-email", methods=["POST"])
+@jwt_required()
+def change_email():
+    try:
+        user_data = request.get_json()
+        user_id = get_jwt().get("sub")
+        user_new_email = user_data.get("email")
+        user_requested = UserModel.get_user_by_user_id(user_id)
+        user_requested["email"] = user_new_email
+        user_object = UserModel(**user_requested)
+        updated_user = user_object.update_user(user_id)
+        send_email(updated_user)
+        return resource_msg(user_id, "email", "cambiado")
+    except ClientCustomError as e:
+        return e.response
+    except errors.DuplicateKeyError as e:
+        return handle_duplicate_key_error(e)
+    except ValidationError as e:
+        return handle_validation_error(e)
+    except Exception as e:
+        return handle_unexpected_error(e)
+
+
+@auth_route.route("/login", methods=["POST"])
 def login():
     try:
         user_data = request.get_json()
         user_requested = UserModel.get_user_by_email(user_data.get("email"))
-        if user_requested:
-            if bcrypt.check_password_hash(user_requested.get("password"), user_data.get("password")):
-                if user_requested.get("confirmed"):
-                    access_token = generate_access_token(user_requested)
-                    refresh_token = generate_refresh_token(user_requested)
-                    return (
-                        jsonify(
-                            msg=f"El usuario '{user_requested.get('_id')}' ha iniciado sesión de forma manual",
-                            access_token=access_token,
-                            refresh_token=refresh_token,
-                        ),
-                        200,
-                    )
-                else:
-                    raise ClientCustomError("not_confirmed")
-            else:
-                raise ClientCustomError("not_match")
-        else:
+        if not user_requested:
             raise ClientCustomError("not_found", "usuario")
+        if not verify_password(user_requested.get("password"), user_data.get("password")):
+            raise ClientCustomError("not_match")
+        if not user_requested.get("confirmed"):
+            raise ClientCustomError("not_confirmed")
+        access_token = generate_access_token(user_requested)
+        refresh_token = generate_refresh_token(user_requested)
+        return (
+            jsonify(
+                msg=f"El usuario '{user_requested.get('_id')}' ha iniciado sesión de forma manual",
+                access_token=access_token,
+                refresh_token=refresh_token,
+            ),
+            200,
+        )
     except ClientCustomError as e:
         return e.response
     except Exception as e:
         return handle_unexpected_error(e)
 
 
-@auth_route.route("/auth/logout", methods=["POST"])
+@auth_route.route("/logout", methods=["POST"])
 @jwt_required()
 def logout():
     token = get_jwt()
@@ -69,7 +113,7 @@ def logout():
         return handle_unexpected_error(e)
 
 
-@auth_route.route("/auth/login/google")
+@auth_route.route("/login/google")
 def login_google():
     try:
         redirect_uri = url_for("auth.authorize_google", _external=True)
@@ -78,7 +122,7 @@ def login_google():
         return handle_unexpected_error(e)
 
 
-@auth_route.route("/auth/google")
+@auth_route.route("/callback/google")
 def authorize_google():
     try:
         google_token = google.authorize_access_token()
@@ -113,7 +157,7 @@ def authorize_google():
         return handle_unexpected_error(e)
 
 
-@auth_route.route("/auth/refresh")
+@auth_route.route("/refresh-token")
 @jwt_required(refresh=True)
 def refresh_users_token():
     try:
@@ -131,7 +175,7 @@ def refresh_users_token():
         return handle_unexpected_error(e)
 
 
-@auth_route.route("/auth/confirm_email/<token>", methods=["GET"])
+@auth_route.route("/confirm-email/<token>", methods=["GET"])
 def confirm_email(token):
     try:
         user_identity = decode_token(token)
@@ -150,7 +194,7 @@ def confirm_email(token):
         return handle_unexpected_error(e)
 
 
-@auth_route.route("/auth/resend_email/<user_id>", methods=["POST"])
+@auth_route.route("/resend-email/<user_id>", methods=["POST"])
 def resend_email(user_id):
     try:
         user_token = TokenModel.get_email_tokens_by_user_id(user_id)

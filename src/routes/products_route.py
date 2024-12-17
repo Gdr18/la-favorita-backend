@@ -12,12 +12,12 @@ from src.utils.exceptions_management import (
 )
 from src.utils.successfully_responses import resource_msg, db_json_response
 
-product_resource = "producto"
+products_resource = "producto"
 
-product_route = Blueprint("product", __name__)
+products_route = Blueprint("products", __name__)
 
 
-@product_route.route("/product", methods=["POST"])
+@products_route.route("/", methods=["POST"])
 @jwt_required()
 def add_product():
     try:
@@ -28,7 +28,7 @@ def add_product():
             product_data = request.get_json()
             product_object = ProductModel(**product_data)
             new_product = product_object.insert_product()
-            return resource_msg(new_product.inserted_id, product_resource, "añadido", 201)
+            return resource_msg(new_product.inserted_id, products_resource, "añadido", 201)
     except ClientCustomError as e:
         return e.response
     except errors.DuplicateKeyError as e:
@@ -39,7 +39,7 @@ def add_product():
         return handle_unexpected_error(e)
 
 
-@product_route.route("/products", methods=["GET"])
+@products_route.route("/", methods=["GET"])
 @jwt_required()
 def get_products():
     try:
@@ -55,7 +55,7 @@ def get_products():
         return handle_unexpected_error(e)
 
 
-@product_route.route("/product/<product_id>", methods=["GET", "PUT", "DELETE"])
+@products_route.route("/<product_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
 def handle_product(product_id):
     try:
@@ -67,7 +67,7 @@ def handle_product(product_id):
             if product:
                 return db_json_response(product)
             else:
-                raise ClientCustomError("not_found", product_resource)
+                raise ClientCustomError("not_found", products_resource)
 
         if request.method == "PUT":
             product = ProductModel.get_product(product_id)
@@ -78,14 +78,14 @@ def handle_product(product_id):
                 updated_product = product_object.update_product(product_id)
                 return db_json_response(updated_product)
             else:
-                raise ClientCustomError("not_found", product_resource)
+                raise ClientCustomError("not_found", products_resource)
 
         if request.method == "DELETE":
             deleted_product = ProductModel.delete_product(product_id)
             if deleted_product.deleted_count > 0:
-                return resource_msg(product_id, product_resource, "eliminado")
+                return resource_msg(product_id, products_resource, "eliminado")
             else:
-                raise ClientCustomError("not_found", product_resource)
+                raise ClientCustomError("not_found", products_resource)
     except ClientCustomError as e:
         return e.response
     except errors.DuplicateKeyError as e:

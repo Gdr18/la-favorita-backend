@@ -13,12 +13,12 @@ from src.utils.exceptions_management import (
 )
 from src.utils.successfully_responses import resource_msg, db_json_response
 
-setting_resource = "configuración"
+settings_resource = "configuración"
 
-setting_route = Blueprint("setting", __name__)
+settings_route = Blueprint("settings", __name__)
 
 
-@setting_route.route("/setting", methods=["POST"])
+@settings_route.route("/", methods=["POST"])
 @jwt_required()
 def add_setting():
     try:
@@ -29,7 +29,7 @@ def add_setting():
             setting_data = request.get_json()
             setting_object = SettingModel(**setting_data)
             new_setting = setting_object.insert_setting()
-            return resource_msg(new_setting.inserted_id, setting_resource, "añadida", 201)
+            return resource_msg(new_setting.inserted_id, settings_resource, "añadida", 201)
     except ClientCustomError as e:
         return e.response
     except errors.DuplicateKeyError as e:
@@ -40,7 +40,7 @@ def add_setting():
         return handle_unexpected_error(e)
 
 
-@setting_route.route("/settings", methods=["GET"])
+@settings_route.route("/", methods=["GET"])
 @jwt_required()
 def get_settings():
     try:
@@ -56,7 +56,7 @@ def get_settings():
         return handle_unexpected_error(e)
 
 
-@setting_route.route("/setting/<setting_id>", methods=["GET", "PUT", "DELETE"])
+@settings_route.route("/<setting_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
 def manage_setting(setting_id):
     try:
@@ -68,7 +68,7 @@ def manage_setting(setting_id):
             if setting:
                 return db_json_response(setting)
             else:
-                raise ClientCustomError("not_found", setting_resource)
+                raise ClientCustomError("not_found", settings_resource)
 
         # TODO: Comprobar como podría hacer PATCH para poder optimizar el rendimiento de la base de datos
         if request.method == "PUT":
@@ -81,14 +81,14 @@ def manage_setting(setting_id):
                 reload_allowed_values()
                 return db_json_response(updated_setting)
             else:
-                raise ClientCustomError("not_found", setting_resource)
+                raise ClientCustomError("not_found", settings_resource)
 
         if request.method == "DELETE":
             deleted_setting = SettingModel.delete_setting(setting_id)
             if deleted_setting.deleted_count > 0:
-                return resource_msg(setting_id, setting_resource, "eliminada")
+                return resource_msg(setting_id, settings_resource, "eliminada")
             else:
-                raise ClientCustomError("not_found", setting_resource)
+                raise ClientCustomError("not_found", settings_resource)
     except ClientCustomError as e:
         return e.response
     except errors.DuplicateKeyError as e:

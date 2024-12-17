@@ -25,6 +25,15 @@ google = oauth.register(
 )
 
 
+def verify_password(db_password: str, password: str) -> bool:
+    return bcrypt.check_password_hash(db_password, password)
+
+
+def verify_google_identity(google_token: str, user_email: str) -> Union[bool, Exception]:
+    token_info = google.parse_id_token(google_token)
+    return token_info["email"] == user_email
+
+
 def generate_access_token(user_data: dict) -> str:
     user_role = user_data.get("role")
     user_identity = user_data.get("_id")

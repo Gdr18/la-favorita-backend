@@ -12,10 +12,10 @@ def send_email(user_info: dict) -> tuple[Response, int]:
     user_name = user_info.get("name")
     user_email = user_info.get("email")
     if config == "config.DevelopmentConfig":
-        confirmation_link = f"http://localhost:5000/auth/confirm_email/{token_email}"
+        confirmation_link = f"http://localhost:5000/auth/confirm-email/{token_email}"
     else:
         # TODO: Cambiar la URL de producción
-        confirmation_link = f"https://gador-auth.herokuapp.com/auth/confirm_email/{token_email}"
+        confirmation_link = f"https://gador-auth.herokuapp.com/auth/confirm-email/{token_email}"
     with open("src/utils/email_template.html", encoding="utf-8") as file:
         email_template = file.read()
         email_template = email_template.replace("{{ confirmation_link }}", confirmation_link).replace(

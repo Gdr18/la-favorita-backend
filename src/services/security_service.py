@@ -104,7 +104,7 @@ def get_expiration_time_refresh_token(role: int) -> timedelta:
 
 def revoke_access_token(token: dict) -> tuple[Response, int]:
     token_object = TokenModel(user_id=token["sub"], jti=token["jti"], expires_at=token["exp"])
-    token_revoked = token_object.insert_revoke_token()
+    token_revoked = token_object.insert_revoked_token()
     return resource_msg(token_revoked.inserted_id, "token revocado", "añadido", 201)
 
 
@@ -115,7 +115,7 @@ def delete_refresh_token(user_id: int) -> tuple[Response, int]:
 
 @jwt.token_in_blocklist_loader
 def check_if_token_revoked(jwt_header, jwt_payload):
-    check_token = TokenModel.get_revoke_token_by_user_id(jwt_payload["sub"])
+    check_token = TokenModel.get_revoked_token_by_jti(jwt_payload["jti"])
     return True if check_token else None
 
 

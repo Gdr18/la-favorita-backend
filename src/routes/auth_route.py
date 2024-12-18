@@ -25,7 +25,6 @@ from src.utils.successfully_responses import resource_msg
 auth_route = Blueprint("auth", __name__)
 
 
-# TODO: Falta testearla
 @auth_route.route("/register", methods=["POST"])
 def register():
     try:
@@ -55,13 +54,18 @@ def change_email():
     try:
         user_data = request.get_json()
         user_id = get_jwt().get("sub")
-        user_new_email = user_data.get("email")
         user_requested = UserModel.get_user_by_user_id(user_id)
-        user_requested["email"] = user_new_email
+        if user_requested.get("auth_provider") == "google":
+            user_requested["auth_provider"] = "email"
+            user_requested["confirmed"] = False
+            if not user_data.get("password"):
+                raise Exception("Se necesita contraseña para cambiar el email")
+            user_requested["password"] = user_data.get("password")
+        user_requested["email"] = user_data.get("email")
         user_object = UserModel(**user_requested)
         updated_user = user_object.update_user(user_id)
         send_email(updated_user)
-        return resource_msg(user_id, "email", "cambiado")
+        return resource_msg(user_id, "email del usuario", "cambiado")
     except ClientCustomError as e:
         return e.response
     except errors.DuplicateKeyError as e:
@@ -133,7 +137,6 @@ def authorize_google():
             "name": google_user_info.get("name"),
             "email": google_user_info.get("email"),
             "auth_provider": "google",
-            "confirmed": True,
         }
         user_object = UserModel(**user_data)
         user = user_object.insert_or_update_user_by_email()
@@ -164,11 +167,11 @@ def refresh_users_token():
         user_id = get_jwt().get("sub")
         check_refresh_token = TokenModel.get_refresh_token_by_user_id(user_id)
         if check_refresh_token:
-            user_data = UserModel.get_user_by_user_id_with_id(user_id)
+            user_data = UserModel.get_user_by_user_id(user_id)
             access_token = generate_access_token(user_data)
             return jsonify(access_token=access_token, msg="El token de acceso se ha generado"), 200
         else:
-            raise ClientCustomError("not_found", "refresh_token")
+            raise ClientCustomError("not_found", "refresh token")
     except ClientCustomError as e:
         return e.response
     except Exception as e:
@@ -202,7 +205,7 @@ def resend_email(user_id):
             user_data = UserModel.get_user_by_user_id_with_id(user_id)
             if user_data:
                 send_email(user_data)
-                return resource_msg(user_id, "email de confirmación", "reenviado")
+                return resource_msg(user_id, "email de confirmación del usuario", "reenviado")
             else:
                 raise ClientCustomError("not_found", "usuario")
         else:

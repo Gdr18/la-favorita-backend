@@ -27,7 +27,7 @@ def add_revoked_token():
         else:
             data = request.get_json()
             revoked_token = TokenModel(**data)
-            new_revoked_token = revoked_token.insert_revoke_token()
+            new_revoked_token = revoked_token.insert_revoked_token()
             return resource_msg(new_revoked_token.inserted_id, revoked_tokens_resource, "añadido", 201)
     except ClientCustomError as e:
         return e.response
@@ -47,7 +47,7 @@ def get_revoked_tokens():
         if token_role != 1:
             raise ClientCustomError("not_authorized")
         else:
-            revoked_tokens = TokenModel.get_revoke_tokens()
+            revoked_tokens = TokenModel.get_revoked_tokens()
             return db_json_response(revoked_tokens)
     except ClientCustomError as e:
         return e.response
@@ -63,25 +63,25 @@ def handle_revoked_token(revoked_token_id):
         if token_role != 1:
             raise ClientCustomError("not_authorized")
         if request.method == "GET":
-            revoked_token = TokenModel.get_revoke_token_by_token_id(revoked_token_id)
+            revoked_token = TokenModel.get_revoked_token_by_token_id(revoked_token_id)
             if revoked_token:
                 return db_json_response(revoked_token)
             else:
                 raise ClientCustomError("not_found", revoked_tokens_resource)
 
         if request.method == "PUT":
-            revoked_token = TokenModel.get_revoke_token_by_token_id(revoked_token_id)
+            revoked_token = TokenModel.get_revoked_token_by_token_id(revoked_token_id)
             if revoked_token:
                 data = request.get_json()
                 mixed_data = {**revoked_token, **data}
                 revoked_token_object = TokenModel(**mixed_data)
-                revoked_token_updated = revoked_token_object.update_revoke_token(revoked_token_id)
+                revoked_token_updated = revoked_token_object.update_revoked_token(revoked_token_id)
                 return db_json_response(revoked_token_updated)
             else:
                 raise ClientCustomError("not_found", revoked_tokens_resource)
 
         if request.method == "DELETE":
-            revoked_token_deleted = TokenModel.delete_revoke_token(revoked_token_id)
+            revoked_token_deleted = TokenModel.delete_revoked_token(revoked_token_id)
             if revoked_token_deleted.deleted_count > 0:
                 return resource_msg(revoked_token_id, revoked_tokens_resource, "eliminado")
             else:

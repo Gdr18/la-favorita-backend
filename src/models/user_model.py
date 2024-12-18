@@ -4,7 +4,7 @@ from typing import List, Optional, Dict, Union
 
 from bson import ObjectId
 from email_validator import validate_email, EmailNotValidError
-from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationInfo
+from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationInfo, model_validator
 from pymongo import ReturnDocument
 
 from src.services.db_services import db
@@ -15,7 +15,7 @@ from src.services.security_service import bcrypt
 class UserModel(BaseModel, extra="forbid"):
     name: str = Field(..., min_length=1, max_length=50)
     email: EmailStr = Field(..., min_length=5, max_length=100)
-    password: Optional[str] = None
+    password: Union[str, None] = None
     auth_provider: str = Field(default="email")
     role: int = Field(default=3, ge=1, le=3)
     phone: Optional[str] = Field(None, pattern=r"^(?:\+34)?\d{9}$")
@@ -25,45 +25,45 @@ class UserModel(BaseModel, extra="forbid"):
     created_at: datetime = Field(default_factory=datetime.now)
     expires_at: Union[datetime, None] = Field(default_factory=lambda: datetime.utcnow() + timedelta(days=7))
 
-    @field_validator("email", mode="before")
+    @model_validator(mode="after")
+    def validate_model(self) -> "UserModel":
+        if self.auth_provider == "google":
+            self.confirmed = True
+        if self.confirmed:
+            self.expires_at = None
+        if self.auth_provider == "email":
+            self.password = self.validate_password(self.password)
+        return self
+
+    @field_validator("email", mode="after")
     @classmethod
     def validate_email(cls, v) -> EmailStr:
-        if v is None:
-            raise ValueError("El campo 'email' es obligatorio.")
         try:
             validate_email(v)
             return v
         except EmailNotValidError as e:
             raise ValueError(f"El campo 'email' no es válido: {str(e)}")
 
-    @field_validator("password", mode="before")
-    @classmethod
-    def validate_password(cls, v, values: ValidationInfo) -> Union[str, None]:
-        auth_provider = values.data.get("auth_provider")
-        if v is None and auth_provider == "google":
-            return v
-        if v is None:
+    @staticmethod
+    def validate_password(password) -> str:
+        if password is None:
             raise ValueError("El campo 'password' es obligatorio.")
         bcrypt_pattern = re.compile(r"^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$")
-        if bcrypt_pattern.match(v):
-            return v
+        if bcrypt_pattern.match(password):
+            return password
         if (
-            8 <= len(v) <= 60
-            and re.search(r"[A-Z]", v)
-            and re.search(r"[a-z]", v)
-            and re.search(r"[0-9]", v)
-            and re.search(r"[!@#$%^&*_-]", v)
+            8 <= len(password) <= 60
+            and re.search(r"[A-Z]", password)
+            and re.search(r"[a-z]", password)
+            and re.search(r"[0-9]", password)
+            and re.search(r"[!@#$%^&*_-]", password)
         ):
-            hashing_v = cls.hashing_password(v)
-            return hashing_v
+            hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
+            return hashed_password
         else:
             raise ValueError(
                 "El campo 'password' debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-)"
             )
-
-    @staticmethod
-    def hashing_password(password) -> str:
-        return bcrypt.generate_password_hash(password).decode("utf-8")
 
     @field_validator("addresses", "basket", mode="before")
     @classmethod
@@ -74,17 +74,6 @@ class UserModel(BaseModel, extra="forbid"):
             return v
         else:
             raise ValueError(f"El campo '{field.field_name}' debe ser una lista de diccionarios o None.")
-
-    @field_validator("expires_at", mode="before")
-    @classmethod
-    def validate_expires_at(cls, v, values: ValidationInfo) -> Union[datetime, None]:
-        value_confirmed = values.data.get("confirmed")
-        if value_confirmed:
-            return None
-        if isinstance(v, datetime):
-            return v
-        else:
-            raise ValueError("El campo 'expires_at' debe ser de tipo datetime o None.")
 
     # Solicitudes a la colección users
     def insert_user(self):

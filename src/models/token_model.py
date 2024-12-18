@@ -46,8 +46,13 @@ class TokenModel(BaseModel, extra="forbid"):
         return list(refresh_tokens)
 
     @staticmethod
-    def get_refresh_token(token_id):
+    def get_refresh_token_by_token_id(token_id):
         refresh_token = db.refresh_tokens.find_one({"_id": ObjectId(token_id)}, {"_id": 0})
+        return refresh_token
+
+    @staticmethod
+    def get_refresh_token_by_user_id(user_id):
+        refresh_token = db.refresh_tokens.find_one({"user_id": user_id})
         return refresh_token
 
     def update_refresh_token(self, token_id):
@@ -104,32 +109,32 @@ class TokenModel(BaseModel, extra="forbid"):
 
     # Solicitudes a la colección revoke_tokens
 
-    def insert_revoke_token(self):
-        new_revoke_token = db.revoke_tokens.insert_one(self.model_dump())
+    def insert_revoked_token(self):
+        new_revoke_token = db.revoked_tokens.insert_one(self.model_dump())
         return new_revoke_token
 
     @staticmethod
-    def get_revoke_tokens():
-        revoke_tokens = db.revoke_tokens.find()
+    def get_revoked_tokens():
+        revoke_tokens = db.revoked_tokens.find()
         return list(revoke_tokens)
 
     @staticmethod
-    def get_revoke_token_by_token_id(token_id):
-        revoke_token = db.revoke_tokens.find_one({"_id": ObjectId(token_id)}, {"_id": 0})
+    def get_revoked_token_by_token_id(token_id):
+        revoke_token = db.revoked_tokens.find_one({"_id": ObjectId(token_id)}, {"_id": 0})
         return revoke_token
 
     @staticmethod
-    def get_revoke_token_by_user_id(user_id):
-        revoke_token = db.revoke_tokens.find_one({"user_id": user_id})
+    def get_revoked_token_by_jti(jti):
+        revoke_token = db.revoked_tokens.find_one({"jti": jti})
         return revoke_token
 
-    def update_revoke_token(self, token_id):
-        revoke_token_updated = db.revoke_tokens.find_one_and_update(
+    def update_revoked_token(self, token_id):
+        revoke_token_updated = db.revoked_tokens.find_one_and_update(
             {"_id": ObjectId(token_id)}, {"$set": self.model_dump()}, return_document=ReturnDocument.AFTER
         )
         return revoke_token_updated
 
     @staticmethod
-    def delete_revoke_token(token_id):
-        revoke_token_deleted = db.revoke_tokens.delete_one({"_id": ObjectId(token_id)})
+    def delete_revoked_token(token_id):
+        revoke_token_deleted = db.revoked_tokens.delete_one({"_id": ObjectId(token_id)})
         return revoke_token_deleted

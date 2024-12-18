@@ -1,17 +1,16 @@
-from pymongo.mongo_client import MongoClient
-from pymongo.database import Database
-from pymongo.errors import ConnectionFailure
-from flask_bcrypt import Bcrypt
-from flask_jwt_extended import JWTManager
-from flask import jsonify, Response
 from typing import Union
 
-from config import database_uri
+from flask import jsonify, Response
+from pymongo.database import Database
+from pymongo.errors import ConnectionFailure
+from pymongo.mongo_client import MongoClient
+
+from config import DATABASE_URI
 
 
 def db_connection() -> Union[Database, tuple[Response, int]]:
     try:
-        client = MongoClient(database_uri)
+        client = MongoClient(DATABASE_URI)
         database = client["test_la_favorita"]
         return database
     except ConnectionFailure as e:
@@ -20,5 +19,3 @@ def db_connection() -> Union[Database, tuple[Response, int]]:
 
 # Instancias necesarias para la conexión a la base de datos, el cifrado de contraseñas y autenticación JWT
 db = db_connection()
-bcrypt = Bcrypt()
-jwt = JWTManager()

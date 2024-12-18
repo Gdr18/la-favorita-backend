@@ -1,5 +1,5 @@
-from src import run_app
 from config import config
+from src.app import run_app
 
 app = run_app(config)
 

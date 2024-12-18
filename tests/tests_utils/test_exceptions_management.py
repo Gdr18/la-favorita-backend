@@ -45,7 +45,7 @@ def test_json_response_not_authorized_change(app):
 
 def test_json_response_not_authorized_set(app):
     with app.app_context():
-        function = ClientCustomError("role").json_response_not_authorized_set()
+        function = ClientCustomError("role").json_response_not_authorized()
         expected_error_message = "No está autorizado para establecer 'role'"
         validate_error_response_specific(function, 401, expected_error_message)
 
@@ -62,19 +62,12 @@ def test_handle_validation_error_extra_inputs_are_not_permitted(app):
     with app.app_context():
         try:
             UserModel(
-                name="John Doe",
-                email="john.doe@example.com",
-                password="ValidPass!9",
-                role=1,
-                color="red",
-                size="big",
+                name="John Doe", email="john.doe@example.com", password="ValidPass!9", role=1, color="red", size="big"
             )
         except ValidationError as error:
             function = handle_validation_error(error)
             expected_error_message = "Hay 2 campos que no son válidos: 'color', 'size'."
-            validate_error_response_specific(
-                function, code_validation_error, expected_error_message
-            )
+            validate_error_response_specific(function, code_validation_error, expected_error_message)
 
 
 # Test para manejar errores de campos requeridos faltantes
@@ -84,98 +77,74 @@ def test_handle_validation_error_field_required(app):
             UserModel()
         except ValidationError as error:
             function = handle_validation_error(error)
-            expected_error_msg = (
-                "Faltan 3 campos requeridos: 'name', 'email', 'password'."
-            )
-            validate_error_response_specific(
-                function, code_validation_error, expected_error_msg
-            )
+            expected_error_msg = "Faltan 3 campos requeridos: 'name', 'email', 'password'."
+            validate_error_response_specific(function, code_validation_error, expected_error_msg)
 
 
 # Test para manejar errores de tipos de datos incorrectos
 def test_handle_validation_error_input_should_be(app):
     with app.app_context():
         try:
-            UserModel(
-                name=234235,
-                email="john.doe@example.com",
-                password="ValidPass!9",
-                role=1,
-                phone=23252,
-            )
+            UserModel(name=234235, email="john.doe@example.com", password="ValidPass!9", role=1, phone=23252)
         except ValidationError as error:
             function = handle_validation_error(error)
-            expected_error_message = "El campo 'name' debe ser de tipo 'string'. El campo 'phone' debe ser de tipo 'string'."
-            validate_error_response_specific(
-                function, code_validation_error, expected_error_message
+            expected_error_message = (
+                "El campo 'name' debe ser de tipo 'string'. El campo 'phone' debe ser de tipo 'string'."
             )
+            validate_error_response_specific(function, code_validation_error, expected_error_message)
 
 
 # Test para manejar errores value error que necesitan formatearse
 def test_handle_validation_error_value_error_formatting(app):
     with app.app_context():
         try:
-            UserModel(
-                name="John Doe",
-                email="john.doe@example.com",
-                password="ValidPass",
-                role=1,
-            )
+            UserModel(name="John Doe", email="john.doe@example.com", password="ValidPass", role=1)
         except ValidationError as error:
             function = handle_validation_error(error)
             expected_error_message = "La contraseña debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-)"
-            validate_error_response_specific(
-                function, code_validation_error, expected_error_message
-            )
+            validate_error_response_specific(function, code_validation_error, expected_error_message)
 
 
-# Test para manejar errores de listas con menos elementos de los requeridos
-def test_handle_validation_error_items_should_be_in_collection(app):
+# Tests para manejar errores de longitud de campos
+def test_handle_validation_error_field_length_too_short(app):
     with app.app_context():
         try:
             ProductModel(name="Tomato", stock=44, categories=[])
         except ValidationError as error:
             function = handle_validation_error(error)
-            expected_error_message = (
-                "El campo 'categories' debe ser de tipo 'list' con al menos 1 elemento."
-            )
-            validate_error_response_specific(
-                function, code_validation_error, expected_error_message
-            )
+            expected_error_message = "La longitud del campo 'categories' es demasiado corta. Debe tener al menos 1."
+            validate_error_response_specific(function, code_validation_error, expected_error_message)
+
+
+def test_handle_validation_error_field_length_too_long(app):
+    with app.app_context():
+        try:
+            ProductModel(name="Tomato", stock=44, categories=["otro"], brand="T" * 51)
+        except ValidationError as error:
+            function = handle_validation_error(error)
+            expected_error_message = "La longitud del campo 'brand' es demasiado larga. Debe tener como máximo 50."
+            validate_error_response_specific(function, code_validation_error, expected_error_message)
 
 
 # Test para manejar errores en el campo email
 def test_handle_validation_error_invalid_email(app):
     with app.app_context():
         try:
-            UserModel(
-                name="John Dale",
-                email="john.doe@example",
-                password="ValidPass!9",
-                role=1,
-            )
+            UserModel(name="John Dale", email="john.doe@example", password="ValidPass!9", role=1)
         except ValidationError as error:
             function = handle_validation_error(error)
             expected_error_message = "El email no es válido."
-            validate_error_response_specific(
-                function, code_validation_error, expected_error_message
-            )
+            validate_error_response_specific(function, code_validation_error, expected_error_message)
 
 
 # Test para manejar errores de validación inesperados
 def test_handle_validation_error_default_case(app, mocker):
     with app.app_context():
         error_mock = mocker.Mock(spec=ValidationError)
-        error_mock.errors.return_value = [
-            {"msg": "Some other error", "loc": "name", "type": "value_error"}
-        ]
+        error_mock.errors.return_value = [{"msg": "Some other error", "loc": "name", "type": "value_error"}]
         function = handle_validation_error(error_mock)
-        expected_error_message = [
-            "{'msg': 'Some other error', 'loc': 'name', 'type': 'value_error'}"
-        ]
-        validate_error_response_specific(
-            function, code_validation_error, expected_error_message
-        )
+        expected_error_message = ["{'msg': 'Some other error', 'loc': 'name', 'type': 'value_error'}"]
+        validate_error_response_specific(function, code_validation_error, expected_error_message)
 
 
 # Test para manejar errores de campos con valores duplicados

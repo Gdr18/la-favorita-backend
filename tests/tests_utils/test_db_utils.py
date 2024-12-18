@@ -1,9 +1,9 @@
 import pytest
 from pymongo.errors import ConnectionFailure
 
-from src.utils.db_utils import db_connection
-from config import database_uri
+from config import DATABASE_URI
 from run import app as real_app
+from src.services.db_services import db_connection
 
 
 @pytest.fixture
@@ -22,7 +22,7 @@ def test_db_connection_success(mock_mongo_client):
     mock_client_instance.__getitem__.return_value = "test_database"
     result = db_connection()
     assert result == "test_database"
-    mock_mongo_client.assert_called_once_with(database_uri)
+    mock_mongo_client.assert_called_once_with(DATABASE_URI)
 
 
 def test_db_connection_failure(app, mock_mongo_client):

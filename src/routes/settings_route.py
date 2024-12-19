@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
 from pymongo import errors
@@ -20,7 +20,7 @@ settings_route = Blueprint("settings", __name__)
 
 @settings_route.route("/", methods=["POST"])
 @jwt_required()
-def add_setting():
+def add_setting() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
@@ -42,13 +42,16 @@ def add_setting():
 
 @settings_route.route("/", methods=["GET"])
 @jwt_required()
-def get_settings():
+def get_settings() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
             raise ClientCustomError("not_authorized")
         else:
-            settings = SettingModel.get_settings()
+            page = int(request.args.get("page", 1))
+            per_page = int(request.args.get("per-page"))
+            skip = (page - 1) * per_page
+            settings = SettingModel.get_settings(skip, per_page)
             return db_json_response(settings)
     except ClientCustomError as e:
         return e.response
@@ -58,7 +61,7 @@ def get_settings():
 
 @settings_route.route("/<setting_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
-def manage_setting(setting_id):
+def manage_setting(setting_id: str) -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
@@ -70,7 +73,6 @@ def manage_setting(setting_id):
             else:
                 raise ClientCustomError("not_found", settings_resource)
 
-        # TODO: Comprobar como podría hacer PATCH para poder optimizar el rendimiento de la base de datos
         if request.method == "PUT":
             setting = SettingModel.get_setting(setting_id)
             if setting:

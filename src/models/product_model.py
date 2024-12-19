@@ -3,6 +3,7 @@ from typing import List, Optional
 from bson import ObjectId
 from pydantic import BaseModel, Field, field_validator, ValidationInfo
 from pymongo import ReturnDocument
+from pymongo.results import InsertOneResult, DeleteResult
 
 from src.services.db_services import db
 
@@ -57,27 +58,27 @@ class ProductModel(BaseModel, extra="forbid"):
             return value
 
     # Solicitudes a la colección products
-    def insert_product(self):
+    def insert_product(self) -> InsertOneResult:
         new_product = db.products.insert_one(self.model_dump())
         return new_product
 
     @staticmethod
-    def get_products():
-        products = db.products.find()
+    def get_products(skip: int, per_page: int) -> List[dict]:
+        products = db.products.find().skip(skip).limit(per_page)
         return list(products)
 
     @staticmethod
-    def get_product(product_id):
+    def get_product(product_id: str) -> dict:
         product = db.products.find_one({"_id": ObjectId(product_id)}, {"_id": 0})
         return product
 
-    def update_product(self, product_id):
+    def update_product(self, product_id: str) -> dict:
         updated_product = db.products.find_one_and_update(
             {"_id": ObjectId(product_id)}, {"$set": self.model_dump()}, return_document=ReturnDocument.AFTER
         )
         return updated_product
 
     @staticmethod
-    def delete_product(product_id):
+    def delete_product(product_id: str) -> DeleteResult:
         deleted_product = db.products.delete_one({"_id": ObjectId(product_id)})
         return deleted_product

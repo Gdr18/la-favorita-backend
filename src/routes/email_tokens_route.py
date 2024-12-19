@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
 from pymongo import errors
@@ -19,7 +19,7 @@ email_tokens_route = Blueprint("email_tokens", __name__)
 
 @email_tokens_route.route("/", methods=["POST"])
 @jwt_required()
-def add_email_token():
+def add_email_token() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
@@ -41,13 +41,16 @@ def add_email_token():
 
 @email_tokens_route.route("/", methods=["GET"])
 @jwt_required()
-def get_email_tokens():
+def get_email_tokens() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
             raise ClientCustomError("not_authorized")
         else:
-            email_tokens = TokenModel.get_email_tokens()
+            page = int(request.args.get("page", 1))
+            per_page = int(request.args.get("per-page", 10))
+            skip = (page - 1) * per_page
+            email_tokens = TokenModel.get_email_tokens(skip, per_page)
             return db_json_response(email_tokens)
     except ClientCustomError as e:
         return e.response
@@ -57,7 +60,7 @@ def get_email_tokens():
 
 @email_tokens_route.route("/<email_token_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
-def handle_email_token(email_token_id):
+def handle_email_token(email_token_id: str) -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:

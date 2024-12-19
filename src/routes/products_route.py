@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
 from pymongo import errors
@@ -19,7 +19,7 @@ products_route = Blueprint("products", __name__)
 
 @products_route.route("/", methods=["POST"])
 @jwt_required()
-def add_product():
+def add_product() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
         if token_role > 2:
@@ -41,13 +41,16 @@ def add_product():
 
 @products_route.route("/", methods=["GET"])
 @jwt_required()
-def get_products():
+def get_products() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
         if token_role > 2:
             raise ClientCustomError("not_authorized")
         else:
-            products = ProductModel.get_products()
+            page = int(request.args.get("page", 1))
+            per_page = int(request.args.get("per-page", 10))
+            skip = (page - 1) * per_page
+            products = ProductModel.get_products(skip, per_page)
             return db_json_response(products)
     except ClientCustomError as e:
         return e.response
@@ -57,7 +60,7 @@ def get_products():
 
 @products_route.route("/<product_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
-def handle_product(product_id):
+def handle_product(product_id: str) -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
         if token_role > 2:

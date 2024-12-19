@@ -108,27 +108,27 @@ def revoke_access_token(token: dict) -> tuple[Response, int]:
     return resource_msg(token_revoked.inserted_id, "token revocado", "añadido", 201)
 
 
-def delete_refresh_token(user_id: int) -> tuple[Response, int]:
+def delete_refresh_token(user_id: str) -> tuple[Response, int]:
     TokenModel.delete_refresh_token_by_user_id(user_id)
     return resource_msg(str(user_id), "refresh token del usuario", "eliminado")
 
 
 @jwt.token_in_blocklist_loader
-def check_if_token_revoked(jwt_header, jwt_payload):
+def check_if_token_revoked(jwt_header: dict, jwt_payload: dict) -> Union[bool, None]:
     check_token = TokenModel.get_revoked_token_by_jti(jwt_payload["jti"])
     return True if check_token else None
 
 
 @jwt.revoked_token_loader
-def revoked_token_callback(jwt_header, jwt_payload):
+def revoked_token_callback(jwt_header: dict, jwt_payload: dict) -> tuple[Response, int]:
     return jsonify(err="El token ha sido revocado"), 401
 
 
 @jwt.expired_token_loader
-def expired_token_callback(jwt_header, jwt_payload):
+def expired_token_callback(jwt_header: dict, jwt_payload: dict) -> tuple[Response, int]:
     return jsonify(err="El token ha expirado"), 401
 
 
 @jwt.unauthorized_loader
-def unauthorized_callback(error_message):
+def unauthorized_callback(error_message: str) -> tuple[Response, int]:
     return jsonify(err="Necesita un token válido para acceder a esta ruta"), 401

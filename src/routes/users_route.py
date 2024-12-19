@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
 from pymongo import errors
@@ -20,7 +20,7 @@ users_route = Blueprint("users", __name__)
 
 @users_route.route("/", methods=["POST"])
 @jwt_required()
-def add_user():
+def add_user() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     try:
         if token_role != 1:
@@ -41,13 +41,16 @@ def add_user():
 
 @users_route.route("/", methods=["GET"])
 @jwt_required()
-def get_users():
+def get_users() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     try:
         if token_role != 1:
             raise ClientCustomError("not_authorized")
         else:
-            users = UserModel.get_users()
+            page = request.args.get("page", 1)
+            per_page = request.args.get("per-page", 10)
+            skip = (page - 1) * per_page
+            users = UserModel.get_users(skip, per_page)
             return db_json_response(users)
     except ClientCustomError as e:
         return e.response
@@ -57,7 +60,7 @@ def get_users():
 
 @users_route.route("/<user_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
-def handle_user(user_id):
+def handle_user(user_id: str) -> tuple[Response, int]:
     token = get_jwt()
     token_user_id = token["sub"]
     token_role = token["role"]

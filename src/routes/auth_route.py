@@ -1,4 +1,4 @@
-from flask import Blueprint, request, url_for, jsonify
+from flask import Blueprint, request, url_for, jsonify, Response
 from flask_jwt_extended import jwt_required, get_jwt, decode_token
 from pydantic import ValidationError
 from pymongo import errors
@@ -26,7 +26,7 @@ auth_route = Blueprint("auth", __name__)
 
 
 @auth_route.route("/register", methods=["POST"])
-def register():
+def register() -> tuple[Response, int]:
     try:
         user_data = request.get_json()
         if user_data.get("role"):
@@ -50,7 +50,7 @@ def register():
 # Se precisa de un login previo gestionado por el frontend
 @auth_route.route("/change-email", methods=["POST"])
 @jwt_required()
-def change_email():
+def change_email() -> tuple[Response, int]:
     try:
         user_data = request.get_json()
         user_id = get_jwt().get("sub")
@@ -77,7 +77,7 @@ def change_email():
 
 
 @auth_route.route("/login", methods=["POST"])
-def login():
+def login() -> tuple[Response, int]:
     try:
         user_data = request.get_json()
         user_requested = UserModel.get_user_by_email(user_data.get("email"))
@@ -105,7 +105,7 @@ def login():
 
 @auth_route.route("/logout", methods=["POST"])
 @jwt_required()
-def logout():
+def logout() -> tuple[Response, int]:
     token = get_jwt()
     try:
         revoked_token = revoke_access_token(token)
@@ -118,7 +118,7 @@ def logout():
 
 
 @auth_route.route("/login/google")
-def login_google():
+def login_google() -> tuple[Response, int]:
     try:
         redirect_uri = url_for("auth.authorize_google", _external=True)
         return google.authorize_redirect(redirect_uri)
@@ -127,7 +127,7 @@ def login_google():
 
 
 @auth_route.route("/callback/google")
-def authorize_google():
+def authorize_google() -> tuple[Response, int]:
     try:
         google_token = google.authorize_access_token()
         nonce = request.args.get("nonce")
@@ -162,7 +162,7 @@ def authorize_google():
 
 @auth_route.route("/refresh-token")
 @jwt_required(refresh=True)
-def refresh_users_token():
+def refresh_users_token() -> tuple[Response, int]:
     try:
         user_id = get_jwt().get("sub")
         check_refresh_token = TokenModel.get_refresh_token_by_user_id(user_id)
@@ -179,7 +179,7 @@ def refresh_users_token():
 
 
 @auth_route.route("/confirm-email/<token>", methods=["GET"])
-def confirm_email(token):
+def confirm_email(token: str) -> tuple[Response, int]:
     try:
         user_identity = decode_token(token)
         user_id = user_identity.get("sub")
@@ -198,7 +198,7 @@ def confirm_email(token):
 
 
 @auth_route.route("/resend-email/<user_id>", methods=["POST"])
-def resend_email(user_id):
+def resend_email(user_id: str) -> tuple[Response, int]:
     try:
         user_token = TokenModel.get_email_tokens_by_user_id(user_id)
         if len(user_token) < 5:

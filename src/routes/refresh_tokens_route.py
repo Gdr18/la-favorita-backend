@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
 from pymongo import errors
@@ -19,7 +19,7 @@ refresh_tokens_route = Blueprint("refresh_tokens", __name__)
 
 @refresh_tokens_route.route("/", methods=["POST"])
 @jwt_required()
-def add_refresh_token():
+def add_refresh_token() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
@@ -41,13 +41,16 @@ def add_refresh_token():
 
 @refresh_tokens_route.route("/", methods=["GET"])
 @jwt_required()
-def get_refresh_tokens():
+def get_refresh_tokens() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
             raise ClientCustomError("not_authorized")
         else:
-            refresh_tokens = TokenModel.get_refresh_tokens()
+            page = int(request.args.get("page", 1))
+            per_page = int(request.args.get("per-page", 10))
+            skip = (page - 1) * per_page
+            refresh_tokens = TokenModel.get_refresh_tokens(skip, per_page)
             return db_json_response(refresh_tokens)
     except ClientCustomError as e:
         return e.response
@@ -57,7 +60,7 @@ def get_refresh_tokens():
 
 @refresh_tokens_route.route("/<refresh_token_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
-def handle_refresh_token(refresh_token_id):
+def handle_refresh_token(refresh_token_id: str) -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
@@ -68,7 +71,6 @@ def handle_refresh_token(refresh_token_id):
                 return db_json_response(refresh_token)
             raise ClientCustomError("not_found", refresh_tokens_resource)
 
-        # TODO: Comprobar como podría hacer PATCH para poder optimizar el rendimiento de la base de datos
         if request.method == "PUT":
             refresh_token = TokenModel.get_refresh_token_by_token_id(refresh_token_id)
             if refresh_token:

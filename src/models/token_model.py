@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from bson import ObjectId
 from pydantic import BaseModel, Field, field_validator
 from pymongo import ReturnDocument
+from pymongo.results import InsertOneResult, DeleteResult
 
 from src.services.db_services import db
 
@@ -36,105 +37,105 @@ class TokenModel(BaseModel, extra="forbid"):
             )
 
     # Solicitudes a la colección refresh_tokens
-    def insert_refresh_token(self):
+    def insert_refresh_token(self) -> InsertOneResult:
         new_refresh_token = db.refresh_tokens.insert_one(self.model_dump())
         return new_refresh_token
 
     @staticmethod
-    def get_refresh_tokens():
-        refresh_tokens = db.refresh_tokens.find()
+    def get_refresh_tokens(skip: int, per_page: int) -> list[dict]:
+        refresh_tokens = db.refresh_tokens.find().skip(skip).limit(per_page)
         return list(refresh_tokens)
 
     @staticmethod
-    def get_refresh_token_by_token_id(token_id):
+    def get_refresh_token_by_token_id(token_id: str) -> dict:
         refresh_token = db.refresh_tokens.find_one({"_id": ObjectId(token_id)}, {"_id": 0})
         return refresh_token
 
     @staticmethod
-    def get_refresh_token_by_user_id(user_id):
+    def get_refresh_token_by_user_id(user_id: str) -> dict:
         refresh_token = db.refresh_tokens.find_one({"user_id": user_id})
         return refresh_token
 
-    def update_refresh_token(self, token_id):
+    def update_refresh_token(self, token_id: str) -> dict:
         refresh_token_updated = db.refresh_tokens.find_one_and_update(
             {"_id": ObjectId(token_id)}, {"$set": self.model_dump()}, return_document=ReturnDocument.AFTER
         )
         return refresh_token_updated
 
     @staticmethod
-    def delete_refresh_token_by_token_id(token_id):
+    def delete_refresh_token_by_token_id(token_id: str) -> DeleteResult:
         refresh_token_deleted = db.refresh_tokens.delete_one({"_id": ObjectId(token_id)})
         return refresh_token_deleted
 
     @staticmethod
-    def delete_refresh_token_by_user_id(user_id):
+    def delete_refresh_token_by_user_id(user_id: str) -> DeleteResult:
         refresh_token_deleted = db.refresh_tokens.delete_one({"user_id": user_id})
         return refresh_token_deleted
 
     # Solicitudes a la colección email_tokens
-    def insert_email_token(self):
+    def insert_email_token(self) -> InsertOneResult:
         new_email_token = db.email_tokens.insert_one(self.model_dump())
         return new_email_token
 
     @staticmethod
-    def get_email_tokens():
-        email_tokens = db.email_tokens.find()
+    def get_email_tokens(skip: int, per_page: int) -> list[dict]:
+        email_tokens = db.email_tokens.find().skip(skip).limit(per_page)
         return list(email_tokens)
 
     @staticmethod
-    def get_email_tokens_by_user_id(user_id):
+    def get_email_tokens_by_user_id(user_id: str) -> list[dict]:
         email_tokens = db.email_tokens.find({"user_id": user_id})
         return list(email_tokens)
 
     @staticmethod
-    def get_email_token_by_token_id(token_id):
+    def get_email_token_by_token_id(token_id: str) -> dict:
         email_token = db.email_tokens.find_one({"_id": ObjectId(token_id)}, {"_id": 0})
         return email_token
 
     @staticmethod
-    def get_email_token_by_user_id(user_id):
+    def get_email_token_by_user_id(user_id: str) -> dict:
         email_token = db.email_tokens.find_one({"user_id": user_id})
         return email_token
 
-    def update_email_token(self, token_id):
+    def update_email_token(self, token_id: str) -> dict:
         email_token_updated = db.email_tokens.find_one_and_update(
             {"_id": ObjectId(token_id)}, {"$set": self.model_dump()}, return_document=ReturnDocument.AFTER
         )
         return email_token_updated
 
     @staticmethod
-    def delete_email_token(token_id):
+    def delete_email_token(token_id: str) -> DeleteResult:
         email_token_deleted = db.email_tokens.delete_one({"_id": ObjectId(token_id)})
         return email_token_deleted
 
     # Solicitudes a la colección revoke_tokens
 
-    def insert_revoked_token(self):
+    def insert_revoked_token(self) -> InsertOneResult:
         new_revoke_token = db.revoked_tokens.insert_one(self.model_dump())
         return new_revoke_token
 
     @staticmethod
-    def get_revoked_tokens():
-        revoke_tokens = db.revoked_tokens.find()
+    def get_revoked_tokens(skip: int, per_page: int) -> list[dict]:
+        revoke_tokens = db.revoked_tokens.find().skip(skip).limit(per_page)
         return list(revoke_tokens)
 
     @staticmethod
-    def get_revoked_token_by_token_id(token_id):
+    def get_revoked_token_by_token_id(token_id: str) -> dict:
         revoke_token = db.revoked_tokens.find_one({"_id": ObjectId(token_id)}, {"_id": 0})
         return revoke_token
 
     @staticmethod
-    def get_revoked_token_by_jti(jti):
+    def get_revoked_token_by_jti(jti: str) -> dict:
         revoke_token = db.revoked_tokens.find_one({"jti": jti})
         return revoke_token
 
-    def update_revoked_token(self, token_id):
+    def update_revoked_token(self, token_id: str) -> dict:
         revoke_token_updated = db.revoked_tokens.find_one_and_update(
             {"_id": ObjectId(token_id)}, {"$set": self.model_dump()}, return_document=ReturnDocument.AFTER
         )
         return revoke_token_updated
 
     @staticmethod
-    def delete_revoked_token(token_id):
+    def delete_revoked_token(token_id: str) -> DeleteResult:
         revoke_token_deleted = db.revoked_tokens.delete_one({"_id": ObjectId(token_id)})
         return revoke_token_deleted

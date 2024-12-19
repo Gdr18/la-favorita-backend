@@ -2,6 +2,7 @@ from typing import List
 
 from bson import ObjectId
 from pydantic import BaseModel, Field, field_validator
+from pymongo.results import InsertOneResult, DeleteResult
 
 from src.services.db_services import db
 
@@ -21,27 +22,27 @@ class SettingModel(BaseModel, extra="forbid"):
 
     # Solicitudes a la colección settings
 
-    def insert_setting(self):
+    def insert_setting(self) -> InsertOneResult:
         new_setting = db.settings.insert_one(self.model_dump())
         return new_setting
 
     @staticmethod
-    def get_settings():
-        settings = db.settings.find()
+    def get_settings(skip: int, per_page: int) -> List[dict]:
+        settings = db.settings.find().skip(skip).limit(per_page)
         return list(settings)
 
     @staticmethod
-    def get_setting(setting_id):
+    def get_setting(setting_id: str) -> dict:
         setting = db.settings.find_one({"_id": ObjectId(setting_id)})
         return setting
 
-    def update_setting(self, setting_id):
+    def update_setting(self, setting_id: str) -> dict:
         updated_setting = db.settings.find_one_and_update(
             {"_id": ObjectId(setting_id)}, {"$set": self.model_dump()}, return_document=True
         )
         return updated_setting
 
     @staticmethod
-    def delete_setting(setting_id):
+    def delete_setting(setting_id: str) -> DeleteResult:
         deleted_setting = db.settings.delete_one({"_id": ObjectId(setting_id)})
         return deleted_setting

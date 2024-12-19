@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
 from pymongo import errors
@@ -19,7 +19,7 @@ revoked_tokens_route = Blueprint("revoked_tokens", __name__)
 
 @revoked_tokens_route.route("/", methods=["POST"])
 @jwt_required()
-def add_revoked_token():
+def add_revoked_token() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
@@ -41,13 +41,16 @@ def add_revoked_token():
 
 @revoked_tokens_route.route("/", methods=["GET"])
 @jwt_required()
-def get_revoked_tokens():
+def get_revoked_tokens() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
             raise ClientCustomError("not_authorized")
         else:
-            revoked_tokens = TokenModel.get_revoked_tokens()
+            page = int(request.args.get("page", 1))
+            per_page = int(request.args.get("per-page", 10))
+            skip = (page - 1) * per_page
+            revoked_tokens = TokenModel.get_revoked_tokens(skip, per_page)
             return db_json_response(revoked_tokens)
     except ClientCustomError as e:
         return e.response
@@ -57,7 +60,7 @@ def get_revoked_tokens():
 
 @revoked_tokens_route.route("/<revoked_token_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
-def handle_revoked_token(revoked_token_id):
+def handle_revoked_token(revoked_token_id: str) -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:

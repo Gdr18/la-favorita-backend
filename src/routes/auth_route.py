@@ -1,7 +1,7 @@
 from flask import Blueprint, request, url_for, jsonify, Response
 from flask_jwt_extended import jwt_required, get_jwt, decode_token
 from pydantic import ValidationError
-from pymongo import errors
+from pymongo.errors import DuplicateKeyError
 
 from src.models.token_model import TokenModel
 from src.models.user_model import UserModel
@@ -38,7 +38,7 @@ def register() -> tuple[Response, int]:
             return resource_msg(new_user.inserted_id, "usuario", "añadido", 201)
     except ClientCustomError as e:
         return e.response
-    except errors.DuplicateKeyError as e:
+    except DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
         return handle_validation_error(e)
@@ -68,7 +68,7 @@ def change_email() -> tuple[Response, int]:
         return resource_msg(user_id, "email del usuario", "cambiado")
     except ClientCustomError as e:
         return e.response
-    except errors.DuplicateKeyError as e:
+    except DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
         return handle_validation_error(e)
@@ -111,7 +111,7 @@ def logout() -> tuple[Response, int]:
         revoked_token = revoke_access_token(token)
         delete_refresh_token(token["sub"])
         return revoked_token
-    except errors.DuplicateKeyError as e:
+    except DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except Exception as e:
         return handle_unexpected_error(e)
@@ -152,7 +152,7 @@ def authorize_google() -> tuple[Response, int]:
             ),
             200,
         )
-    except errors.DuplicateKeyError as e:
+    except DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
         return handle_validation_error(e)

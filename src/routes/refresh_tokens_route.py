@@ -1,7 +1,7 @@
 from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
-from pymongo import errors
+from pymongo.errors import DuplicateKeyError
 
 from src.models.token_model import TokenModel
 from src.utils.exceptions_management import (
@@ -31,7 +31,7 @@ def add_refresh_token() -> tuple[Response, int]:
             return resource_msg(new_refresh_token.inserted_id, refresh_tokens_resource, "añadido", 201)
     except ClientCustomError as e:
         return e.response
-    except errors.DuplicateKeyError as e:
+    except DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
         return handle_validation_error(e)
@@ -90,7 +90,7 @@ def handle_refresh_token(refresh_token_id: str) -> tuple[Response, int]:
                 raise ClientCustomError("not_found", refresh_tokens_resource)
     except ClientCustomError as e:
         return e.response
-    except errors.DuplicateKeyError as e:
+    except DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
         return handle_validation_error(e)

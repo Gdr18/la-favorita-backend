@@ -1,7 +1,7 @@
 from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
-from pymongo import errors
+from pymongo.errors import DuplicateKeyError
 
 from src.models.user_model import UserModel
 from src.services.security_service import revoke_access_token, delete_refresh_token
@@ -31,7 +31,7 @@ def add_user() -> tuple[Response, int]:
         return resource_msg(new_user.inserted_id, users_resource, "añadido", 201)
     except ClientCustomError as e:
         return e.response
-    except errors.DuplicateKeyError as e:
+    except DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
         return handle_validation_error(e)
@@ -100,7 +100,7 @@ def handle_user(user_id: str) -> tuple[Response, int]:
                 raise ClientCustomError("not_found", users_resource)
     except ClientCustomError as e:
         return e.response
-    except errors.DuplicateKeyError as e:
+    except DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
         return handle_validation_error(e)

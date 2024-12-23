@@ -64,16 +64,24 @@ def field_required(errors: list[dict]) -> tuple[Response, int]:
 
 
 # Función para manejar errores de tipos de datos
+# TODO: Cambiar para capturar los errores de tipos de datos subyacentes en listas y diccionarios.
 def field_type(errors: list[dict]) -> tuple[Response, int]:
     fields = []
     for error in errors:
-        field = error["loc"][0]
-        first_index_type_field = error["msg"].find("valid") + 6
-        last_index_type_field = error["msg"].find(" ", first_index_type_field)
-        type_field = error["msg"][
-            first_index_type_field : (last_index_type_field if last_index_type_field != -1 else len(error["msg"]))
-        ]
-        fields.append((field, type_field))
+        main_field = error["loc"][0]
+        type_field = error["type"][: error["type"].find("_")]
+        # TODO: Sin terminar, no captura ".".
+        if "." in error["msg"]:
+            index_input_should_be = error["msg"].find("Input should be")
+            secondary_field = error["msg"].rfind(".", 0, index_input_should_be)
+            response = jsonify(err=f"El campo '{secondary_field}' de '{main_field}' debe ser de tipo '{type_field}'.")
+            return response, 400
+        # first_index_type_field = error["msg"].find("valid") + 6
+        # last_index_type_field = error["msg"].find(" ", first_index_type_field)
+        # type_field = error["msg"][
+        #     first_index_type_field : (last_index_type_field if last_index_type_field != -1 else len(error["msg"]))
+        # ]
+        fields.append((main_field, type_field))
 
     response = jsonify(
         err=" ".join(
@@ -103,6 +111,15 @@ def field_length(errors: list[dict]) -> tuple[Response, int]:
     return jsonify(err=" ".join(fields)), 400
 
 
+# Función para manejar errores de patrón de campos
+def field_error_pattern(errors: list[dict]) -> tuple[Response, int]:
+    fields = []
+    for error in errors:
+        field = error["loc"][0]
+        fields.append(f"El campo '{field}' no cumple con el patrón requerido.")
+    return jsonify(err=" ".join(fields)), 400
+
+
 # Funciones para manejar excepciones
 def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
     errors_list = error.errors()
@@ -126,6 +143,9 @@ def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
         if e["msg"] == "Field required":
             errors_field_required = [error for error in errors_list if error["msg"] == "Field required"]
             return field_required(errors_field_required)
+        if "pattern_mismatch" in e["type"]:
+            errors_field_pattern = [error for error in errors_list if "pattern_mismatch" in error["type"]]
+            return field_error_pattern(errors_field_pattern)
     return jsonify(err=[str(e) for e in errors_list]), 400
 
 

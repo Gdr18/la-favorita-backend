@@ -18,8 +18,8 @@ def insert_order() -> tuple[Response, int]:
         order_object = OrderModel(**order_data)
         inserted_order = order_object.insert_order()
         return resource_msg(inserted_order.inserted_id, orders_resource, "insertado")
-    # except ValidationError as e:
-    #     return handle_validation_error(e)
+    except ValidationError as e:
+        return handle_validation_error(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -77,15 +77,21 @@ def handle_order(order_id):
 
         if request.method == "PUT":
             order_data = request.get_json()
+            order_data_user_id = order_data.get("user_id")
+            order_data_created_at = order_data.get("created_at")
+            if all([order_data_user_id, order_data_user_id != user_order]):
+                raise ClientCustomError("not_authorized_to_set", "user_id")
+            if all([order_data_created_at, order_data_created_at != order.get("created_at")]):
+                raise ClientCustomError("not_authorized_to_set", "created_at")
             mixed_data = {**order, **order_data}
             order_object = OrderModel(**mixed_data)
             updated_order = order_object.update_order(order_id)
             return db_json_response(updated_order)
 
         if request.method == "DELETE":
-            deleted_order = OrderModel.delete_order(order_id)
-            if deleted_order.deleted_count < 1:
+            if not order:
                 raise ClientCustomError("not_found", orders_resource)
+            OrderModel.delete_order(order_id)
             return resource_msg(order_id, orders_resource, "eliminado")
 
     except ClientCustomError as e:

@@ -30,7 +30,7 @@ def register() -> tuple[Response, int]:
     try:
         user_data = request.get_json()
         if user_data.get("role"):
-            raise ClientCustomError("not_authorized_to_set_role")
+            raise ClientCustomError("not_authorized_to_set", "role")
         else:
             user_object = UserModel(**user_data)
             new_user = user_object.insert_user()

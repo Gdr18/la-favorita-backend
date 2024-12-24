@@ -79,10 +79,9 @@ def handle_user(user_id: str) -> tuple[Response, int]:
             if user:
                 data = request.get_json()
                 if all([data.get("role"), data.get("role") != user.get("role"), token_role != 1]):
-                    raise ClientCustomError("not_authorized_to_set_role")
+                    raise ClientCustomError("not_authorized_to_set", "role")
                 if all([data.get("email"), data.get("email") != user.get("email")]):
-                    # TODO: Hacer una respuesta en ClientCustomError para este caso?
-                    raise Exception("No puede cambiar el email")
+                    raise ClientCustomError("not_authorized_to_set", "email")
                 combined_data = {**user, **data}
                 user_object = UserModel(**combined_data)
                 updated_user = user_object.update_user(user_id)

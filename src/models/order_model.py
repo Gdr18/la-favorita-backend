@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, model_validator
 from src.services.db_services import db
-from typing import Union, TypedDict, List, Literal
+from typing import Union, List, Literal
+from typing_extensions import TypedDict
 from pymongo.results import InsertOneResult, DeleteResult
 from pymongo import ReturnDocument
 from bson import ObjectId
@@ -10,15 +11,15 @@ from datetime import datetime
 class Items(TypedDict):
     name: str
     qty: int
-    custom: str
-    price: int
+    custom: Union[str, None]
+    price: float
 
 
 class Address(TypedDict):
     name: Union[str, None]
     line_one: str
-    line_two: str
-    postal_code: int
+    line_two: Union[str, None]
+    postal_code: str
 
 
 class OrderModel(BaseModel, extra="forbid"):
@@ -57,16 +58,16 @@ class OrderModel(BaseModel, extra="forbid"):
 
     @staticmethod
     def get_order(order_id: str) -> dict:
-        order = db.order.find_one({"_id": ObjectId(order_id)}, {"_id": 0})
+        order = db.orders.find_one({"_id": ObjectId(order_id)}, {"_id": 0})
         return order
 
     def update_order(self, order_id: str) -> dict:
-        updated_order = db.order.find_one_and_update(
+        updated_order = db.orders.find_one_and_update(
             {"_id": ObjectId(order_id)}, {"$set": self.model_dump()}, return_document=ReturnDocument.AFTER
         )
         return updated_order
 
     @staticmethod
     def delete_order(order_id: str) -> DeleteResult:
-        deleted_order = db.order.delete_one({"_id": ObjectId(order_id)})
+        deleted_order = db.orders.delete_one({"_id": ObjectId(order_id)})
         return deleted_order

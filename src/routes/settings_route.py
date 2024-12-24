@@ -1,7 +1,7 @@
 from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
-from pymongo import errors
+from pymongo.errors import DuplicateKeyError
 
 from src.models.product_model import reload_allowed_values
 from src.models.setting_model import SettingModel
@@ -32,7 +32,7 @@ def add_setting() -> tuple[Response, int]:
             return resource_msg(new_setting.inserted_id, settings_resource, "añadida", 201)
     except ClientCustomError as e:
         return e.response
-    except errors.DuplicateKeyError as e:
+    except DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
         return handle_validation_error(e)
@@ -93,7 +93,7 @@ def manage_setting(setting_id: str) -> tuple[Response, int]:
                 raise ClientCustomError("not_found", settings_resource)
     except ClientCustomError as e:
         return e.response
-    except errors.DuplicateKeyError as e:
+    except DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
         return handle_validation_error(e)

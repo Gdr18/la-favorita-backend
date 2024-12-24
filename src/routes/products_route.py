@@ -1,7 +1,7 @@
 from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
-from pymongo import errors
+from pymongo.errors import DuplicateKeyError
 
 from src.models.product_model import ProductModel
 from src.utils.exceptions_management import (
@@ -31,7 +31,7 @@ def add_product() -> tuple[Response, int]:
             return resource_msg(new_product.inserted_id, products_resource, "añadido", 201)
     except ClientCustomError as e:
         return e.response
-    except errors.DuplicateKeyError as e:
+    except DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
         return handle_validation_error(e)
@@ -91,7 +91,7 @@ def handle_product(product_id: str) -> tuple[Response, int]:
                 raise ClientCustomError("not_found", products_resource)
     except ClientCustomError as e:
         return e.response
-    except errors.DuplicateKeyError as e:
+    except DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
         return handle_validation_error(e)

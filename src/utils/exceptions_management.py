@@ -8,8 +8,8 @@ class ClientCustomError(Exception):
         self.function = function
         self.resource = resource
 
-        if self.function == "not_authorized_to_set_role":
-            self.response = self.json_response_not_authorized_to_set_role()
+        if self.function == "not_authorized_to_set":
+            self.response = self.json_response_not_authorized_to_set()
         elif self.function == "not_authorized":
             self.response = self.json_response_not_authorized()
         elif self.function == "not_found":
@@ -40,9 +40,8 @@ class ClientCustomError(Exception):
     def json_response_not_authorized() -> tuple[Response, int]:
         return jsonify(err=f"El token no está autorizado a acceder a esta ruta"), 401
 
-    @staticmethod
-    def json_response_not_authorized_to_set_role() -> tuple[Response, int]:
-        return jsonify(err=f"El token no está autorizado a establecer el rol"), 401
+    def json_response_not_authorized_to_set(self) -> tuple[Response, int]:
+        return jsonify(err=f"El token no está autorizado a establecer '{self.resource}'"), 401
 
 
 # Función para manejar errores de campos no permitidos
@@ -64,24 +63,26 @@ def field_required(errors: list[dict]) -> tuple[Response, int]:
 
 
 # Función para manejar errores de tipos de datos
+# TODO: Cambiar para capturar los errores de tipos de datos subyacentes en listas y diccionarios.
 def field_type(errors: list[dict]) -> tuple[Response, int]:
     fields = []
     for error in errors:
-        field = error["loc"][0]
-        first_index_type_field = error["msg"].find("valid") + 6
-        last_index_type_field = error["msg"].find(" ", first_index_type_field)
-        type_field = error["msg"][
-            first_index_type_field : (last_index_type_field if last_index_type_field != -1 else len(error["msg"]))
-        ]
-        fields.append((field, type_field))
-
-    response = jsonify(
-        err=" ".join(
-            f"El campo '{field}' debe ser de tipo '{type_field[:-1] if ',' in type_field else type_field}'."
-            for field, type_field in fields
-        )
-    )
-    return response, 400
+        main_field = error["loc"][0]
+        type_field = error["type"][: error["type"].find("_")]
+        msg = ""
+        print(error)
+        if type_field == "literal":
+            expected_values = error["ctx"]["expected"].replace("or", "o")
+            msg = f"El campo '{main_field}' debe ser uno de los valores permitidos: {expected_values}."
+        elif len(error["loc"]) == 1:
+            msg = f"El campo '{main_field}' debe ser de tipo '{type_field}'."
+        elif len(error["loc"]) == 2 and error["loc"][1] == 0:
+            msg = f"El elemento del interior de la colección de '{main_field}' debe ser de tipo '{type_field}'."
+        elif len(error["loc"]) == 3:
+            secondary_field = error["loc"][2]
+            msg = f"El campo '{secondary_field}' de '{main_field}' debe ser de tipo '{type_field}'."
+        fields.append(msg)
+    return jsonify(err=" ".join(fields)), 400
 
 
 # Función para manejar errores de valores no permitidos
@@ -100,6 +101,15 @@ def field_length(errors: list[dict]) -> tuple[Response, int]:
         elif "too_long" in error["type"]:
             too_long = f"La longitud del campo '{error['loc'][0]}' es demasiado larga. Debe tener como máximo {error['ctx']['max_length']}."
             fields.append(too_long)
+    return jsonify(err=" ".join(fields)), 400
+
+
+# Función para manejar errores de patrón de campos
+def field_error_pattern(errors: list[dict]) -> tuple[Response, int]:
+    fields = []
+    for error in errors:
+        field = error["loc"][0]
+        fields.append(f"El campo '{field}' no cumple con el patrón requerido.")
     return jsonify(err=" ".join(fields)), 400
 
 
@@ -126,6 +136,9 @@ def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
         if e["msg"] == "Field required":
             errors_field_required = [error for error in errors_list if error["msg"] == "Field required"]
             return field_required(errors_field_required)
+        if "pattern_mismatch" in e["type"]:
+            errors_field_pattern = [error for error in errors_list if "pattern_mismatch" in error["type"]]
+            return field_error_pattern(errors_field_pattern)
     return jsonify(err=[str(e) for e in errors_list]), 400
 
 

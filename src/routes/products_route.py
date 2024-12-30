@@ -4,6 +4,7 @@ from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
 
 from src.models.product_model import ProductModel
+from src.models.dish_model import DishModel
 from src.utils.exceptions_management import (
     ClientCustomError,
     handle_validation_error,
@@ -74,14 +75,17 @@ def handle_product(product_id: str) -> tuple[Response, int]:
 
         if request.method == "PUT":
             product = ProductModel.get_product(product_id)
-            if product:
-                data = request.get_json()
-                combined_data = {**product, **data}
-                product_object = ProductModel(**combined_data)
-                updated_product = product_object.update_product(product_id)
-                return db_json_response(updated_product)
-            else:
+            if not product:
                 raise ClientCustomError("not_found", products_resource)
+            data = request.get_json()
+            combined_data = {**product, **data}
+            product_object = ProductModel(**combined_data)
+            updated_product = product_object.update_product(product_id)
+            if updated_product.get("stock") <= 0:
+                updated_dishes = DishModel.update_dishes_by_ingredient(updated_product.get("name"))
+                if updated_dishes.matched_count != updated_dishes.modified_count:
+                    raise Exception("Ha fallado la actualización de platos no disponibles")
+            return db_json_response(updated_product)
 
         if request.method == "DELETE":
             deleted_product = ProductModel.delete_product(product_id)

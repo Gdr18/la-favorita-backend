@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, model_validator, ValidationError
 from src.services.db_services import db
 from typing import List, Union, Literal
 from typing_extensions import TypedDict
-from pymongo.results import InsertOneResult, DeleteResult
+from pymongo.results import InsertOneResult, DeleteResult, UpdateResult
 from pymongo import ReturnDocument
 from bson import ObjectId
 from datetime import datetime
@@ -45,6 +45,11 @@ class DishModel(BaseModel, extra="forbid"):
         return list(dishes)
 
     @staticmethod
+    def get_dishes_by_category(category: str) -> List[dict]:
+        dishes_by_category = db.dishes.find({"category": category})
+        return list(dishes_by_category)
+
+    @staticmethod
     def get_dish(dish_id: str) -> dict:
         dish = db.dishes.find_one({"_id": ObjectId(dish_id)})
         return dish
@@ -55,6 +60,11 @@ class DishModel(BaseModel, extra="forbid"):
             {"_id": ObjectId(dish_id)}, {"$set": new_values}, return_document=ReturnDocument.AFTER
         )
         return updated_dish
+
+    @staticmethod
+    def update_dishes_by_ingredient(ingredient: str) -> UpdateResult:
+        updated_dishes = db.dishes.update_many({"ingredients": {"$in": ingredient}}, {"$set": {"available": False}})
+        return updated_dishes
 
     @staticmethod
     def delete_dish(dish_id: str) -> DeleteResult:

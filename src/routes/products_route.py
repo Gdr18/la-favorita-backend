@@ -1,7 +1,7 @@
 from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import DuplicateKeyError, PyMongoError
 
 from src.models.product_model import ProductModel
 from src.models.dish_model import DishModel
@@ -12,6 +12,7 @@ from src.utils.exceptions_management import (
     handle_duplicate_key_error,
 )
 from src.utils.successfully_responses import resource_msg, db_json_response
+from src.services.db_services import client
 
 products_resource = "producto"
 
@@ -62,6 +63,7 @@ def get_products() -> tuple[Response, int]:
 @products_route.route("/<product_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
 def handle_product(product_id: str) -> tuple[Response, int]:
+    session = client.start_session()
     try:
         token_role = get_jwt().get("role")
         if token_role > 2:
@@ -80,11 +82,11 @@ def handle_product(product_id: str) -> tuple[Response, int]:
             data = request.get_json()
             combined_data = {**product, **data}
             product_object = ProductModel(**combined_data)
+            session.start_transaction()
             updated_product = product_object.update_product(product_id)
             if updated_product.get("stock") <= 0:
-                updated_dishes = DishModel.update_dishes_by_ingredient(updated_product.get("name"))
-                if updated_dishes.matched_count != updated_dishes.modified_count:
-                    raise Exception("Ha fallado la actualización de platos no disponibles")
+                DishModel.update_dishes_availability(updated_product.get("name"))
+            session.commit_transaction()
             return db_json_response(updated_product)
 
         if request.method == "DELETE":
@@ -97,7 +99,12 @@ def handle_product(product_id: str) -> tuple[Response, int]:
         return e.response
     except DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
+    except PyMongoError as e:
+        session.abort_transaction()
+        return handle_unexpected_error(e)
     except ValidationError as e:
         return handle_validation_error(e)
     except Exception as e:
         return handle_unexpected_error(e)
+    finally:
+        session.end_session()

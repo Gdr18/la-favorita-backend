@@ -50,7 +50,7 @@ def get_dishes():
         return handle_unexpected_error(e)
 
 
-@dishes_route.route("/<category>")
+@dishes_route.route("/category/<category>")
 def get_category_dishes(category):
     try:
         dishes_by_category = DishModel.get_dishes_by_category(category)
@@ -63,7 +63,13 @@ def get_category_dishes(category):
 def get_dish(dish_id):
     try:
         dish = DishModel.get_dish(dish_id)
-        return db_json_response(dish)
+        if not dish:
+            raise ClientCustomError("not_found", dishes_resource)
+        response = db_json_response(dish)
+        print("hola")
+        return response
+    except ClientCustomError as e:
+        return e.response
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -78,15 +84,16 @@ def handle_dish(dish_id):
         if request.method == "PUT":
             dish_data = request.get_json()
             dish = DishModel.get_dish(dish_id)
+            print(dish)
             if not dish:
-                raise ClientCustomError("not_found")
+                raise ClientCustomError("not_found", dishes_resource)
             mixed_data = {**dish, **dish_data}
             updated_dish = DishModel.update_dish(dish_id, mixed_data)
             return db_json_response(updated_dish)
         if request.method == "DELETE":
             deleted_dish = DishModel.delete_dish(dish_id)
             if not deleted_dish.deleted_count > 0:
-                raise ClientCustomError("not_found")
+                raise ClientCustomError("not_found", dishes_resource)
             return resource_msg(dish_id, dishes_resource, "eliminado")
     except ClientCustomError as e:
         return e.response

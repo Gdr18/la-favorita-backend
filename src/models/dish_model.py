@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, model_validator, ValidationError
 from src.services.db_services import db
-from typing import List, Union, Literal
-from typing_extensions import TypedDict
+from typing import List, Union, Literal, Optional
+from typing_extensions import TypedDict, NotRequired
 from pymongo.results import InsertOneResult, DeleteResult, UpdateResult
 from pymongo import ReturnDocument
 from bson import ObjectId
@@ -10,7 +10,7 @@ from datetime import datetime
 
 class Ingredients(TypedDict):
     name: str
-    allergens: Union[None, List[str]]
+    allergens: NotRequired[Optional[List[str]]]
 
 
 class DishModel(BaseModel, extra="forbid"):
@@ -51,7 +51,7 @@ class DishModel(BaseModel, extra="forbid"):
 
     @staticmethod
     def get_dish(dish_id: str) -> dict:
-        dish = db.dishes.find_one({"_id": ObjectId(dish_id)})
+        dish = db.dishes.find_one({"_id": ObjectId(dish_id)}, {"_id": 0})
         return dish
 
     @staticmethod
@@ -62,7 +62,7 @@ class DishModel(BaseModel, extra="forbid"):
         return updated_dish
 
     @staticmethod
-    def update_dishes_by_ingredient(ingredient: str) -> UpdateResult:
+    def update_dishes_availability(ingredient: str) -> UpdateResult:
         updated_dishes = db.dishes.update_many({"ingredients": {"$in": ingredient}}, {"$set": {"available": False}})
         return updated_dishes
 

@@ -60,10 +60,42 @@ def get_products() -> tuple[Response, int]:
         return handle_unexpected_error(e)
 
 
-@products_route.route("/<product_id>", methods=["GET", "PUT", "DELETE"])
+@products_route.route("/<product_id>", methods=["PUT"])
+def update_dish(product_id):
+    session = client.start_session()
+    try:
+        product = ProductModel.get_product(product_id)
+        if not product:
+            raise ClientCustomError("not_found", products_resource)
+        data = request.get_json()
+        combined_data = {**product, **data}
+        product_object = ProductModel(**combined_data)
+        session.start_transaction()
+        updated_product = product_object.update_product(product_id)
+        product_stock = product.get("stock")
+        updated_product_stock = updated_product.get("stock")
+        if product_stock != updated_product_stock and 0 in (updated_product_stock, product_stock):
+            DishModel.update_dishes_availability(updated_product.get("name"), updated_product_stock != 0)
+        session.commit_transaction()
+        return db_json_response(updated_product)
+    except ClientCustomError as e:
+        return e.response
+    except ValidationError as e:
+        return handle_validation_error(e)
+    except DuplicateKeyError as e:
+        return handle_duplicate_key_error(e)
+    except PyMongoError as e:
+        session.abort_transaction()
+        return handle_unexpected_error(e)
+    except Exception as e:
+        return handle_unexpected_error(e)
+    finally:
+        session.end_session()
+
+
+@products_route.route("/<product_id>", methods=["GET", "DELETE"])
 @jwt_required()
 def handle_product(product_id: str) -> tuple[Response, int]:
-    session = client.start_session()
     try:
         token_role = get_jwt().get("role")
         if token_role > 2:
@@ -75,20 +107,6 @@ def handle_product(product_id: str) -> tuple[Response, int]:
             else:
                 raise ClientCustomError("not_found", products_resource)
 
-        if request.method == "PUT":
-            product = ProductModel.get_product(product_id)
-            if not product:
-                raise ClientCustomError("not_found", products_resource)
-            data = request.get_json()
-            combined_data = {**product, **data}
-            product_object = ProductModel(**combined_data)
-            session.start_transaction()
-            updated_product = product_object.update_product(product_id)
-            if updated_product.get("stock") <= 0:
-                DishModel.update_dishes_availability(updated_product.get("name"))
-            session.commit_transaction()
-            return db_json_response(updated_product)
-
         if request.method == "DELETE":
             deleted_product = ProductModel.delete_product(product_id)
             if deleted_product.deleted_count > 0:
@@ -97,14 +115,5 @@ def handle_product(product_id: str) -> tuple[Response, int]:
                 raise ClientCustomError("not_found", products_resource)
     except ClientCustomError as e:
         return e.response
-    except DuplicateKeyError as e:
-        return handle_duplicate_key_error(e)
-    except PyMongoError as e:
-        session.abort_transaction()
-        return handle_unexpected_error(e)
-    except ValidationError as e:
-        return handle_validation_error(e)
     except Exception as e:
         return handle_unexpected_error(e)
-    finally:
-        session.end_session()

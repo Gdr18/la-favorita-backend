@@ -11,6 +11,7 @@ from datetime import datetime
 class Ingredients(TypedDict):
     name: str
     allergens: NotRequired[Optional[List[str]]]
+    waste: int
 
 
 class DishModel(BaseModel, extra="forbid"):
@@ -62,8 +63,10 @@ class DishModel(BaseModel, extra="forbid"):
         return updated_dish
 
     @staticmethod
-    def update_dishes_availability(ingredient: str) -> UpdateResult:
-        updated_dishes = db.dishes.update_many({"ingredients": {"$in": ingredient}}, {"$set": {"available": False}})
+    def update_dishes_availability(ingredient: str, value: bool) -> UpdateResult:
+        updated_dishes = db.dishes.update_many(
+            {"ingredients": {"$elemMatch": {"name": ingredient}}}, {"$set": {"available": value}}
+        )
         return updated_dishes
 
     @staticmethod

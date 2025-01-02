@@ -41,10 +41,10 @@ def insert_dish():
 @dishes_route.route("/")
 def get_dishes():
     try:
-        page = request.args.get("page", 1)
-        per_page = request.args.get("per-page", 10)
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per-page", 10))
         skip = (page - 1) * per_page
-        dishes = DishModel.get_dishes(per_page, skip)
+        dishes = DishModel.get_dishes(skip, per_page)
         return db_json_response(dishes)
     except Exception as e:
         return handle_unexpected_error(e)
@@ -65,9 +65,7 @@ def get_dish(dish_id):
         dish = DishModel.get_dish(dish_id)
         if not dish:
             raise ClientCustomError("not_found", dishes_resource)
-        response = db_json_response(dish)
-        print("hola")
-        return response
+        return db_json_response(dish)
     except ClientCustomError as e:
         return e.response
     except Exception as e:

@@ -8,9 +8,11 @@ from pymongo.mongo_client import MongoClient
 from config import DATABASE_URI
 
 
+client = MongoClient(DATABASE_URI)
+
+
 def db_connection() -> Union[Database, tuple[Response, int]]:
     try:
-        client = MongoClient(DATABASE_URI)
         database = client["test_la_favorita"]
         return database
     except ConnectionFailure as e:

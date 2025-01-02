@@ -1,8 +1,8 @@
 from pydantic import BaseModel, Field, model_validator, ValidationError
 from src.services.db_services import db
-from typing import List, Union, Literal
-from typing_extensions import TypedDict
-from pymongo.results import InsertOneResult, DeleteResult
+from typing import List, Union, Literal, Optional
+from typing_extensions import TypedDict, NotRequired
+from pymongo.results import InsertOneResult, DeleteResult, UpdateResult
 from pymongo import ReturnDocument
 from bson import ObjectId
 from datetime import datetime
@@ -10,7 +10,8 @@ from datetime import datetime
 
 class Ingredients(TypedDict):
     name: str
-    allergens: Union[None, List[str]]
+    allergens: NotRequired[Optional[List[str]]]
+    waste: int
 
 
 class DishModel(BaseModel, extra="forbid"):
@@ -45,8 +46,13 @@ class DishModel(BaseModel, extra="forbid"):
         return list(dishes)
 
     @staticmethod
+    def get_dishes_by_category(category: str) -> List[dict]:
+        dishes_by_category = db.dishes.find({"category": category})
+        return list(dishes_by_category)
+
+    @staticmethod
     def get_dish(dish_id: str) -> dict:
-        dish = db.dishes.find_one({"_id": ObjectId(dish_id)})
+        dish = db.dishes.find_one({"_id": ObjectId(dish_id)}, {"_id": 0})
         return dish
 
     @staticmethod
@@ -55,6 +61,13 @@ class DishModel(BaseModel, extra="forbid"):
             {"_id": ObjectId(dish_id)}, {"$set": new_values}, return_document=ReturnDocument.AFTER
         )
         return updated_dish
+
+    @staticmethod
+    def update_dishes_availability(ingredient: str, value: bool) -> UpdateResult:
+        updated_dishes = db.dishes.update_many(
+            {"ingredients": {"$elemMatch": {"name": ingredient}}}, {"$set": {"available": value}}
+        )
+        return updated_dishes
 
     @staticmethod
     def delete_dish(dish_id: str) -> DeleteResult:

@@ -3,7 +3,7 @@ from typing import List, Optional
 from bson import ObjectId
 from pydantic import BaseModel, Field, field_validator, ValidationInfo
 from pymongo import ReturnDocument
-from pymongo.results import InsertOneResult, DeleteResult
+from pymongo.results import InsertOneResult, DeleteResult, UpdateResult
 
 from src.services.db_services import db
 
@@ -77,6 +77,20 @@ class ProductModel(BaseModel, extra="forbid"):
             {"_id": ObjectId(product_id)}, {"$set": self.model_dump()}, return_document=ReturnDocument.AFTER
         )
         return updated_product
+
+    @staticmethod
+    def update_product_stock_by_name(dishes: list, operation: str = "minus") -> list[dict]:
+        updated_products = []
+        for dish in dishes:
+            for ingredient in dish.get("ingredients"):
+                waste = ingredient.get("waste") * dish.get("qty")
+                updated_product = db.products.find_one_and_update(
+                    {"name": ingredient.get("name")},
+                    {"$inc": {"stock": -waste if operation == "minus" else waste}},
+                    return_document=ReturnDocument.AFTER,
+                )
+                updated_products.append(updated_product)
+        return updated_products
 
     @staticmethod
     def delete_product(product_id: str) -> DeleteResult:

@@ -1,7 +1,8 @@
 from pydantic import BaseModel, Field, model_validator
 from src.services.db_services import db
-from typing import Union, List, Literal
-from typing_extensions import TypedDict
+from src.models.dish_model import Ingredients
+from typing import Union, List, Literal, Optional
+from typing_extensions import TypedDict, NotRequired
 from pymongo.results import InsertOneResult, DeleteResult
 from pymongo import ReturnDocument
 from bson import ObjectId
@@ -11,14 +12,14 @@ from datetime import datetime
 class Items(TypedDict):
     name: str
     qty: int
-    custom: Union[str, None]
+    ingredients: List[Ingredients]
     price: float
 
 
 class Address(TypedDict):
-    name: Union[str, None]
+    name: NotRequired[Optional[str]]
     line_one: str
-    line_two: Union[str, None]
+    line_two: NotRequired[Optional[str]]
     postal_code: str
 
 

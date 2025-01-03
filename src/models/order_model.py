@@ -30,7 +30,7 @@ class OrderModel(BaseModel, extra="forbid"):
     address: Union[Address, None] = Field(default=None)
     payment: Literal["cash", "card", "paypal"] = Field(...)
     total_price: float = Field(...)
-    state: Literal["accepted", "canceled", "cooking", "ready", "sent", "delivered"] = Field(...)
+    state: Literal["accepted", "cooking", "canceled", "ready", "sent", "delivered"] = Field(default="accepted")
     created_at: datetime = Field(default_factory=datetime.now)
 
     @model_validator(mode="after")
@@ -41,6 +41,20 @@ class OrderModel(BaseModel, extra="forbid"):
             )
 
         return self
+
+    @staticmethod
+    def check_level_state(new_state: str, old_state: str) -> None:
+        allowed_transitions = {
+            "accepted": ("cooking", "canceled"),
+            "cooking": ("canceled", "ready"),
+            "ready": ("sent",),
+            "sent": ("delivered",),
+        }
+
+        if new_state not in allowed_transitions.get(old_state):
+            raise ValueError(
+                f"""El campo 'state' sólo puede tener los siguientes valores: {', '.join([f"'{word}'" for word in allowed_transitions.get(old_state)])}."""
+            )
 
     # Solicitudes a la colección order
     def insert_order(self) -> InsertOneResult:

@@ -80,13 +80,13 @@ def handle_dish(dish_id):
         if token_role != 1:
             raise ClientCustomError("not_authorized")
         if request.method == "PUT":
-            dish_data = request.get_json()
             dish = DishModel.get_dish(dish_id)
-            print(dish)
             if not dish:
                 raise ClientCustomError("not_found", dishes_resource)
+            dish_data = request.get_json()
             mixed_data = {**dish, **dish_data}
-            updated_dish = DishModel.update_dish(dish_id, mixed_data)
+            dish_object = DishModel(**mixed_data)
+            updated_dish = dish_object.update_dish(dish_id)
             return db_json_response(updated_dish)
         if request.method == "DELETE":
             deleted_dish = DishModel.delete_dish(dish_id)

@@ -78,9 +78,9 @@ def update_order(order_id):
         if not any([token_id == user_order, token_role == 1]):
             raise ClientCustomError("not_authorized")
         order_new_data = request.get_json()
-        OrderModel.check_level_state(order_new_data["state"], order["state"])
+        if order_new_data.get("state") and order["state"] != order_new_data.get("state"):
+            OrderModel.check_level_state(order_new_data.get("state"), order["state"])
         order_mixed_data = {**order, **order_new_data}
-        print(order_mixed_data, "order_mixed_data")
         order_object = OrderModel(**order_mixed_data)
         session.start_transaction()
         updated_order = order_object.update_order(order_id)
@@ -90,11 +90,10 @@ def update_order(order_id):
         return db_json_response(updated_order)
     except ClientCustomError as e:
         return e.response
-    # except ValidationError as e:
-    #     return handle_validation_error(e)
+    except ValidationError as e:
+        return handle_validation_error(e)
     except PyMongoError as e:
         session.abort_transaction()
-        # TODO: Crear función específica para manejar errores de la base de datos.
         return handle_unexpected_error(e)
     except Exception as e:
         return handle_unexpected_error(e)

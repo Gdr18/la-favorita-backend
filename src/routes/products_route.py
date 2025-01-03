@@ -61,9 +61,13 @@ def get_products() -> tuple[Response, int]:
 
 
 @products_route.route("/<product_id>", methods=["PUT"])
-def update_dish(product_id):
+@jwt_required()
+def update_product(product_id):
     session = client.start_session()
+    token_role = get_jwt().get("role")
     try:
+        if token_role != 1:
+            raise ClientCustomError("not_authorized")
         product = ProductModel.get_product(product_id)
         if not product:
             raise ClientCustomError("not_found", products_resource)
@@ -72,9 +76,7 @@ def update_dish(product_id):
         product_object = ProductModel(**combined_data)
         session.start_transaction()
         updated_product = product_object.update_product(product_id)
-        product_stock = product.get("stock")
-        updated_product_stock = updated_product.get("stock")
-        if product_stock != updated_product_stock and 0 in (updated_product_stock, product_stock):
+        if product.get("stock") != updated_product.get("stock") and 0 in (updated_product_stock, product_stock):
             DishModel.update_dishes_availability(updated_product.get("name"), updated_product_stock != 0)
         session.commit_transaction()
         return db_json_response(updated_product)
@@ -83,10 +85,10 @@ def update_dish(product_id):
     except ValidationError as e:
         return handle_validation_error(e)
     except DuplicateKeyError as e:
+        session.abort_transaction()
         return handle_duplicate_key_error(e)
     except PyMongoError as e:
         session.abort_transaction()
-        # TODO: Crear función específica para manejar errores de la base de datos.
         return handle_unexpected_error(e)
     except Exception as e:
         return handle_unexpected_error(e)

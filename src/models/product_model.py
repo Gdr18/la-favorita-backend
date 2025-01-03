@@ -79,15 +79,13 @@ class ProductModel(BaseModel, extra="forbid"):
         return updated_product
 
     @staticmethod
-    def update_product_stock_by_name(dishes: list, operation: str = "minus") -> list[dict]:
+    def update_product_stock_by_name(dishes: list) -> list[dict]:
         updated_products = []
         for dish in dishes:
             for ingredient in dish.get("ingredients"):
                 waste = ingredient.get("waste") * dish.get("qty")
                 updated_product = db.products.find_one_and_update(
-                    {"name": ingredient.get("name")},
-                    {"$inc": {"stock": -waste if operation == "minus" else waste}},
-                    return_document=ReturnDocument.AFTER,
+                    {"name": ingredient.get("name")}, {"$inc": {"stock": -waste}}, return_document=ReturnDocument.AFTER
                 )
                 updated_products.append(updated_product)
         return updated_products

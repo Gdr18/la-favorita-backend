@@ -16,20 +16,13 @@ orders_route = Blueprint("orders", __name__)
 @orders_route.route("/", methods=["POST"])
 @jwt_required()
 def insert_order() -> tuple[Response, int]:
-    session = client.start_session()
     try:
         order_data = request.get_json()
         order_object = OrderModel(**order_data)
-        session.start_transaction()
         inserted_order = order_object.insert_order()
-        ProductModel.update_product_stock_by_name(order_object.items)
-        session.commit_transaction()
         return resource_msg(inserted_order.inserted_id, orders_resource, "insertado")
     except ValidationError as e:
         return handle_validation_error(e)
-    except PyMongoError as e:
-        session.abort_transaction()
-        return handle_unexpected_error(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -71,43 +64,63 @@ def get_user_orders(user_id):
         return handle_unexpected_error(e)
 
 
-@orders_route.route("/<order_id>", methods=["GET", "PUT", "DELETE"])
+@orders_route.route("/<order_id>", methods=["PUT"])
+@jwt_required()
+def update_order(order_id):
+    token_id = get_jwt().get("sub")
+    token_role = get_jwt().get("role")
+    session = client.start_session()
+    try:
+        order = OrderModel.get_order(order_id)
+        if not order:
+            raise ClientCustomError("not_found", orders_resource)
+        user_order = order.get("user_id")
+        if not any([token_id == user_order, token_role == 1]):
+            raise ClientCustomError("not_authorized")
+        order_new_data = request.get_json()
+        OrderModel.check_level_state(order_new_data["state"], order["state"])
+        order_mixed_data = {**order, **order_new_data}
+        print(order_mixed_data, "order_mixed_data")
+        order_object = OrderModel(**order_mixed_data)
+        session.start_transaction()
+        updated_order = order_object.update_order(order_id)
+        if order_object.state == "ready":
+            ProductModel.update_product_stock_by_name(order_object.items)
+        session.commit_transaction()
+        return db_json_response(updated_order)
+    except ClientCustomError as e:
+        return e.response
+    # except ValidationError as e:
+    #     return handle_validation_error(e)
+    except PyMongoError as e:
+        session.abort_transaction()
+        # TODO: Crear función específica para manejar errores de la base de datos.
+        return handle_unexpected_error(e)
+    except Exception as e:
+        return handle_unexpected_error(e)
+    finally:
+        session.end_session()
+
+
+@orders_route.route("/<order_id>", methods=["GET", "DELETE"])
 @jwt_required()
 def handle_order(order_id):
     token_id = get_jwt().get("sub")
     token_role = get_jwt().get("role")
     try:
-        order = OrderModel.get_order(order_id)
-        user_order = order.get("user_id")
-        if not any([token_id == user_order, token_role == 1]):
-            raise ClientCustomError("not_authorized")
-
         if request.method == "GET":
+            order = OrderModel.get_order(order_id)
+            user_order = order.get("user_id")
+            if not any([token_id == user_order, token_role == 1]):
+                raise ClientCustomError("not_authorized")
             return db_json_response(order)
 
-        if request.method == "PUT":
-            order_data = request.get_json()
-            order_data_user_id = order_data.get("user_id")
-            order_data_created_at = order_data.get("created_at")
-            if all([order_data_user_id, order_data_user_id != user_order]):
-                raise ClientCustomError("not_authorized_to_set", "user_id")
-            if all([order_data_created_at, order_data_created_at != order.get("created_at")]):
-                raise ClientCustomError("not_authorized_to_set", "created_at")
-            mixed_data = {**order, **order_data}
-            order_object = OrderModel(**mixed_data)
-            updated_order = order_object.update_order(order_id)
-            # TODO: Terminar lo siguiente
-            if order.get("items") != order_object.items:
-                diff = set(order.get("items")).difference(set(order_object.items))
-                pass
-            elif order_object.state == "canceled":
-                ProductModel.update_product_stock_by_name(order_object.items, "plus")
-            return db_json_response(updated_order)
-
         if request.method == "DELETE":
-            if not order:
+            if token_role != 1:
+                raise ClientCustomError("not_authorized")
+            deleted_order = OrderModel.delete_order(order_id)
+            if not deleted_order.deleted_count > 0:
                 raise ClientCustomError("not_found", orders_resource)
-            OrderModel.delete_order(order_id)
             return resource_msg(order_id, orders_resource, "eliminado")
 
     except ClientCustomError as e:

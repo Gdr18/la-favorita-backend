@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, ValidationError
 from src.services.db_services import db
 from src.models.dish_model import Ingredients
 from typing import Union, List, Literal, Optional
@@ -30,7 +30,7 @@ class OrderModel(BaseModel, extra="forbid"):
     address: Union[Address, None] = Field(default=None)
     payment: Literal["cash", "card", "paypal"] = Field(...)
     total_price: float = Field(...)
-    state: Literal["accepted", "canceled", "cooking", "ready", "sent", "delivered"] = Field(...)
+    state: Literal["accepted", "cooking", "canceled", "ready", "sent", "delivered"] = Field(default="accepted")
     created_at: datetime = Field(default_factory=datetime.now)
 
     @model_validator(mode="after")
@@ -41,6 +41,19 @@ class OrderModel(BaseModel, extra="forbid"):
             )
 
         return self
+
+    @staticmethod
+    def check_level_state(new_state: str, old_state: str) -> bool:
+        if old_state == new_state:
+            return True
+        elif old_state == "accepted" and new_state not in ("cooking", "canceled"):
+            raise ValidationError("El campo 'state' sólo puede tener los siguientes valores: 'cooking', 'canceled'.")
+        elif old_state == "cooking" and new_state not in ("canceled", "ready"):
+            raise ValidationError("El campo 'state' sólo puede tener los siguientes valores: 'canceled', 'ready'.")
+        elif old_state == "ready" and not new_state == "sent":
+            raise ValidationError("El campo 'state' sólo puede tener el valor 'sent'")
+        elif old_state == "sent" and not new_state == "delivered":
+            raise ValidationError("El campo 'state' sólo puede tener el valor 'delivered'")
 
     # Solicitudes a la colección order
     def insert_order(self) -> InsertOneResult:

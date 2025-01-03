@@ -86,6 +86,7 @@ def update_dish(product_id):
         return handle_duplicate_key_error(e)
     except PyMongoError as e:
         session.abort_transaction()
+        # TODO: Crear función específica para manejar errores de la base de datos.
         return handle_unexpected_error(e)
     except Exception as e:
         return handle_unexpected_error(e)

@@ -55,10 +55,9 @@ class DishModel(BaseModel, extra="forbid"):
         dish = db.dishes.find_one({"_id": ObjectId(dish_id)}, {"_id": 0})
         return dish
 
-    @staticmethod
-    def update_dish(dish_id: str, new_values: dict) -> dict:
+    def update_dish(self, dish_id: str) -> dict:
         updated_dish = db.dishes.find_one_and_update(
-            {"_id": ObjectId(dish_id)}, {"$set": new_values}, return_document=ReturnDocument.AFTER
+            {"_id": ObjectId(dish_id)}, {"$set": self.model_dump()}, return_document=ReturnDocument.AFTER
         )
         return updated_dish
 

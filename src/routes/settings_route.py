@@ -23,7 +23,7 @@ settings_route = Blueprint("settings", __name__)
 def add_setting() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
-        if token_role != 1:
+        if not token_role <= 1:
             raise ClientCustomError("not_authorized")
         else:
             setting_data = request.get_json()
@@ -45,7 +45,7 @@ def add_setting() -> tuple[Response, int]:
 def get_settings() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
-        if token_role != 1:
+        if not token_role <= 1:
             raise ClientCustomError("not_authorized")
         else:
             page = int(request.args.get("page", 1))
@@ -64,7 +64,7 @@ def get_settings() -> tuple[Response, int]:
 def manage_setting(setting_id: str) -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
-        if token_role != 1:
+        if not token_role <= 1:
             raise ClientCustomError("not_authorized")
         if request.method == "GET":
             setting = SettingModel.get_setting(setting_id)

@@ -32,7 +32,7 @@ def insert_order() -> tuple[Response, int]:
 def get_orders() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
-        if token_role != 1:
+        if not token_role <= 1:
             raise ClientCustomError("not_authorized")
         page = request.args.get("page", 1)
         per_page = request.args.get("per-page", 10)
@@ -51,7 +51,7 @@ def get_user_orders(user_id):
     try:
         token_id = get_jwt().get("sub")
         token_role = get_jwt().get("role")
-        if not any([token_id == user_id, token_role == 1]):
+        if not any([token_id == user_id, token_role <= 1]):
             raise ClientCustomError("not_authorized")
         page = request.args.get("page", 1)
         per_page = request.args.get("per_page", 10)
@@ -67,15 +67,15 @@ def get_user_orders(user_id):
 @orders_route.route("/<order_id>", methods=["PUT"])
 @jwt_required()
 def update_order(order_id):
-    token_id = get_jwt().get("sub")
-    token_role = get_jwt().get("role")
     session = client.start_session()
     try:
+        token_id = get_jwt().get("sub")
+        token_role = get_jwt().get("role")
         order = OrderModel.get_order(order_id)
         if not order:
             raise ClientCustomError("not_found", orders_resource)
         user_order = order.get("user_id")
-        if not any([token_id == user_order, token_role == 1]):
+        if not any([token_id == user_order, token_role <= 1]):
             raise ClientCustomError("not_authorized")
         order_new_data = request.get_json()
         if order_new_data.get("state") and order["state"] != order_new_data.get("state"):
@@ -104,18 +104,18 @@ def update_order(order_id):
 @orders_route.route("/<order_id>", methods=["GET", "DELETE"])
 @jwt_required()
 def handle_order(order_id):
-    token_id = get_jwt().get("sub")
-    token_role = get_jwt().get("role")
     try:
+        token_id = get_jwt().get("sub")
+        token_role = get_jwt().get("role")
         if request.method == "GET":
             order = OrderModel.get_order(order_id)
             user_order = order.get("user_id")
-            if not any([token_id == user_order, token_role == 1]):
+            if not any([token_id == user_order, token_role <= 1]):
                 raise ClientCustomError("not_authorized")
             return db_json_response(order)
 
         if request.method == "DELETE":
-            if token_role != 1:
+            if not token_role <= 1:
                 raise ClientCustomError("not_authorized")
             deleted_order = OrderModel.delete_order(order_id)
             if not deleted_order.deleted_count > 0:

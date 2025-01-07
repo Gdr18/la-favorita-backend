@@ -22,7 +22,7 @@ revoked_tokens_route = Blueprint("revoked_tokens", __name__)
 def add_revoked_token() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
-        if token_role != 1:
+        if not token_role == 0:
             raise ClientCustomError("not_authorized")
         else:
             data = request.get_json()
@@ -44,7 +44,7 @@ def add_revoked_token() -> tuple[Response, int]:
 def get_revoked_tokens() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
-        if token_role != 1:
+        if not token_role == 0:
             raise ClientCustomError("not_authorized")
         else:
             page = int(request.args.get("page", 1))
@@ -63,7 +63,7 @@ def get_revoked_tokens() -> tuple[Response, int]:
 def handle_revoked_token(revoked_token_id: str) -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
-        if token_role != 1:
+        if not token_role == 0:
             raise ClientCustomError("not_authorized")
         if request.method == "GET":
             revoked_token = TokenModel.get_revoked_token_by_token_id(revoked_token_id)

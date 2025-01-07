@@ -22,7 +22,7 @@ email_tokens_route = Blueprint("email_tokens", __name__)
 def add_email_token() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
-        if token_role != 1:
+        if token_role != 0:
             raise ClientCustomError("not_authorized")
         else:
             data = request.get_json()
@@ -44,7 +44,7 @@ def add_email_token() -> tuple[Response, int]:
 def get_email_tokens() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
-        if token_role != 1:
+        if token_role != 0:
             raise ClientCustomError("not_authorized")
         else:
             page = int(request.args.get("page", 1))
@@ -63,7 +63,7 @@ def get_email_tokens() -> tuple[Response, int]:
 def handle_email_token(email_token_id: str) -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
-        if token_role != 1:
+        if token_role != 0:
             raise ClientCustomError("not_authorized")
         if request.method == "GET":
             email_token = TokenModel.get_email_token_by_token_id(email_token_id)

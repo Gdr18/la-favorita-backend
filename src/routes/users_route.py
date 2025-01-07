@@ -23,7 +23,7 @@ users_route = Blueprint("users", __name__)
 def add_user() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     try:
-        if token_role != 1:
+        if not token_role == 0:
             raise ClientCustomError("not_authorized")
         user_data = request.get_json()
         user_object = UserModel(**user_data)
@@ -44,7 +44,7 @@ def add_user() -> tuple[Response, int]:
 def get_users() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     try:
-        if token_role != 1:
+        if not token_role <= 1:
             raise ClientCustomError("not_authorized")
         else:
             page = request.args.get("page", 1)
@@ -65,7 +65,7 @@ def handle_user(user_id: str) -> tuple[Response, int]:
     token_user_id = token["sub"]
     token_role = token["role"]
     try:
-        if all([token_user_id != user_id, token_role != 1]):
+        if all([token_user_id != user_id, token_role <= 1]):
             raise ClientCustomError("not_authorized")
         if request.method == "GET":
             user = UserModel.get_user_by_user_id(user_id)

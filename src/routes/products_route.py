@@ -24,7 +24,7 @@ products_route = Blueprint("products", __name__)
 def add_product() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
-        if token_role > 2:
+        if not token_role <= 2:
             raise ClientCustomError("not_authorized")
         else:
             product_data = request.get_json()
@@ -46,7 +46,7 @@ def add_product() -> tuple[Response, int]:
 def get_products() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
-        if token_role > 2:
+        if not token_role <= 2:
             raise ClientCustomError("not_authorized")
         else:
             page = int(request.args.get("page", 1))
@@ -66,7 +66,7 @@ def update_product(product_id):
     session = client.start_session()
     token_role = get_jwt().get("role")
     try:
-        if token_role != 1:
+        if not token_role <= 2:
             raise ClientCustomError("not_authorized")
         product = ProductModel.get_product(product_id)
         if not product:
@@ -76,7 +76,9 @@ def update_product(product_id):
         product_object = ProductModel(**combined_data)
         session.start_transaction()
         updated_product = product_object.update_product(product_id)
-        if product.get("stock") != updated_product.get("stock") and 0 in (updated_product_stock, product_stock):
+        updated_product_stock = updated_product.get("stock")
+        product_stock = product.get("stock")
+        if product_stock != updated_product_stock and 0 in (updated_product_stock, product_stock):
             DishModel.update_dishes_availability(updated_product.get("name"), updated_product_stock != 0)
         session.commit_transaction()
         return db_json_response(updated_product)
@@ -101,7 +103,7 @@ def update_product(product_id):
 def handle_product(product_id: str) -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
-        if token_role > 2:
+        if not token_role <= 2:
             raise ClientCustomError("not_authorized")
         if request.method == "GET":
             product = ProductModel.get_product(product_id)

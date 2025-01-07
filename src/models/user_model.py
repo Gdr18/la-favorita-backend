@@ -18,7 +18,7 @@ class UserModel(BaseModel, extra="forbid"):
     email: EmailStr = Field(..., min_length=5, max_length=100)
     password: Union[str, None] = None
     auth_provider: str = Field(default="email")
-    role: int = Field(default=3, ge=1, le=3)
+    role: int = Field(default=3, ge=0, le=3)
     phone: Optional[str] = Field(None, pattern=r"^(?:\+34)?\d{9}$")
     addresses: Optional[List[Dict]] = None
     basket: Optional[List[Dict]] = None

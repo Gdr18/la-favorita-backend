@@ -5,11 +5,10 @@ from authlib.integrations.flask_client import OAuth
 from flask import jsonify, Response
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager, decode_token
+from pymongo.results import InsertOneResult, DeleteResult
 
 from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
 from src.models.token_model import TokenModel
-from src.utils.exceptions_management import handle_unexpected_error
-from src.utils.successfully_responses import resource_msg
 
 bcrypt = Bcrypt()
 
@@ -102,19 +101,19 @@ def get_expiration_time_refresh_token(role: int) -> timedelta:
         return timedelta(days=30)
 
 
-def revoke_access_token(token: dict) -> int:
+def revoke_access_token(token: dict) -> InsertOneResult:
     token_object = TokenModel(user_id=token["sub"], jti=token["jti"], expires_at=token["exp"])
     try:
         token_revoked = token_object.insert_revoked_token()
-        return token_revoked.inserted_id
+        return token_revoked
     except Exception as e:
         raise Exception(f"Error de la base de datos: {str(e)}")
 
 
-def delete_refresh_token(user_id: str) -> int:
+def delete_refresh_token(user_id: str) -> DeleteResult:
     try:
         deleted_refresh_token = TokenModel.delete_refresh_token_by_user_id(user_id)
-        return deleted_refresh_token.deleted_count
+        return deleted_refresh_token
     except Exception as e:
         raise Exception(f"Error de la base de datos: {str(e)}")
 

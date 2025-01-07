@@ -111,11 +111,11 @@ def login() -> tuple[Response, int]:
 @auth_route.route("/logout", methods=["POST"])
 @jwt_required()
 def logout() -> tuple[Response, int]:
-    token = get_jwt()
     try:
-        revoked_token = revoke_access_token(token)
+        token = get_jwt()
+        revoke_access_token(token)
         delete_refresh_token(token["sub"])
-        return revoked_token
+        return resource_msg(token["sub"], "logout del usuario", "realizado")
     except DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except Exception as e:

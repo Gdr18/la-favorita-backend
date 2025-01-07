@@ -59,12 +59,12 @@ def generate_refresh_token(user_data: dict) -> Union[str, tuple[Response, int]]:
         "jti": refresh_token_decoded.get("jti"),
         "expires_at": refresh_token_decoded.get("exp"),
     }
+    refresh_token_object = TokenModel(**data_refresh_token_db)
     try:
-        refresh_token_object = TokenModel(**data_refresh_token_db)
         refresh_token_object.insert_refresh_token()
         return refresh_token
     except Exception as e:
-        return handle_unexpected_error(e)
+        raise Exception(f"Error de la base de datos: {str(e)}")
 
 
 def generate_email_token(user_data: dict) -> Union[str, tuple[Response, int]]:
@@ -81,7 +81,7 @@ def generate_email_token(user_data: dict) -> Union[str, tuple[Response, int]]:
         TokenModel(**data_email_token_db).insert_email_token()
         return email_token
     except Exception as e:
-        return handle_unexpected_error(e)
+        raise Exception(f"Error de la base de datos: {str(e)}")
 
 
 def get_expiration_time_access_token(role: int) -> timedelta:
@@ -102,15 +102,21 @@ def get_expiration_time_refresh_token(role: int) -> timedelta:
         return timedelta(days=30)
 
 
-def revoke_access_token(token: dict) -> tuple[Response, int]:
+def revoke_access_token(token: dict) -> int:
     token_object = TokenModel(user_id=token["sub"], jti=token["jti"], expires_at=token["exp"])
-    token_revoked = token_object.insert_revoked_token()
-    return resource_msg(token_revoked.inserted_id, "token revocado", "añadido", 201)
+    try:
+        token_revoked = token_object.insert_revoked_token()
+        return token_revoked.inserted_id
+    except Exception as e:
+        raise Exception(f"Error de la base de datos: {str(e)}")
 
 
-def delete_refresh_token(user_id: str) -> tuple[Response, int]:
-    TokenModel.delete_refresh_token_by_user_id(user_id)
-    return resource_msg(str(user_id), "refresh token del usuario", "eliminado")
+def delete_refresh_token(user_id: str) -> int:
+    try:
+        deleted_refresh_token = TokenModel.delete_refresh_token_by_user_id(user_id)
+        return deleted_refresh_token.deleted_count
+    except Exception as e:
+        raise Exception(f"Error de la base de datos: {str(e)}")
 
 
 @jwt.token_in_blocklist_loader

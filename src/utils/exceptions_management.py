@@ -1,6 +1,7 @@
 from flask import jsonify, Response
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
+from sendgrid import SendGridException
 
 
 class ClientCustomError(Exception):
@@ -161,6 +162,12 @@ def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
 #                 return handler(relevant_errors)
 #
 #     return jsonify(err=[str(e) for e in errors_list]), 400
+
+
+def handle_send_email_errors(error: SendGridException) -> tuple[Response, int]:
+    return jsonify(err=f"Ha habido un error al enviar el correo de confirmación: {error}"), (
+        error.status_code if hasattr(error, "status_code") else 500
+    )
 
 
 def handle_duplicate_key_error(error: DuplicateKeyError) -> tuple[Response, int]:

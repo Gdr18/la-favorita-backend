@@ -2,6 +2,7 @@ from flask import Blueprint, request, url_for, jsonify, Response
 from flask_jwt_extended import jwt_required, get_jwt, decode_token
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
+from sendgrid import SendGridException
 
 from src.models.token_model import TokenModel
 from src.models.user_model import UserModel
@@ -19,6 +20,7 @@ from src.utils.exceptions_management import (
     ClientCustomError,
     handle_duplicate_key_error,
     handle_validation_error,
+    handle_send_email_errors,
 )
 from src.utils.successfully_responses import resource_msg
 
@@ -42,11 +44,12 @@ def register() -> tuple[Response, int]:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
         return handle_validation_error(e)
+    except SendGridException as e:
+        return handle_send_email_errors(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
 
-# TODO: Falta testearla
 # Se precisa de un login previo gestionado por el frontend
 @auth_route.route("/change-email", methods=["POST"])
 @jwt_required()
@@ -72,6 +75,8 @@ def change_email() -> tuple[Response, int]:
         return handle_duplicate_key_error(e)
     except ValidationError as e:
         return handle_validation_error(e)
+    except SendGridException as e:
+        return handle_send_email_errors(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -212,5 +217,7 @@ def resend_email(user_id: str) -> tuple[Response, int]:
             raise ClientCustomError("too_many_requests")
     except ClientCustomError as e:
         return e.response
+    except SendGridException as e:
+        return handle_send_email_errors(e)
     except Exception as e:
         return handle_unexpected_error(e)

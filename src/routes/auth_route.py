@@ -20,7 +20,7 @@ from src.utils.exceptions_management import (
     ClientCustomError,
     handle_duplicate_key_error,
     handle_validation_error,
-    handle_send_email_errors,
+    handle_send_email_error,
 )
 from src.utils.successfully_responses import resource_msg
 
@@ -45,7 +45,7 @@ def register() -> tuple[Response, int]:
     except ValidationError as e:
         return handle_validation_error(e)
     except SendGridException as e:
-        return handle_send_email_errors(e)
+        return handle_send_email_error(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -76,7 +76,7 @@ def change_email() -> tuple[Response, int]:
     except ValidationError as e:
         return handle_validation_error(e)
     except SendGridException as e:
-        return handle_send_email_errors(e)
+        return handle_send_email_error(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -218,6 +218,6 @@ def resend_email(user_id: str) -> tuple[Response, int]:
     except ClientCustomError as e:
         return e.response
     except SendGridException as e:
-        return handle_send_email_errors(e)
+        return handle_send_email_error(e)
     except Exception as e:
         return handle_unexpected_error(e)

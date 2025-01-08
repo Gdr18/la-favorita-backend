@@ -21,8 +21,11 @@ def insert_order() -> tuple[Response, int]:
         order_object = OrderModel(**order_data)
         inserted_order = order_object.insert_order()
         return resource_msg(inserted_order.inserted_id, orders_resource, "insertado")
+    # except ValidationError as e:
+    #     return handle_validation_error(e)
     except ValidationError as e:
-        return handle_validation_error(e)
+        print(e.errors())
+        return handle_unexpected_error(e)
     except Exception as e:
         return handle_unexpected_error(e)
 

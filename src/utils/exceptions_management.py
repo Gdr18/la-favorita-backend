@@ -46,7 +46,7 @@ class ClientCustomError(Exception):
 
 
 # Función para manejar errores de campos no permitidos
-def extra_inputs_are_not_permitted(errors: list[dict]) -> tuple[Response, int]:
+def handle_extra_inputs_forbidden_error(errors: list[dict]) -> tuple[Response, int]:
     formatting_invalid_fields = ", ".join(f"'{field['loc'][0]}'" for field in errors)
     response = jsonify(
         err=f"""Hay {f"{len(errors)} campos que no son válidos" if len(errors) > 1 else f"{len(errors)} campo que no es válido"}: {formatting_invalid_fields}."""
@@ -55,7 +55,7 @@ def extra_inputs_are_not_permitted(errors: list[dict]) -> tuple[Response, int]:
 
 
 # Función para manejar errores de campos requeridos
-def field_required(errors: list[dict]) -> tuple[Response, int]:
+def handle_field_required_error(errors: list[dict]) -> tuple[Response, int]:
     formatting_fields_required = ", ".join([f"""'{error['loc'][0]}'""" for error in errors])
     response = jsonify(
         err=f"{f'Faltan {len(errors)} campos requeridos' if len(errors) > 1 else f'Falta {len(errors)} campo requerido'}: {formatting_fields_required}."
@@ -65,13 +65,12 @@ def field_required(errors: list[dict]) -> tuple[Response, int]:
 
 # Función para manejar errores de tipos de datos
 # TODO: Cambiar para capturar los errores de tipos de datos subyacentes en listas y diccionarios.
-def field_type(errors: list[dict]) -> tuple[Response, int]:
+def handle_field_type_error(errors: list[dict]) -> tuple[Response, int]:
     fields = []
     for error in errors:
         main_field = error["loc"][0]
         type_field = error["type"][: error["type"].find("_")]
         msg = ""
-        print(error)
         if type_field == "literal":
             expected_values = error["ctx"]["expected"].replace("or", "o")
             msg = f"El campo '{main_field}' debe ser uno de los valores permitidos: {expected_values}."
@@ -87,26 +86,26 @@ def field_type(errors: list[dict]) -> tuple[Response, int]:
 
 
 # Función para manejar errores de valores no permitidos
-def value_error_formatting(errors: list[dict]) -> tuple[Response, int]:
+def handle_custom_value_error(errors: list[dict]) -> tuple[Response, int]:
     msg = [error["msg"][error["msg"].find(",") + 2 :] for error in errors]
     return jsonify({"err": " ".join(msg)}), 400
 
 
 # Función para manejar errores de longitud de campos
-def field_length(errors: list[dict]) -> tuple[Response, int]:
+def handle_length_value_error(errors: list[dict]) -> tuple[Response, int]:
     fields = []
     for error in errors:
+        response = ""
         if "too_short" in error["type"]:
-            too_short = f"La longitud del campo '{error['loc'][0]}' es demasiado corta. Debe tener al menos {error['ctx']['min_length']}."
-            fields.append(too_short)
+            response = f"La longitud del campo '{error['loc'][0]}' es demasiado corta. Debe tener al menos {error['ctx']['min_length']}."
         elif "too_long" in error["type"]:
-            too_long = f"La longitud del campo '{error['loc'][0]}' es demasiado larga. Debe tener como máximo {error['ctx']['max_length']}."
-            fields.append(too_long)
+            response = f"La longitud del campo '{error['loc'][0]}' es demasiado larga. Debe tener como máximo {error['ctx']['max_length']}."
+        fields.append(response)
     return jsonify(err=" ".join(fields)), 400
 
 
 # Función para manejar errores de patrón de campos
-def field_error_pattern(errors: list[dict]) -> tuple[Response, int]:
+def handle_pattern_field_error(errors: list[dict]) -> tuple[Response, int]:
     fields = []
     for error in errors:
         field = error["loc"][0]
@@ -118,28 +117,26 @@ def field_error_pattern(errors: list[dict]) -> tuple[Response, int]:
 def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
     errors_list = error.errors()
     for e in errors_list:
-        if e["msg"].startswith("Input should be"):
+        if "type" in e["type"]:
             errors_input_should_be = [error for error in errors_list if error["msg"].startswith("Input should be")]
-            return field_type(errors_input_should_be)
+            return handle_field_type_error(errors_input_should_be)
         if "too_long" in e["type"] or "too_short" in e["type"]:
             errors_string_length = [
                 error for error in errors_list if "too_long" in error["type"] or "too_short" in error["type"]
             ]
-            return field_length(errors_string_length)
-        if e["msg"] == "Extra inputs are not permitted":
-            errors_extra_inputs_are_not_permitted = [
-                error for error in errors_list if error["msg"] == "Extra inputs are not permitted"
-            ]
-            return extra_inputs_are_not_permitted(errors_extra_inputs_are_not_permitted)
-        if e["msg"].startswith("Value error"):
-            errors_value_error = [error for error in errors_list if error["msg"].startswith("Value error")]
-            return value_error_formatting(errors_value_error)
-        if e["msg"] == "Field required":
-            errors_field_required = [error for error in errors_list if error["msg"] == "Field required"]
-            return field_required(errors_field_required)
-        if "pattern_mismatch" in e["type"]:
-            errors_field_pattern = [error for error in errors_list if "pattern_mismatch" in error["type"]]
-            return field_error_pattern(errors_field_pattern)
+            return handle_length_value_error(errors_string_length)
+        if e["type"] == "extra_forbidden":
+            errors_extra_forbidden = [error for error in errors_list if error["type"] == "extra_forbidden"]
+            return handle_extra_inputs_forbidden_error(errors_extra_forbidden)
+        if e["type"] == "value_error":
+            errors_value_error = [error for error in errors_list if error["type"] == "value_error"]
+            return handle_custom_value_error(errors_value_error)
+        if e["type"] == "missing":
+            errors_field_required = [error for error in errors_list if error["type"] == "missing"]
+            return handle_field_required_error(errors_field_required)
+        if e["type"] == "string_pattern_mismatch":
+            errors_field_pattern = [error for error in errors_list if error["type"] == "string_pattern_mismatch"]
+            return handle_pattern_field_error(errors_field_pattern)
     return jsonify(err=[str(e) for e in errors_list]), 400
 
 
@@ -164,7 +161,7 @@ def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
 #     return jsonify(err=[str(e) for e in errors_list]), 400
 
 
-def handle_send_email_errors(error: SendGridException) -> tuple[Response, int]:
+def handle_send_email_error(error: SendGridException) -> tuple[Response, int]:
     return jsonify(err=f"Ha habido un error al enviar el correo de confirmación: {error}"), (
         error.status_code if hasattr(error, "status_code") else 500
     )

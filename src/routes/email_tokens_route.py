@@ -4,13 +4,13 @@ from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
 
 from src.models.token_model import TokenModel
-from src.utils.exceptions_management import (
+from src.utils.exception_handlers import (
     handle_unexpected_error,
     ClientCustomError,
     handle_validation_error,
     handle_duplicate_key_error,
 )
-from src.utils.successfully_responses import resource_msg, db_json_response
+from src.utils.json_responses import success_json_response, db_json_response
 
 email_tokens_resource = "email token"
 
@@ -28,7 +28,7 @@ def add_email_token() -> tuple[Response, int]:
             data = request.get_json()
             email_token = TokenModel(**data)
             new_email_token = email_token.insert_email_token()
-            return resource_msg(new_email_token.inserted_id, email_tokens_resource, "añadido", 201)
+            return success_json_response(new_email_token.inserted_id, email_tokens_resource, "añadido", 201)
     except ClientCustomError as e:
         return e.response
     except DuplicateKeyError as e:
@@ -85,7 +85,7 @@ def handle_email_token(email_token_id: str) -> tuple[Response, int]:
         if request.method == "DELETE":
             email_token_deleted = TokenModel.delete_email_token(email_token_id)
             if email_token_deleted.deleted_count > 0:
-                return resource_msg(email_token_id, email_tokens_resource, "eliminado")
+                return success_json_response(email_token_id, email_tokens_resource, "eliminado")
             else:
                 raise ClientCustomError("not_found", email_tokens_resource)
     except ClientCustomError as e:

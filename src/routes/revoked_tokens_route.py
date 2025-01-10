@@ -4,13 +4,13 @@ from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
 
 from src.models.token_model import TokenModel
-from src.utils.exceptions_management import (
+from src.utils.exception_handlers import (
     handle_unexpected_error,
     ClientCustomError,
     handle_validation_error,
     handle_duplicate_key_error,
 )
-from src.utils.successfully_responses import resource_msg, db_json_response
+from src.utils.json_responses import success_json_response, db_json_response
 
 revoked_tokens_resource = "token revocado"
 
@@ -28,7 +28,7 @@ def add_revoked_token() -> tuple[Response, int]:
             data = request.get_json()
             revoked_token = TokenModel(**data)
             new_revoked_token = revoked_token.insert_revoked_token()
-            return resource_msg(new_revoked_token.inserted_id, revoked_tokens_resource, "añadido", 201)
+            return success_json_response(new_revoked_token.inserted_id, revoked_tokens_resource, "añadido", 201)
     except ClientCustomError as e:
         return e.response
     except DuplicateKeyError as e:
@@ -86,7 +86,7 @@ def handle_revoked_token(revoked_token_id: str) -> tuple[Response, int]:
         if request.method == "DELETE":
             revoked_token_deleted = TokenModel.delete_revoked_token(revoked_token_id)
             if revoked_token_deleted.deleted_count > 0:
-                return resource_msg(revoked_token_id, revoked_tokens_resource, "eliminado")
+                return success_json_response(revoked_token_id, revoked_tokens_resource, "eliminado")
             else:
                 raise ClientCustomError("not_found", revoked_tokens_resource)
     except ClientCustomError as e:

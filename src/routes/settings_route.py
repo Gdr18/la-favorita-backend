@@ -5,13 +5,13 @@ from pymongo.errors import DuplicateKeyError
 
 from src.models.product_model import reload_allowed_values
 from src.models.setting_model import SettingModel
-from src.utils.exceptions_management import (
+from src.utils.exception_handlers import (
     handle_unexpected_error,
     handle_validation_error,
     handle_duplicate_key_error,
     ClientCustomError,
 )
-from src.utils.successfully_responses import resource_msg, db_json_response
+from src.utils.json_responses import success_json_response, db_json_response
 
 settings_resource = "configuración"
 
@@ -29,7 +29,7 @@ def add_setting() -> tuple[Response, int]:
             setting_data = request.get_json()
             setting_object = SettingModel(**setting_data)
             new_setting = setting_object.insert_setting()
-            return resource_msg(new_setting.inserted_id, settings_resource, "añadida", 201)
+            return success_json_response(new_setting.inserted_id, settings_resource, "añadida", 201)
     except ClientCustomError as e:
         return e.response
     except DuplicateKeyError as e:
@@ -88,7 +88,7 @@ def manage_setting(setting_id: str) -> tuple[Response, int]:
         if request.method == "DELETE":
             deleted_setting = SettingModel.delete_setting(setting_id)
             if deleted_setting.deleted_count > 0:
-                return resource_msg(setting_id, settings_resource, "eliminada")
+                return success_json_response(setting_id, settings_resource, "eliminada")
             else:
                 raise ClientCustomError("not_found", settings_resource)
     except ClientCustomError as e:

@@ -5,8 +5,8 @@ from pymongo.errors import PyMongoError
 
 from src.models.order_model import OrderModel
 from src.models.product_model import ProductModel
-from src.utils.successfully_responses import resource_msg, db_json_response
-from src.utils.exceptions_management import ClientCustomError, handle_unexpected_error, handle_validation_error
+from src.utils.json_responses import success_json_response, db_json_response
+from src.utils.exception_handlers import ClientCustomError, handle_unexpected_error, handle_validation_error
 from src.services.db_services import client
 
 orders_resource = "orden"
@@ -20,7 +20,7 @@ def insert_order() -> tuple[Response, int]:
         order_data = request.get_json()
         order_object = OrderModel(**order_data)
         inserted_order = order_object.insert_order()
-        return resource_msg(inserted_order.inserted_id, orders_resource, "insertado")
+        return success_json_response(inserted_order.inserted_id, orders_resource, "insertado")
     except ValidationError as e:
         print(e.errors())
         return handle_validation_error(e)
@@ -121,7 +121,7 @@ def handle_order(order_id):
             deleted_order = OrderModel.delete_order(order_id)
             if not deleted_order.deleted_count > 0:
                 raise ClientCustomError("not_found", orders_resource)
-            return resource_msg(order_id, orders_resource, "eliminado")
+            return success_json_response(order_id, orders_resource, "eliminado")
 
     except ClientCustomError as e:
         return e.response

@@ -66,19 +66,15 @@ def handle_field_required_error(errors: list[dict]) -> tuple[Response, int]:
 # Función para manejar errores de tipos de datos
 # TODO: Cambiar para capturar los errores de tipos de datos subyacentes en listas y diccionarios.
 def handle_value_type_error(errors: list[dict]) -> tuple[Response, int]:
-    fields = []
+    response = []
     for error in errors:
         main_field = error["loc"][0]
         type_field = error["type"][: error["type"].find("_")]
         msg = ""
-        # TODO: Hacer función propia
-        if type_field == "literal":
-            expected_values = error["ctx"]["expected"].replace("or", "o")
-            msg = f"El campo '{main_field}' debe ser uno de los valores permitidos: {expected_values}."
-        elif len(error["loc"]) == 1:
+        if len(error["loc"]) == 1:
             msg = f"El campo '{main_field}' debe ser de tipo '{type_field}'."
-        elif len(error["loc"]) == 2 and error["loc"][1] == 0:
-            msg = f"El elemento del interior de la colección de '{main_field}' debe ser de tipo '{type_field}'."
+        elif len(error["loc"]) == 2:
+            msg = f"El elemento anidado en '{main_field}' debe ser de tipo '{type_field}'."
         elif len(error["loc"]) == 3:
             second_field = error["loc"][2]
             msg = f"El campo '{second_field}' perteneciente a '{main_field}' debe ser de tipo '{type_field}'."
@@ -86,8 +82,18 @@ def handle_value_type_error(errors: list[dict]) -> tuple[Response, int]:
             second_field = error["loc"][2]
             third_field = error["loc"][4]
             msg = f"El campo '{third_field}' anidado en '{second_field}' perteneciente a '{main_field}' debe ser de tipo '{type_field}'."
-        fields.append(msg)
-    return jsonify(err=" ".join(fields)), 400
+        response.append(msg)
+    return jsonify(err=" ".join(response)), 400
+
+
+def handle_literal_value_error(errors: list[dict]) -> tuple[Response, int]:
+    response = []
+    for error in errors:
+        main_field = error["loc"][0]
+        expected_values = error["ctx"]["expected"].replace("or", "o")
+        msg = f"El campo '{main_field}' debe ser uno de los valores permitidos: {expected_values}."
+        response.append(msg)
+    return jsonify(err=" ".join(response)), 400
 
 
 # Función para manejar errores de valores no permitidos
@@ -118,38 +124,10 @@ def handle_pattern_value_error(errors: list[dict]) -> tuple[Response, int]:
     return jsonify(err=" ".join(fields)), 400
 
 
-# Funciones para manejar excepciones
-# def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
-#     errors_list = error.errors()
-#     for e in errors_list:
-#         if "type" in e["type"] or e["type"] == "literal_error":
-#             value_type_errors = [error for error in errors_list if error["msg"].startswith("Input should be")]
-#             return handle_value_type_error(value_type_errors)
-#         if "too_long" in e["type"] or "too_short" in e["type"]:
-#             length_value_errors = [
-#                 error for error in errors_list if "too_long" in error["type"] or "too_short" in error["type"]
-#             ]
-#             return handle_length_value_error(length_value_errors)
-#         if e["type"] == "extra_forbidden":
-#             extra_fields_errors = [error for error in errors_list if error["type"] == "extra_forbidden"]
-#             return handle_extra_inputs_forbidden_error(extra_fields_errors)
-#         if e["type"] == "value_error":
-#             custom_value_error_errors = [error for error in errors_list if error["type"] == "value_error"]
-#             return handle_custom_value_error(custom_value_error_errors)
-#         if e["type"] == "missing":
-#             field_required_errors = [error for error in errors_list if error["type"] == "missing"]
-#             return handle_field_required_error(field_required_errors)
-#         if e["type"] == "string_pattern_mismatch":
-#             pattern_errors = [error for error in errors_list if error["type"] == "string_pattern_mismatch"]
-#             return handle_pattern_field_error(pattern_errors)
-#     return jsonify(err=[str(e) for e in errors_list]), 400
-
-
-# TODO: Probar la siguiente función
 def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
     errors_list = error.errors()
     error_handlers = {
-        "literal_error": handle_value_type_error,
+        "literal_error": handle_literal_value_error,
         "type": handle_value_type_error,
         "too_long": handle_length_value_error,
         "too_short": handle_length_value_error,

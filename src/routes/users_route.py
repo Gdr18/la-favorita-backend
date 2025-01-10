@@ -5,13 +5,13 @@ from pymongo.errors import DuplicateKeyError
 
 from src.models.user_model import UserModel
 from src.services.security_service import revoke_access_token, delete_refresh_token
-from src.utils.exceptions_management import (
+from src.utils.exception_handlers import (
     handle_unexpected_error,
     handle_validation_error,
     handle_duplicate_key_error,
     ClientCustomError,
 )
-from src.utils.successfully_responses import resource_msg, db_json_response
+from src.utils.json_responses import success_json_response, db_json_response
 
 users_resource = "usuario"
 
@@ -28,7 +28,7 @@ def add_user() -> tuple[Response, int]:
         user_data = request.get_json()
         user_object = UserModel(**user_data)
         new_user = user_object.insert_user()
-        return resource_msg(new_user.inserted_id, users_resource, "añadido", 201)
+        return success_json_response(new_user.inserted_id, users_resource, "añadido", 201)
     except ClientCustomError as e:
         return e.response
     except DuplicateKeyError as e:
@@ -94,7 +94,7 @@ def handle_user(user_id: str) -> tuple[Response, int]:
             if deleted_user.deleted_count > 0:
                 revoke_access_token(token)
                 delete_refresh_token(user_id)
-                return resource_msg(token_user_id, users_resource, "eliminado")
+                return success_json_response(token_user_id, users_resource, "eliminado")
             else:
                 raise ClientCustomError("not_found", users_resource)
     except ClientCustomError as e:

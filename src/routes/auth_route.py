@@ -15,14 +15,14 @@ from src.services.security_service import (
     google,
     verify_password,
 )
-from src.utils.exceptions_management import (
+from src.utils.exception_handlers import (
     handle_unexpected_error,
     ClientCustomError,
     handle_duplicate_key_error,
     handle_validation_error,
-    handle_send_email_errors,
+    handle_send_email_error,
 )
-from src.utils.successfully_responses import resource_msg
+from src.utils.json_responses import success_json_response
 
 auth_route = Blueprint("auth", __name__)
 
@@ -37,7 +37,7 @@ def register() -> tuple[Response, int]:
             user_object = UserModel(**user_data)
             new_user = user_object.insert_user()
             send_email({**user_object.model_dump(), "_id": new_user.inserted_id})
-            return resource_msg(new_user.inserted_id, "usuario", "añadido", 201)
+            return success_json_response(new_user.inserted_id, "usuario", "añadido", 201)
     except ClientCustomError as e:
         return e.response
     except DuplicateKeyError as e:
@@ -45,7 +45,7 @@ def register() -> tuple[Response, int]:
     except ValidationError as e:
         return handle_validation_error(e)
     except SendGridException as e:
-        return handle_send_email_errors(e)
+        return handle_send_email_error(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -68,7 +68,7 @@ def change_email() -> tuple[Response, int]:
         user_object = UserModel(**user_requested)
         updated_user = user_object.update_user(user_id)
         send_email(updated_user)
-        return resource_msg(user_id, "email del usuario", "cambiado")
+        return success_json_response(user_id, "email del usuario", "cambiado")
     except ClientCustomError as e:
         return e.response
     except DuplicateKeyError as e:
@@ -76,7 +76,7 @@ def change_email() -> tuple[Response, int]:
     except ValidationError as e:
         return handle_validation_error(e)
     except SendGridException as e:
-        return handle_send_email_errors(e)
+        return handle_send_email_error(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -115,7 +115,7 @@ def logout() -> tuple[Response, int]:
         token = get_jwt()
         revoke_access_token(token)
         delete_refresh_token(token["sub"])
-        return resource_msg(token["sub"], "logout del usuario", "realizado")
+        return success_json_response(token["sub"], "logout del usuario", "realizado")
     except DuplicateKeyError as e:
         return handle_duplicate_key_error(e)
     except Exception as e:
@@ -193,7 +193,7 @@ def confirm_email(token: str) -> tuple[Response, int]:
             user_requested["confirmed"] = True
             user_object = UserModel(**user_requested)
             user_object.update_user(user_id)
-            return resource_msg(user_id, "usuario", "confirmado")
+            return success_json_response(user_id, "usuario", "confirmado")
         else:
             raise ClientCustomError("not_found", "usuario")
     except ClientCustomError as e:
@@ -210,7 +210,7 @@ def resend_email(user_id: str) -> tuple[Response, int]:
             user_data = UserModel.get_user_by_user_id_with_id(user_id)
             if user_data:
                 send_email(user_data)
-                return resource_msg(user_id, "email de confirmación del usuario", "reenviado")
+                return success_json_response(user_id, "email de confirmación del usuario", "reenviado")
             else:
                 raise ClientCustomError("not_found", "usuario")
         else:
@@ -218,6 +218,6 @@ def resend_email(user_id: str) -> tuple[Response, int]:
     except ClientCustomError as e:
         return e.response
     except SendGridException as e:
-        return handle_send_email_errors(e)
+        return handle_send_email_error(e)
     except Exception as e:
         return handle_unexpected_error(e)

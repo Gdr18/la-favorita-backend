@@ -5,7 +5,7 @@ from pymongo.errors import DuplicateKeyError
 from run import app as real_app
 from src.models.product_model import ProductModel
 from src.models.user_model import UserModel
-from src.utils.exceptions_management import (
+from src.utils.exception_handlers import (
     ClientCustomError,
     handle_validation_error,
     handle_duplicate_key_error,

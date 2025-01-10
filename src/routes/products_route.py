@@ -5,13 +5,13 @@ from pymongo.errors import DuplicateKeyError, PyMongoError
 
 from src.models.product_model import ProductModel
 from src.models.dish_model import DishModel
-from src.utils.exceptions_management import (
+from src.utils.exception_handlers import (
     ClientCustomError,
     handle_validation_error,
     handle_unexpected_error,
     handle_duplicate_key_error,
 )
-from src.utils.successfully_responses import resource_msg, db_json_response
+from src.utils.json_responses import success_json_response, db_json_response
 from src.services.db_services import client
 
 products_resource = "producto"
@@ -30,7 +30,7 @@ def add_product() -> tuple[Response, int]:
             product_data = request.get_json()
             product_object = ProductModel(**product_data)
             new_product = product_object.insert_product()
-            return resource_msg(new_product.inserted_id, products_resource, "añadido", 201)
+            return success_json_response(new_product.inserted_id, products_resource, "añadido", 201)
     except ClientCustomError as e:
         return e.response
     except DuplicateKeyError as e:
@@ -115,7 +115,7 @@ def handle_product(product_id: str) -> tuple[Response, int]:
         if request.method == "DELETE":
             deleted_product = ProductModel.delete_product(product_id)
             if deleted_product.deleted_count > 0:
-                return resource_msg(product_id, products_resource, "eliminado")
+                return success_json_response(product_id, products_resource, "eliminado")
             else:
                 raise ClientCustomError("not_found", products_resource)
     except ClientCustomError as e:

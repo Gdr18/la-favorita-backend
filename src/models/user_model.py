@@ -36,7 +36,7 @@ class UserModel(BaseModel, extra="forbid"):
             self.password = self.validate_password(self.password)
         return self
 
-    @field_validator("email", mode="after")
+    @field_validator("email", mode="before")
     @classmethod
     def validate_email(cls, v) -> EmailStr:
         try:

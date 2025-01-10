@@ -4,8 +4,8 @@ from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError
 
 from src.models.dish_model import DishModel
-from src.utils.successfully_responses import resource_msg, db_json_response
-from src.utils.exceptions_management import (
+from src.utils.json_responses import success_json_response, db_json_response
+from src.utils.exception_handlers import (
     ClientCustomError,
     handle_unexpected_error,
     handle_validation_error,
@@ -27,7 +27,7 @@ def insert_dish():
         dish_data = request.get_json()
         dish_object = DishModel(**dish_data)
         new_dish = dish_object.insert_dish()
-        return resource_msg(new_dish.inserted_id, dishes_resource, "añadido")
+        return success_json_response(new_dish.inserted_id, dishes_resource, "añadido")
     except ClientCustomError as e:
         return e.response
     except DuplicateKeyError as e:
@@ -92,7 +92,7 @@ def handle_dish(dish_id):
             deleted_dish = DishModel.delete_dish(dish_id)
             if not deleted_dish.deleted_count > 0:
                 raise ClientCustomError("not_found", dishes_resource)
-            return resource_msg(dish_id, dishes_resource, "eliminado")
+            return success_json_response(dish_id, dishes_resource, "eliminado")
     except ClientCustomError as e:
         return e.response
     except DuplicateKeyError as e:

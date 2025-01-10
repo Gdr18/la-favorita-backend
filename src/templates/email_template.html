@@ -13,33 +13,46 @@
         .container {
             background-color: #ffffff;
             margin: 50px auto;
-            padding: 20px;
+            padding: 40px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             max-width: 600px;
+            text-align: center;
         }
         h1 {
             color: #333333;
+            padding: 10px;
         }
         p {
             color: #666666;
+            padding: 25px;
         }
         a {
-            color: #1a73e8;
+            display: inline-block;
+            margin-top: 10px;
+            color: #A43A3C;
             text-decoration: none;
         }
         a:hover {
             text-decoration: underline;
+        }
+        #notation {
+            font-size: 11px;
         }
     </style>
     <title>Confirmación de Registro</title>
 </head>
 <body>
 <div class="container">
+    <img src="../static/la_favorita_logo.png"></img>
     <h1>¡Bienvenido/a {{ user_name }}!</h1>
-    <p>Gracias por registrarte. Por favor, haz clic en el siguiente enlace para confirmar tu cuenta:</p>
-    <a href="{{ confirmation_link }}">Confirmar mi cuenta</a>
-    <p>El enlace de confirmación caduca en 24 horas.</p>
+    <p>Gracias por unirte a nuestro equipo. Estaremos encantados de prepararte uno de nuestros magníficos platos cuando
+        quieras.</p>
+    <p>Por favor, haz clic en el siguiente enlace para confirmar tu cuenta:<br>
+        <a href="{{ confirmation_link }}">Confirmar mi cuenta</a>
+    </p>
+
+    <p id="notation">*El enlace de confirmación caduca en 24 horas.</p>
 </div>
 </body>
 </html>

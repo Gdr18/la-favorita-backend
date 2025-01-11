@@ -32,12 +32,17 @@
             margin-top: 10px;
             color: #A43A3C;
             text-decoration: none;
+            transition: .2s ease-in-out;
         }
         a:hover {
             text-decoration: underline;
+            transform: scale(1.05);
         }
         #notation {
             font-size: 11px;
+            text-align: left;
+            padding-bottom: 0;
+            margin-top: 40px;
         }
     </style>
     <title>Confirmación de Registro</title>
@@ -45,7 +50,7 @@
 <body>
 <div class="container">
     <img src="../static/la_favorita_logo.png"></img>
-    <h1>¡Bienvenido/a {{ user_name }}!</h1>
+    <h1>¡Te damos la bienvenida {{ user_name }}!</h1>
     <p>Gracias por unirte a nuestro equipo. Estaremos encantados de prepararte uno de nuestros magníficos platos cuando
         quieras.</p>
     <p>Por favor, haz clic en el siguiente enlace para confirmar tu cuenta:<br>

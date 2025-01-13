@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, model_validator, ValidationError
 from src.services.db_services import db
-from typing import List, Union, Literal, Optional
+from typing import List, Literal, Optional
 from typing_extensions import TypedDict, NotRequired
 from pymongo.results import InsertOneResult, DeleteResult, UpdateResult
 from pymongo import ReturnDocument
@@ -10,29 +10,36 @@ from datetime import datetime
 
 class Ingredients(TypedDict):
     name: str
-    allergens: NotRequired[Optional[List[str]]]
+    allergens: Optional[List[str]]
     waste: int
 
 
 class DishModel(BaseModel, extra="forbid"):
-    name: str = Field(...)
+    name: str = Field(..., min_length=1, max_length=50)
     category: Literal["starter", "main", "dessert"] = Field(...)
     description: str = Field(...)
     ingredients: List[Ingredients] = Field(...)
-    custom: Union[List[dict], None] = Field(default=None)
-    price: float = Field(...)
+    custom: Optional[List[dict]] = None
+    price: float = Field(..., gt=0)
     available: bool = Field(...)
     created_at: datetime = Field(default_factory=datetime.now)
 
     @model_validator(mode="after")
     def validate_model(self) -> "DishModel":
         ingredients_names = [ingredient["name"] for ingredient in self.ingredients]
-        check_ingredients = list(
+        checked_ingredients = list(
             db.products.find({"name": {"$in": ingredients_names}}, {"name": 1, "_id": 0, "allergens": 1})
         )
-        if len(check_ingredients) != len(ingredients_names):
-            raise ValidationError("Alguno de los ingredientes no existe en la colección 'products'.")
-        self.ingredients = check_ingredients
+        difference_between = set(ingredients_names).difference(set([value["name"] for value in checked_ingredients]))
+        if difference_between:
+            raise ValidationError(f"El ingrediente '{difference_between}' no existe.")
+
+        for product in checked_ingredients:
+            for ingredient in self.ingredients:
+                if ingredient["name"] == product["name"]:
+                    product["waste"] = ingredient["waste"]
+
+        self.ingredients = checked_ingredients
         return self
 
     # Solicitudes a la colección dish

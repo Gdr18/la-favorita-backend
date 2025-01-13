@@ -1,15 +1,15 @@
 from pydantic import BaseModel, Field, model_validator
 from src.services.db_services import db
 from src.models.dish_model import Ingredients
-from typing import Union, List, Literal, Optional
-from typing_extensions import TypedDict, NotRequired
+from typing import List, Literal, Optional
+from typing_extensions import TypedDict
 from pymongo.results import InsertOneResult, DeleteResult
 from pymongo import ReturnDocument
 from bson import ObjectId
 from datetime import datetime
 
 
-class Items(TypedDict):
+class ItemsOrder(TypedDict):
     name: str
     qty: int
     ingredients: List[Ingredients]
@@ -17,29 +17,28 @@ class Items(TypedDict):
 
 
 class Address(TypedDict):
-    name: NotRequired[Optional[str]]
+    name: Optional[str]
     line_one: str
-    line_two: NotRequired[Optional[str]]
+    line_two: Optional[str]
     postal_code: str
 
 
 class OrderModel(BaseModel, extra="forbid"):
     user_id: str = Field(..., pattern=r"^[a-f0-9]{24}$")
-    items: List[Items] = Field(...)
+    items: List[ItemsOrder] = Field(...)
     type_order: Literal["delivery", "collect", "take_away"] = Field(...)
-    address: Union[Address, None] = Field(default=None)
+    address: Optional[Address] = None
     payment: Literal["cash", "card", "paypal"] = Field(...)
-    total_price: float = Field(...)
+    total_price: float = Field(..., ge=0)
     state: Literal["accepted", "cooking", "canceled", "ready", "sent", "delivered"] = Field(default="accepted")
     created_at: datetime = Field(default_factory=datetime.now)
 
-    @model_validator(mode="after")
+    @model_validator(mode="before")
     def validate_model(self) -> "OrderModel":
         if self.type_order == "delivery" and self.address is None:
             raise (
                 "Cuando el campo 'type_order' tiene el valor 'delivery' el campo 'address' debe tener un valor de tipo diccionario"
             )
-
         return self
 
     @staticmethod

@@ -28,7 +28,7 @@ def add_email_token() -> tuple[Response, int]:
             data = request.get_json()
             email_token = TokenModel(**data)
             new_email_token = email_token.insert_email_token()
-            return success_json_response(new_email_token.inserted_id, email_tokens_resource, "añadido", 201)
+            return success_json_response(new_email_token.inserted_id, email_tokens_resource, "añadido")
     except ClientCustomError as e:
         return e.response
     except DuplicateKeyError as e:

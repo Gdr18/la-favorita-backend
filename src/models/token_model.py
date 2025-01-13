@@ -9,9 +9,8 @@ from pymongo.results import InsertOneResult, DeleteResult
 from src.services.db_services import db
 
 
-# Campo único: "jti" y "user_id", configurado en MongoDB Atlas.
+# Campos únicos: "jti" y "user_id", configurado en MongoDB Atlas.
 # Campo TTL: "expires_at", configurado en MongoDB Atlas. El documento se eliminará automáticamente cuando expire la fecha.
-# TODO: Probar si funciona datetime.
 class TokenModel(BaseModel, extra="forbid"):
     user_id: str = Field(..., pattern=r"^[a-f0-9]{24}$")
     jti: str = Field(..., pattern=r"^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$")

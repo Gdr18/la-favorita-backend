@@ -14,6 +14,8 @@ class Ingredients(TypedDict):
     waste: int
 
 
+# Campos únicos: name. Está configurado en MongoDB Atlas.
+# Índices: category, ingredients.name. Está configurado en MongoDB Atlas.
 class DishModel(BaseModel, extra="forbid"):
     name: str = Field(..., min_length=1, max_length=50)
     category: Literal["starter", "main", "dessert"] = Field(...)

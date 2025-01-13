@@ -23,6 +23,7 @@ class Address(TypedDict):
     postal_code: str
 
 
+# Índice: user_id. Está configurado en MongoDB Atlas.
 class OrderModel(BaseModel, extra="forbid"):
     user_id: str = Field(..., pattern=r"^[a-f0-9]{24}$")
     items: List[ItemsOrder] = Field(...)

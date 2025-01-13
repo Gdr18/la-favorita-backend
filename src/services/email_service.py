@@ -1,10 +1,11 @@
 from sendgrid import SendGridAPIClient, Mail
+from flask import Response
 
 from config import config, SENDGRID_API_KEY, DEFAULT_SENDER_EMAIL
 from src.services.security_service import generate_email_token
 
 
-def send_email(user_info: dict) -> int:
+def send_email(user_info: dict) -> Response:
     token_email = generate_email_token(user_info)
     user_name = user_info.get("name")
     user_email = user_info.get("email")
@@ -27,4 +28,4 @@ def send_email(user_info: dict) -> int:
 
     sg = SendGridAPIClient(api_key=SENDGRID_API_KEY)
     response = sg.send(email)
-    return response.status_code
+    return response

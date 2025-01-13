@@ -9,7 +9,7 @@ from bson import ObjectId
 from datetime import datetime
 
 
-class Items(TypedDict):
+class ItemsOrder(TypedDict):
     name: str
     qty: int
     ingredients: List[Ingredients]
@@ -25,7 +25,7 @@ class Address(TypedDict):
 
 class OrderModel(BaseModel, extra="forbid"):
     user_id: str = Field(..., pattern=r"^[a-f0-9]{24}$")
-    items: List[Items] = Field(...)
+    items: List[ItemsOrder] = Field(...)
     type_order: Literal["delivery", "collect", "take_away"] = Field(...)
     address: Optional[Address] = None
     payment: Literal["cash", "card", "paypal"] = Field(...)

@@ -57,7 +57,7 @@ def change_email() -> tuple[Response, int]:
     try:
         user_data = request.get_json()
         user_id = get_jwt().get("sub")
-        user_requested = UserModel.get_user_by_user_id(user_id)
+        user_requested = UserModel.get_user_by_user_id_without_id(user_id)
         if user_requested.get("auth_provider") == "google":
             user_requested["auth_provider"] = "email"
             user_requested["confirmed"] = False
@@ -172,7 +172,7 @@ def refresh_users_token() -> tuple[Response, int]:
         user_id = get_jwt().get("sub")
         check_refresh_token = TokenModel.get_refresh_token_by_user_id(user_id)
         if check_refresh_token:
-            user_data = UserModel.get_user_by_user_id(user_id)
+            user_data = UserModel.get_user_by_user_id_without_id(user_id)
             access_token = generate_access_token(user_data)
             return jsonify(access_token=access_token, msg="El token de acceso se ha generado"), 200
         else:
@@ -188,7 +188,7 @@ def confirm_email(token: str) -> tuple[Response, int]:
     try:
         user_identity = decode_token(token)
         user_id = user_identity.get("sub")
-        user_requested = UserModel.get_user_by_user_id(user_id)
+        user_requested = UserModel.get_user_by_user_id_without_id(user_id)
         if user_requested:
             user_requested["confirmed"] = True
             user_object = UserModel(**user_requested)
@@ -207,7 +207,7 @@ def resend_email(user_id: str) -> tuple[Response, int]:
     try:
         user_token = TokenModel.get_email_tokens_by_user_id(user_id)
         if len(user_token) < 5:
-            user_data = UserModel.get_user_by_user_id_with_id(user_id)
+            user_data = UserModel.get_user_by_user_id(user_id)
             if user_data:
                 send_email(user_data)
                 return success_json_response(user_id, "email de confirmación del usuario", "reenviado")

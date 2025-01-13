@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import re
 
 from bson import ObjectId
 from pydantic import BaseModel, Field, field_validator
@@ -20,21 +21,21 @@ class TokenModel(BaseModel, extra="forbid"):
     @field_validator("expires_at", mode="before")
     @classmethod
     def check_exp(cls, v):
-        try:
-            if isinstance(v, str):
-                v = datetime.fromisoformat(v.replace("Z", "+00:00")).astimezone(timezone.utc)
-            elif isinstance(v, int) and len(str(v)) == 10:
-                v = datetime.fromtimestamp(v).astimezone(timezone.utc)
-            else:
-                raise ValueError
-            if v < datetime.now(timezone.utc):
-                raise ValueError
-            else:
-                return v
-        except ValueError:
+        re_date_iso8601_timezone = (
+            r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(\+[01]\d:[0-5]\d)$"
+        )
+        re_date_iso8601 = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$"
+        if re.match(re_date_iso8601_timezone, v) or re.match(re_date_iso8601, v):
+            v = datetime.fromisoformat(v.replace("Z", "+00:00")).astimezone(timezone.utc)
+        elif isinstance(v, int) and len(str(v)) == 10:
+            v = datetime.fromtimestamp(v).astimezone(timezone.utc)
+        else:
             raise ValueError(
-                "El campo 'expires_at' debe ser de tipo unix timestamp o cadena en formato ISO, además de mayor que la fecha actual UTC"
+                "El campo 'expires_at' debe ser una fecha de tipo unix timestamp o cadena en formato ISO 8601"
             )
+        if v < datetime.now(timezone.utc):
+            raise ValueError("El campo 'expires_at' debe ser mayor que la fecha actual UTC")
+        return v
 
     # Solicitudes a la colección refresh_tokens
     def insert_refresh_token(self) -> InsertOneResult:

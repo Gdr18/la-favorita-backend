@@ -68,14 +68,14 @@ def handle_user(user_id: str) -> tuple[Response, int]:
         if all([token_user_id != user_id, token_role <= 1]):
             raise ClientCustomError("not_authorized")
         if request.method == "GET":
-            user = UserModel.get_user_by_user_id(user_id)
+            user = UserModel.get_user_by_user_id_without_id(user_id)
             if user:
                 return db_json_response(user)
             else:
                 raise ClientCustomError("not_found", users_resource)
 
         if request.method == "PUT":
-            user = UserModel.get_user_by_user_id(user_id)
+            user = UserModel.get_user_by_user_id_without_id(user_id)
             if user:
                 data = request.get_json()
                 if all([data.get("role"), data.get("role") != user.get("role"), token_role != 1]):

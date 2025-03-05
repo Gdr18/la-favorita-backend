@@ -1,7 +1,7 @@
 from flask import Blueprint, request, url_for, jsonify, Response
 from flask_jwt_extended import jwt_required, get_jwt, decode_token
 from pydantic import ValidationError
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import PyMongoError
 from sendgrid import SendGridException
 
 from src.models.token_model import TokenModel
@@ -18,10 +18,10 @@ from src.services.security_service import (
 from src.utils.exception_handlers import (
     handle_unexpected_error,
     ClientCustomError,
-    handle_duplicate_key_error,
     handle_validation_error,
     handle_send_email_error,
 )
+from src.utils.mongodb_exception_handlers import handle_mongodb_exception
 from src.utils.json_responses import success_json_response
 
 auth_route = Blueprint("auth", __name__)
@@ -40,8 +40,8 @@ def register() -> tuple[Response, int]:
             return success_json_response(new_user.inserted_id, "usuario", "añadido", 201)
     except ClientCustomError as e:
         return e.response
-    except DuplicateKeyError as e:
-        return handle_duplicate_key_error(e)
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except ValidationError as e:
         return handle_validation_error(e)
     except SendGridException as e:
@@ -71,8 +71,8 @@ def change_email() -> tuple[Response, int]:
         return success_json_response(user_id, "email del usuario", "cambiado")
     except ClientCustomError as e:
         return e.response
-    except DuplicateKeyError as e:
-        return handle_duplicate_key_error(e)
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except ValidationError as e:
         return handle_validation_error(e)
     except SendGridException as e:
@@ -104,6 +104,8 @@ def login() -> tuple[Response, int]:
         )
     except ClientCustomError as e:
         return e.response
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -116,8 +118,8 @@ def logout() -> tuple[Response, int]:
         revoke_access_token(token)
         delete_refresh_token(token["sub"])
         return success_json_response(token["sub"], "logout del usuario", "realizado")
-    except DuplicateKeyError as e:
-        return handle_duplicate_key_error(e)
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -157,8 +159,8 @@ def authorize_google() -> tuple[Response, int]:
             ),
             200,
         )
-    except DuplicateKeyError as e:
-        return handle_duplicate_key_error(e)
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except ValidationError as e:
         return handle_validation_error(e)
     except Exception as e:
@@ -179,6 +181,8 @@ def refresh_users_token() -> tuple[Response, int]:
             raise ClientCustomError("not_found", "refresh token")
     except ClientCustomError as e:
         return e.response
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -198,6 +202,8 @@ def confirm_email(token: str) -> tuple[Response, int]:
             raise ClientCustomError("not_found", "usuario")
     except ClientCustomError as e:
         return e.response
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -217,6 +223,8 @@ def resend_email(user_id: str) -> tuple[Response, int]:
             raise ClientCustomError("too_many_requests")
     except ClientCustomError as e:
         return e.response
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except SendGridException as e:
         return handle_send_email_error(e)
     except Exception as e:

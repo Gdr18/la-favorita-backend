@@ -1,6 +1,5 @@
 from flask import jsonify, Response
 from pydantic import ValidationError
-from pymongo.errors import DuplicateKeyError
 from sendgrid import SendGridException
 
 
@@ -97,7 +96,7 @@ def handle_literal_value_error(errors: list[dict]) -> tuple[Response, int]:
 
 # Función para manejar errores de valores no permitidos
 def handle_custom_value_error(errors: list[dict]) -> tuple[Response, int]:
-    msg = [error["msg"][error["msg"].find(",") + 2:] for error in errors]
+    msg = [error["msg"][error["msg"].find(",") + 2 :] for error in errors]
     return jsonify({"err": " ".join(msg)}), 400
 
 
@@ -149,10 +148,6 @@ def handle_send_email_error(error: SendGridException) -> tuple[Response, int]:
     return jsonify(err=f"Ha habido un error al enviar el correo de confirmación: {error}"), (
         error.status_code if hasattr(error, "status_code") else 500
     )
-
-
-def handle_duplicate_key_error(error: DuplicateKeyError) -> tuple[Response, int]:
-    return jsonify(err=f"Error de clave duplicada en MongoDB: {error.details['keyValue']}"), 409
 
 
 def handle_unexpected_error(error: Exception) -> tuple[Response, int]:

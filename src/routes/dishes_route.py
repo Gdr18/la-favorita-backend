@@ -1,16 +1,12 @@
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import PyMongoError
 
 from src.models.dish_model import DishModel
 from src.utils.json_responses import success_json_response, db_json_response
-from src.utils.exception_handlers import (
-    ClientCustomError,
-    handle_unexpected_error,
-    handle_validation_error,
-    handle_duplicate_key_error,
-)
+from src.utils.exception_handlers import ClientCustomError, handle_unexpected_error, handle_validation_error
+from src.utils.mongodb_exception_handlers import handle_mongodb_exception
 
 dishes_resource = "plato"
 
@@ -30,8 +26,8 @@ def insert_dish():
         return success_json_response(new_dish.inserted_id, dishes_resource, "añadido")
     except ClientCustomError as e:
         return e.response
-    except DuplicateKeyError as e:
-        return handle_duplicate_key_error(e)
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except ValidationError as e:
         return handle_validation_error(e)
     except Exception as e:
@@ -46,6 +42,8 @@ def get_dishes():
         skip = (page - 1) * per_page
         dishes = DishModel.get_dishes(skip, per_page)
         return db_json_response(dishes)
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -55,6 +53,8 @@ def get_category_dishes(category):
     try:
         dishes_by_category = DishModel.get_dishes_by_category(category)
         return db_json_response(dishes_by_category)
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -68,6 +68,8 @@ def get_dish(dish_id):
         return db_json_response(dish)
     except ClientCustomError as e:
         return e.response
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -95,8 +97,8 @@ def handle_dish(dish_id):
             return success_json_response(dish_id, dishes_resource, "eliminado")
     except ClientCustomError as e:
         return e.response
-    except DuplicateKeyError as e:
-        return handle_duplicate_key_error(e)
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except ValidationError as e:
         return handle_validation_error(e)
     except Exception as e:

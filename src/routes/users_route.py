@@ -1,16 +1,12 @@
 from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import PyMongoError
 
 from src.models.user_model import UserModel
 from src.services.security_service import revoke_access_token, delete_refresh_token
-from src.utils.exception_handlers import (
-    handle_unexpected_error,
-    handle_validation_error,
-    handle_duplicate_key_error,
-    ClientCustomError,
-)
+from src.utils.exception_handlers import handle_unexpected_error, handle_validation_error, ClientCustomError
+from src.utils.mongodb_exception_handlers import handle_mongodb_exception
 from src.utils.json_responses import success_json_response, db_json_response
 
 users_resource = "usuario"
@@ -31,8 +27,8 @@ def add_user() -> tuple[Response, int]:
         return success_json_response(new_user.inserted_id, users_resource, "añadido", 201)
     except ClientCustomError as e:
         return e.response
-    except DuplicateKeyError as e:
-        return handle_duplicate_key_error(e)
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except ValidationError as e:
         return handle_validation_error(e)
     except Exception as e:
@@ -54,6 +50,8 @@ def get_users() -> tuple[Response, int]:
             return db_json_response(users)
     except ClientCustomError as e:
         return e.response
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -99,8 +97,8 @@ def handle_user(user_id: str) -> tuple[Response, int]:
                 raise ClientCustomError("not_found", users_resource)
     except ClientCustomError as e:
         return e.response
-    except DuplicateKeyError as e:
-        return handle_duplicate_key_error(e)
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except ValidationError as e:
         return handle_validation_error(e)
     except Exception as e:

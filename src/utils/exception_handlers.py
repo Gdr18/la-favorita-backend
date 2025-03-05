@@ -64,7 +64,6 @@ def handle_field_required_error(errors: list[dict]) -> tuple[Response, int]:
 
 
 # Función para manejar errores de tipos de datos
-# TODO: Cambiar para capturar los errores de tipos de datos subyacentes en listas y diccionarios.
 def handle_value_type_error(errors: list[dict]) -> tuple[Response, int]:
     response = []
     for error in errors:
@@ -98,7 +97,7 @@ def handle_literal_value_error(errors: list[dict]) -> tuple[Response, int]:
 
 # Función para manejar errores de valores no permitidos
 def handle_custom_value_error(errors: list[dict]) -> tuple[Response, int]:
-    msg = [error["msg"][error["msg"].find(",") + 2 :] for error in errors]
+    msg = [error["msg"][error["msg"].find(",") + 2:] for error in errors]
     return jsonify({"err": " ".join(msg)}), 400
 
 

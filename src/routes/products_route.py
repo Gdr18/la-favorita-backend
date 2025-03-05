@@ -1,16 +1,12 @@
 from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
-from pymongo.errors import DuplicateKeyError, PyMongoError
+from pymongo.errors import PyMongoError
 
 from src.models.product_model import ProductModel
 from src.models.dish_model import DishModel
-from src.utils.exception_handlers import (
-    ClientCustomError,
-    handle_validation_error,
-    handle_unexpected_error,
-    handle_duplicate_key_error,
-)
+from src.utils.exception_handlers import ClientCustomError, handle_validation_error, handle_unexpected_error
+from src.utils.mongodb_exception_handlers import handle_mongodb_exception
 from src.utils.json_responses import success_json_response, db_json_response
 from src.services.db_services import client
 
@@ -33,8 +29,8 @@ def add_product() -> tuple[Response, int]:
             return success_json_response(new_product.inserted_id, products_resource, "añadido", 201)
     except ClientCustomError as e:
         return e.response
-    except DuplicateKeyError as e:
-        return handle_duplicate_key_error(e)
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except ValidationError as e:
         return handle_validation_error(e)
     except Exception as e:
@@ -56,6 +52,8 @@ def get_products() -> tuple[Response, int]:
             return db_json_response(products)
     except ClientCustomError as e:
         return e.response
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -86,12 +84,9 @@ def update_product(product_id):
         return e.response
     except ValidationError as e:
         return handle_validation_error(e)
-    except DuplicateKeyError as e:
-        session.abort_transaction()
-        return handle_duplicate_key_error(e)
     except PyMongoError as e:
         session.abort_transaction()
-        return handle_unexpected_error(e)
+        return handle_mongodb_exception(e)
     except Exception as e:
         return handle_unexpected_error(e)
     finally:
@@ -120,5 +115,7 @@ def handle_product(product_id: str) -> tuple[Response, int]:
                 raise ClientCustomError("not_found", products_resource)
     except ClientCustomError as e:
         return e.response
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except Exception as e:
         return handle_unexpected_error(e)

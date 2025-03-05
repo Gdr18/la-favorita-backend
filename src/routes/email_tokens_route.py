@@ -1,15 +1,11 @@
 from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import PyMongoError
 
 from src.models.token_model import TokenModel
-from src.utils.exception_handlers import (
-    handle_unexpected_error,
-    ClientCustomError,
-    handle_validation_error,
-    handle_duplicate_key_error,
-)
+from src.utils.exception_handlers import handle_unexpected_error, ClientCustomError, handle_validation_error
+from src.utils.mongodb_exception_handlers import handle_mongodb_exception
 from src.utils.json_responses import success_json_response, db_json_response
 
 email_tokens_resource = "email token"
@@ -31,8 +27,8 @@ def add_email_token() -> tuple[Response, int]:
             return success_json_response(new_email_token.inserted_id, email_tokens_resource, "añadido")
     except ClientCustomError as e:
         return e.response
-    except DuplicateKeyError as e:
-        return handle_duplicate_key_error(e)
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except ValidationError as e:
         return handle_validation_error(e)
     except Exception as e:
@@ -54,6 +50,8 @@ def get_email_tokens() -> tuple[Response, int]:
             return db_json_response(email_tokens)
     except ClientCustomError as e:
         return e.response
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -90,8 +88,8 @@ def handle_email_token(email_token_id: str) -> tuple[Response, int]:
                 raise ClientCustomError("not_found", email_tokens_resource)
     except ClientCustomError as e:
         return e.response
-    except DuplicateKeyError as e:
-        return handle_duplicate_key_error(e)
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except ValidationError as e:
         return handle_validation_error(e)
     except Exception as e:

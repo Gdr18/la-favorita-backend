@@ -1,6 +1,5 @@
 from flask import jsonify, Response
 from pydantic import ValidationError
-from pymongo.errors import DuplicateKeyError
 from sendgrid import SendGridException
 
 

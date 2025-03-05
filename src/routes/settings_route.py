@@ -1,16 +1,12 @@
 from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import PyMongoError
 
 from src.models.product_model import reload_allowed_values
 from src.models.setting_model import SettingModel
-from src.utils.exception_handlers import (
-    handle_unexpected_error,
-    handle_validation_error,
-    handle_duplicate_key_error,
-    ClientCustomError,
-)
+from src.utils.exception_handlers import handle_unexpected_error, handle_validation_error, ClientCustomError
+from src.utils.mongodb_exception_handlers import handle_mongodb_exception
 from src.utils.json_responses import success_json_response, db_json_response
 
 settings_resource = "configuración"
@@ -32,8 +28,8 @@ def add_setting() -> tuple[Response, int]:
             return success_json_response(new_setting.inserted_id, settings_resource, "añadida", 201)
     except ClientCustomError as e:
         return e.response
-    except DuplicateKeyError as e:
-        return handle_duplicate_key_error(e)
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except ValidationError as e:
         return handle_validation_error(e)
     except Exception as e:
@@ -55,6 +51,8 @@ def get_settings() -> tuple[Response, int]:
             return db_json_response(settings)
     except ClientCustomError as e:
         return e.response
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -93,8 +91,8 @@ def manage_setting(setting_id: str) -> tuple[Response, int]:
                 raise ClientCustomError("not_found", settings_resource)
     except ClientCustomError as e:
         return e.response
-    except DuplicateKeyError as e:
-        return handle_duplicate_key_error(e)
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except ValidationError as e:
         return handle_validation_error(e)
     except Exception as e:

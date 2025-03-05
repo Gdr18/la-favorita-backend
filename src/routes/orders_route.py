@@ -7,6 +7,7 @@ from src.models.order_model import OrderModel
 from src.models.product_model import ProductModel
 from src.utils.json_responses import success_json_response, db_json_response
 from src.utils.exception_handlers import ClientCustomError, handle_unexpected_error, handle_validation_error
+from src.utils.mongodb_exception_handlers import handle_mongodb_exception
 from src.services.db_services import client
 
 orders_resource = "orden"
@@ -22,8 +23,9 @@ def insert_order() -> tuple[Response, int]:
         inserted_order = order_object.insert_order()
         return success_json_response(inserted_order.inserted_id, orders_resource, "insertado")
     except ValidationError as e:
-        print(e.errors())
         return handle_validation_error(e)
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -42,6 +44,8 @@ def get_orders() -> tuple[Response, int]:
         return db_json_response(orders)
     except ClientCustomError as e:
         return e.response
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -61,6 +65,8 @@ def get_user_orders(user_id):
         return db_json_response(user_orders)
     except ClientCustomError as e:
         return e.response
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except Exception as e:
         return handle_unexpected_error(e)
 
@@ -95,7 +101,7 @@ def update_order(order_id):
         return handle_validation_error(e)
     except PyMongoError as e:
         session.abort_transaction()
-        return handle_unexpected_error(e)
+        return handle_mongodb_exception(e)
     except Exception as e:
         return handle_unexpected_error(e)
     finally:
@@ -125,6 +131,8 @@ def handle_order(order_id):
 
     except ClientCustomError as e:
         return e.response
+    except PyMongoError as e:
+        return handle_mongodb_exception(e)
     except ValidationError as e:
         return handle_validation_error(e)
     except Exception as e:

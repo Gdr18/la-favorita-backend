@@ -1,5 +1,4 @@
 from typing import List, Optional
-
 from bson import ObjectId
 from pydantic import BaseModel, Field, field_validator, ValidationInfo
 from pymongo import ReturnDocument

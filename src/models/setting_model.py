@@ -12,7 +12,6 @@ class SettingModel(BaseModel, extra="forbid"):
     name: str = Field(..., min_length=1, max_length=50)
     values: List[str] = Field(..., min_length=1)
 
-    # TODO: Comprobar si funciona el cambio de mode.
     @field_validator("values", mode="after")
     @classmethod
     def __validate_values(cls, v):
@@ -22,7 +21,6 @@ class SettingModel(BaseModel, extra="forbid"):
             raise ValueError("La lista de strings del campo 'values' debe tener al menos un caracter en cada string.")
 
     # Solicitudes a la colección settings
-
     def insert_setting(self) -> InsertOneResult:
         new_setting = db.settings.insert_one(self.model_dump())
         return new_setting

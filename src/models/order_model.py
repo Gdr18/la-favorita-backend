@@ -1,32 +1,18 @@
 from pydantic import BaseModel, Field, model_validator
-from src.services.db_services import db
-from src.models.dish_model import Ingredients
 from typing import List, Literal, Optional
-from typing_extensions import TypedDict
 from pymongo.results import InsertOneResult, DeleteResult
 from pymongo import ReturnDocument
 from bson import ObjectId
 from datetime import datetime
 
-
-class ItemsOrder(TypedDict):
-    name: str
-    qty: int
-    ingredients: List[Ingredients]
-    price: float
-
-
-class Address(TypedDict):
-    name: Optional[str]
-    line_one: str
-    line_two: Optional[str]
-    postal_code: str
+from src.services.db_services import db
+from src.utils.models_helpers import Address, ItemOrder
 
 
 # Índice: user_id. Está configurado en MongoDB Atlas.
 class OrderModel(BaseModel, extra="forbid"):
     user_id: str = Field(..., pattern=r"^[a-f0-9]{24}$")
-    items: List[ItemsOrder] = Field(...)
+    items: List[ItemOrder] = Field(...)
     type_order: Literal["delivery", "collect", "take_away"] = Field(...)
     address: Optional[Address] = None
     payment: Literal["cash", "card", "paypal"] = Field(...)

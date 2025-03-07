@@ -15,6 +15,12 @@ class ItemOrder(TypedDict):
     price: float
 
 
+class ItemBasket(TypedDict):
+    name: str
+    qty: int
+    price: float
+
+
 class Address(TypedDict):
     name: Optional[str]
     line_one: str

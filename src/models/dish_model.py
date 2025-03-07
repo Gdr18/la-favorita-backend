@@ -1,17 +1,12 @@
 from pydantic import BaseModel, Field, model_validator, ValidationError
 from src.services.db_services import db
 from typing import List, Literal, Optional
-from typing_extensions import TypedDict, NotRequired
 from pymongo.results import InsertOneResult, DeleteResult, UpdateResult
 from pymongo import ReturnDocument
 from bson import ObjectId
 from datetime import datetime
 
-
-class Ingredients(TypedDict):
-    name: str
-    allergens: Optional[List[str]]
-    waste: int
+from src.utils.models_helpers import Ingredient
 
 
 # Campos únicos: name. Está configurado en MongoDB Atlas.
@@ -20,7 +15,7 @@ class DishModel(BaseModel, extra="forbid"):
     name: str = Field(..., min_length=1, max_length=50)
     category: Literal["starter", "main", "dessert"] = Field(...)
     description: str = Field(...)
-    ingredients: List[Ingredients] = Field(...)
+    ingredients: List[Ingredient] = Field(...)
     custom: Optional[List[dict]] = None
     price: float = Field(..., gt=0)
     available: bool = Field(...)

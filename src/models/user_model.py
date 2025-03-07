@@ -1,6 +1,6 @@
 import re
 from datetime import datetime, timedelta
-from typing import List, Optional, Dict, TypedDict
+from typing import List, Optional
 
 from bson import ObjectId
 from email_validator import validate_email, EmailNotValidError
@@ -10,13 +10,7 @@ from pymongo.results import InsertOneResult, DeleteResult
 
 from src.services.db_services import db
 from src.services.security_service import bcrypt
-from src.models.order_model import Address
-
-
-class ItemBasket(TypedDict):
-    name: str
-    qty: int
-    price: float
+from src.utils.models_helpers import Address, ItemBasket
 
 
 # Campos únicos: email. Está configurado en MongoDB Atlas.

@@ -1,13 +1,11 @@
 from flask import request, Blueprint, Response
 from flask_jwt_extended import get_jwt, jwt_required
-from pydantic import ValidationError
 from pymongo.errors import PyMongoError
 
 from src.models.order_model import OrderModel
 from src.models.product_model import ProductModel
 from src.utils.json_responses import success_json_response, db_json_response
-from src.utils.exception_handlers import ValueCustomError, handle_unexpected_error, handle_validation_error
-from src.utils.mongodb_exception_handlers import handle_mongodb_exception
+from src.utils.exception_handlers import ValueCustomError
 from src.services.db_services import client
 
 orders_resource = "orden"
@@ -17,58 +15,37 @@ orders_route = Blueprint("orders", __name__)
 @orders_route.route("/", methods=["POST"])
 @jwt_required()
 def insert_order() -> tuple[Response, int]:
-    try:
-        order_data = request.get_json()
-        order_object = OrderModel(**order_data)
-        inserted_order = order_object.insert_order()
-        return success_json_response(inserted_order.inserted_id, orders_resource, "insertado")
-    except ValidationError as e:
-        return handle_validation_error(e)
-    except PyMongoError as e:
-        return handle_mongodb_exception(e)
-    except Exception as e:
-        return handle_unexpected_error(e)
+    order_data = request.get_json()
+    order_object = OrderModel(**order_data)
+    inserted_order = order_object.insert_order()
+    return success_json_response(inserted_order.inserted_id, orders_resource, "insertado")
 
 
 @orders_route.route("/")
 @jwt_required()
 def get_orders() -> tuple[Response, int]:
-    try:
-        token_role = get_jwt().get("role")
-        if not token_role <= 1:
-            raise ValueCustomError("not_authorized")
-        page = request.args.get("page", 1)
-        per_page = request.args.get("per-page", 10)
-        skip = (page - 1) * per_page
-        orders = OrderModel.get_orders(skip, per_page)
-        return db_json_response(orders)
-    except ValueCustomError as e:
-        return e.response
-    except PyMongoError as e:
-        return handle_mongodb_exception(e)
-    except Exception as e:
-        return handle_unexpected_error(e)
+    token_role = get_jwt().get("role")
+    if not token_role <= 1:
+        raise ValueCustomError("not_authorized")
+    page = request.args.get("page", 1)
+    per_page = request.args.get("per-page", 10)
+    skip = (page - 1) * per_page
+    orders = OrderModel.get_orders(skip, per_page)
+    return db_json_response(orders)
 
 
 @orders_route.route("/users/<user_id>")
 @jwt_required()
 def get_user_orders(user_id):
-    try:
-        token_id = get_jwt().get("sub")
-        token_role = get_jwt().get("role")
-        if not any([token_id == user_id, token_role <= 1]):
-            raise ValueCustomError("not_authorized")
-        page = request.args.get("page", 1)
-        per_page = request.args.get("per_page", 10)
-        skip = (page - 1) * per_page
-        user_orders = OrderModel.get_orders_by_user_id(user_id, skip, per_page)
-        return db_json_response(user_orders)
-    except ValueCustomError as e:
-        return e.response
-    except PyMongoError as e:
-        return handle_mongodb_exception(e)
-    except Exception as e:
-        return handle_unexpected_error(e)
+    token_id = get_jwt().get("sub")
+    token_role = get_jwt().get("role")
+    if not any([token_id == user_id, token_role <= 1]):
+        raise ValueCustomError("not_authorized")
+    page = request.args.get("page", 1)
+    per_page = request.args.get("per_page", 10)
+    skip = (page - 1) * per_page
+    user_orders = OrderModel.get_orders_by_user_id(user_id, skip, per_page)
+    return db_json_response(user_orders)
 
 
 @orders_route.route("/<order_id>", methods=["PUT"])
@@ -95,15 +72,9 @@ def update_order(order_id):
             ProductModel.update_product_stock_by_name(order_object.items)
         session.commit_transaction()
         return db_json_response(updated_order)
-    except ValueCustomError as e:
-        return e.response
-    except ValidationError as e:
-        return handle_validation_error(e)
     except PyMongoError as e:
         session.abort_transaction()
-        return handle_mongodb_exception(e)
-    except Exception as e:
-        return handle_unexpected_error(e)
+        raise e
     finally:
         session.end_session()
 
@@ -111,29 +82,19 @@ def update_order(order_id):
 @orders_route.route("/<order_id>", methods=["GET", "DELETE"])
 @jwt_required()
 def handle_order(order_id):
-    try:
-        token_id = get_jwt().get("sub")
-        token_role = get_jwt().get("role")
-        if request.method == "GET":
-            order = OrderModel.get_order(order_id)
-            user_order = order.get("user_id")
-            if not any([token_id == user_order, token_role <= 1]):
-                raise ValueCustomError("not_authorized")
-            return db_json_response(order)
+    token_id = get_jwt().get("sub")
+    token_role = get_jwt().get("role")
+    if request.method == "GET":
+        order = OrderModel.get_order(order_id)
+        user_order = order.get("user_id")
+        if not any([token_id == user_order, token_role <= 1]):
+            raise ValueCustomError("not_authorized")
+        return db_json_response(order)
 
-        if request.method == "DELETE":
-            if not token_role <= 1:
-                raise ValueCustomError("not_authorized")
-            deleted_order = OrderModel.delete_order(order_id)
-            if not deleted_order.deleted_count > 0:
-                raise ValueCustomError("not_found", orders_resource)
-            return success_json_response(order_id, orders_resource, "eliminado")
-
-    except ValueCustomError as e:
-        return e.response
-    except PyMongoError as e:
-        return handle_mongodb_exception(e)
-    except ValidationError as e:
-        return handle_validation_error(e)
-    except Exception as e:
-        return handle_unexpected_error(e)
+    if request.method == "DELETE":
+        if not token_role <= 1:
+            raise ValueCustomError("not_authorized")
+        deleted_order = OrderModel.delete_order(order_id)
+        if not deleted_order.deleted_count > 0:
+            raise ValueCustomError("not_found", orders_resource)
+        return success_json_response(order_id, orders_resource, "eliminado")

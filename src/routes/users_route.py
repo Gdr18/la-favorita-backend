@@ -5,7 +5,7 @@ from pymongo.errors import PyMongoError
 
 from src.models.user_model import UserModel
 from src.services.security_service import revoke_access_token, delete_refresh_token
-from src.utils.global_exception_handlers import handle_unexpected_error, handle_validation_error, ValueCustomError
+from src.utils.exception_handlers import handle_unexpected_error, handle_validation_error, ValueCustomError
 from src.utils.mongodb_exception_handlers import handle_mongodb_exception
 from src.utils.json_responses import success_json_response, db_json_response
 

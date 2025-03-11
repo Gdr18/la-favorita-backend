@@ -3,7 +3,7 @@ from flask_jwt_extended import create_access_token
 from pymongo.errors import DuplicateKeyError
 
 from src import app as real_app
-from src.utils.global_exception_handlers import ValueCustomError
+from src.utils.exception_handlers import ValueCustomError
 
 
 VALID_LOGIN_DATA = {"username": "test_user", "password": "_Test1234"}

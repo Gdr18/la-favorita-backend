@@ -9,7 +9,7 @@ from src.services.security_service import (
     expired_token_callback,
     unauthorized_callback,
 )
-from src.utils.global_exception_handlers import ValueCustomError
+from src.utils.exception_handlers import ValueCustomError
 from tests.tests_tools import validate_success_response_generic, validate_error_response_specific
 
 VALID_JWT = {"jti": "bb53e637-8627-457c-840f-6cae52a12e8b", "exp": 1919068218}

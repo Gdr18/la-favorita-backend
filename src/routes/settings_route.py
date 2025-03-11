@@ -5,7 +5,7 @@ from pymongo.errors import PyMongoError
 
 from src.models.product_model import reload_allowed_values
 from src.models.setting_model import SettingModel
-from src.utils.global_exception_handlers import handle_unexpected_error, handle_validation_error, ValueCustomError
+from src.utils.exception_handlers import handle_unexpected_error, handle_validation_error, ValueCustomError
 from src.utils.mongodb_exception_handlers import handle_mongodb_exception
 from src.utils.json_responses import success_json_response, db_json_response
 

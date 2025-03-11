@@ -15,7 +15,7 @@ from src.services.security_service import (
     google,
     verify_password,
 )
-from src.utils.global_exception_handlers import (
+from src.utils.exception_handlers import (
     handle_unexpected_error,
     ValueCustomError,
     handle_validation_error,

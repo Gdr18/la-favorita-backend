@@ -1,6 +1,7 @@
 from flask import jsonify, Response, Flask
 from pydantic import ValidationError
 from sendgrid import SendGridException
+from pymongo.errors import PyMongoError, DuplicateKeyError, ConnectionFailure
 
 
 class ValueCustomError(Exception):
@@ -84,6 +85,7 @@ def handle_value_type_error(errors: list[dict]) -> tuple[Response, int]:
     return jsonify(err=" ".join(response)), 400
 
 
+# Función para manejar errores de valores literales
 def handle_literal_value_error(errors: list[dict]) -> tuple[Response, int]:
     response = []
     for error in errors:
@@ -122,7 +124,22 @@ def handle_pattern_value_error(errors: list[dict]) -> tuple[Response, int]:
     return jsonify(err=" ".join(fields)), 400
 
 
+# Función para manejar errores de MongoDB
+def handle_mongodb_exception(error: PyMongoError) -> tuple[Response, int]:
+    if isinstance(error, DuplicateKeyError):
+        return jsonify(err=f"Error de clave duplicada en MongoDB: {error.details['keyValue']}"), 409
+    elif isinstance(error, ConnectionFailure):
+        return jsonify(err=f"Error de conexión con MongoDB: {error}"), 500
+    else:
+        return jsonify(err=f"Ha ocurrido un error en MongoDB: {error}"), 500
+
+
+# Función para registrar los gestores de excepciones globales
 def register_global_exception_handlers(app: Flask) -> None:
+    @app.errorhandler(PyMongoError)
+    def handle_pymongo_error(error: PyMongoError) -> tuple[Response, int]:
+        return handle_mongodb_exception(error)
+
     @app.errorhandler(ValidationError)
     def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
         errors_list = error.errors()

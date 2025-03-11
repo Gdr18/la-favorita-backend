@@ -6,7 +6,7 @@ from pymongo.errors import PyMongoError
 from src.models.order_model import OrderModel
 from src.models.product_model import ProductModel
 from src.utils.json_responses import success_json_response, db_json_response
-from src.utils.global_exception_handlers import ValueCustomError, handle_unexpected_error, handle_validation_error
+from src.utils.exception_handlers import ValueCustomError, handle_unexpected_error, handle_validation_error
 from src.utils.mongodb_exception_handlers import handle_mongodb_exception
 from src.services.db_services import client
 

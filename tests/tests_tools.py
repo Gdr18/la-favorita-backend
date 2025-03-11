@@ -3,7 +3,7 @@ from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
 from pydantic import ValidationError
 
-from src.utils.global_exception_handlers import ValueCustomError
+from src.utils.exception_handlers import ValueCustomError
 
 
 def validate_error_response_specific(

@@ -10,7 +10,7 @@ from src.routes.users_route import users_route
 from src.routes.orders_route import orders_route
 from src.routes.dishes_route import dishes_route
 from src.services.security_service import jwt, oauth, bcrypt
-from src.utils.global_exception_handlers import register_global_exception_handlers
+from src.utils.exception_handlers import register_global_exception_handlers
 
 app = Flask(__name__)
 

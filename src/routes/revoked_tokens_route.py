@@ -4,7 +4,7 @@ from pydantic import ValidationError
 from pymongo.errors import PyMongoError
 
 from src.models.token_model import TokenModel
-from src.utils.global_exception_handlers import handle_unexpected_error, ValueCustomError, handle_validation_error
+from src.utils.exception_handlers import handle_unexpected_error, ValueCustomError, handle_validation_error
 from src.utils.mongodb_exception_handlers import handle_mongodb_exception
 from src.utils.json_responses import success_json_response, db_json_response
 

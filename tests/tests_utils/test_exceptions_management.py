@@ -5,8 +5,8 @@ from pymongo.errors import DuplicateKeyError
 from run import app as real_app
 from src.models.product_model import ProductModel
 from src.models.user_model import UserModel
-from src.utils.exception_handlers import (
-    ClientCustomError,
+from src.utils.global_exception_handlers import (
+    ValueCustomError,
     handle_validation_error,
     handle_duplicate_key_error,
     handle_unexpected_error,
@@ -24,35 +24,35 @@ def app():
 
 def test_json_response_not_found(app):
     with app.app_context():
-        function = ClientCustomError("usuario").json_response_not_found()
+        function = ValueCustomError("usuario").json_response_not_found()
         expected_error_message = "Usuario no encontrado"
         validate_error_response_specific(function, 404, expected_error_message)
 
 
 def test_json_response_not_match(app):
     with app.app_context():
-        function = ClientCustomError("password").json_response_not_match()
+        function = ValueCustomError("password").json_response_not_match()
         expected_error_message = "'Password' no coincide"
         validate_error_response_specific(function, 401, expected_error_message)
 
 
 def test_json_response_not_authorized_change(app):
     with app.app_context():
-        function = ClientCustomError("role").json_response_not_authorized_change()
+        function = ValueCustomError("role").json_response_not_authorized_change()
         expected_error_message = "No está autorizado para cambiar 'role'"
         validate_error_response_specific(function, 401, expected_error_message)
 
 
 def test_json_response_not_authorized_set(app):
     with app.app_context():
-        function = ClientCustomError("role").json_response_not_authorized()
+        function = ValueCustomError("role").json_response_not_authorized()
         expected_error_message = "No está autorizado para establecer 'role'"
         validate_error_response_specific(function, 401, expected_error_message)
 
 
 def test_json_response_not_authorized_access(app):
     with app.app_context():
-        function = ClientCustomError("usuario").json_response_not_authorized_access()
+        function = ValueCustomError("usuario").json_response_not_authorized_access()
         expected_error_message = "No está autorizado para acceder a la ruta 'usuario'"
         validate_error_response_specific(function, 401, expected_error_message)
 

@@ -3,7 +3,7 @@ from flask_jwt_extended import create_access_token
 from pymongo.errors import DuplicateKeyError
 
 from src import app as real_app
-from src.utils.exception_handlers import ClientCustomError
+from src.utils.global_exception_handlers import ValueCustomError
 
 
 VALID_LOGIN_DATA = {"username": "test_user", "password": "_Test1234"}
@@ -49,14 +49,14 @@ def test_login_successful(client, mock_login_user_function):
 
 
 def test_login_user_not_found(client, mock_login_user_function):
-    mock_login_user_function.side_effect = ClientCustomError("usuario", "not_found")
+    mock_login_user_function.side_effect = ValueCustomError("usuario", "not_found")
     response = client.post(URL_LOGIN, json=INVALID_LOGIN_DATA)
     assert response.status_code == 404
     assert "err" in response.json
 
 
 def test_login_password_not_match(client, mock_login_user_function):
-    mock_login_user_function.side_effect = ClientCustomError("password", "not_match")
+    mock_login_user_function.side_effect = ValueCustomError("password", "not_match")
     response = client.post(URL_LOGIN, json=INVALID_LOGIN_DATA)
     assert response.status_code == 401
     assert "err" in response.json

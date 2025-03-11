@@ -5,7 +5,7 @@ from pymongo.errors import PyMongoError
 
 from src.models.dish_model import DishModel
 from src.utils.json_responses import success_json_response, db_json_response
-from src.utils.exception_handlers import ClientCustomError, handle_unexpected_error, handle_validation_error
+from src.utils.global_exception_handlers import ValueCustomError, handle_unexpected_error, handle_validation_error
 from src.utils.mongodb_exception_handlers import handle_mongodb_exception
 
 dishes_resource = "plato"
@@ -19,12 +19,12 @@ def insert_dish():
     try:
         token_role = get_jwt().get("role")
         if token_role != 1:
-            raise ClientCustomError("not_authorized")
+            raise ValueCustomError("not_authorized")
         dish_data = request.get_json()
         dish_object = DishModel(**dish_data)
         new_dish = dish_object.insert_dish()
         return success_json_response(new_dish.inserted_id, dishes_resource, "añadido")
-    except ClientCustomError as e:
+    except ValueCustomError as e:
         return e.response
     except PyMongoError as e:
         return handle_mongodb_exception(e)
@@ -64,9 +64,9 @@ def get_dish(dish_id):
     try:
         dish = DishModel.get_dish(dish_id)
         if not dish:
-            raise ClientCustomError("not_found", dishes_resource)
+            raise ValueCustomError("not_found", dishes_resource)
         return db_json_response(dish)
-    except ClientCustomError as e:
+    except ValueCustomError as e:
         return e.response
     except PyMongoError as e:
         return handle_mongodb_exception(e)
@@ -80,11 +80,11 @@ def handle_dish(dish_id):
     token_role = get_jwt().get("role")
     try:
         if token_role != 1:
-            raise ClientCustomError("not_authorized")
+            raise ValueCustomError("not_authorized")
         if request.method == "PUT":
             dish = DishModel.get_dish(dish_id)
             if not dish:
-                raise ClientCustomError("not_found", dishes_resource)
+                raise ValueCustomError("not_found", dishes_resource)
             dish_data = request.get_json()
             mixed_data = {**dish, **dish_data}
             dish_object = DishModel(**mixed_data)
@@ -93,9 +93,9 @@ def handle_dish(dish_id):
         if request.method == "DELETE":
             deleted_dish = DishModel.delete_dish(dish_id)
             if not deleted_dish.deleted_count > 0:
-                raise ClientCustomError("not_found", dishes_resource)
+                raise ValueCustomError("not_found", dishes_resource)
             return success_json_response(dish_id, dishes_resource, "eliminado")
-    except ClientCustomError as e:
+    except ValueCustomError as e:
         return e.response
     except PyMongoError as e:
         return handle_mongodb_exception(e)

@@ -1,7 +1,10 @@
 from pymongo.errors import PyMongoError, DuplicateKeyError, ConnectionFailure
 from flask import jsonify, Response
 
+from src.app import app
 
+
+@app.errorhandler(PyMongoError)
 def handle_mongodb_exception(error: PyMongoError) -> tuple[Response, int]:
     if isinstance(error, DuplicateKeyError):
         return handle_duplicate_key_error(error)

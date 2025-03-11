@@ -5,7 +5,7 @@ from pymongo.errors import PyMongoError
 
 from src.models.product_model import ProductModel
 from src.models.dish_model import DishModel
-from src.utils.exception_handlers import ClientCustomError, handle_validation_error, handle_unexpected_error
+from src.utils.global_exception_handlers import ValueCustomError, handle_validation_error, handle_unexpected_error
 from src.utils.mongodb_exception_handlers import handle_mongodb_exception
 from src.utils.json_responses import success_json_response, db_json_response
 from src.services.db_services import client
@@ -21,13 +21,13 @@ def add_product() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
         if not token_role <= 2:
-            raise ClientCustomError("not_authorized")
+            raise ValueCustomError("not_authorized")
         else:
             product_data = request.get_json()
             product_object = ProductModel(**product_data)
             new_product = product_object.insert_product()
             return success_json_response(new_product.inserted_id, products_resource, "añadido", 201)
-    except ClientCustomError as e:
+    except ValueCustomError as e:
         return e.response
     except PyMongoError as e:
         return handle_mongodb_exception(e)
@@ -43,14 +43,14 @@ def get_products() -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
         if not token_role <= 2:
-            raise ClientCustomError("not_authorized")
+            raise ValueCustomError("not_authorized")
         else:
             page = int(request.args.get("page", 1))
             per_page = int(request.args.get("per-page", 10))
             skip = (page - 1) * per_page
             products = ProductModel.get_products(skip, per_page)
             return db_json_response(products)
-    except ClientCustomError as e:
+    except ValueCustomError as e:
         return e.response
     except PyMongoError as e:
         return handle_mongodb_exception(e)
@@ -65,10 +65,10 @@ def update_product(product_id):
     token_role = get_jwt().get("role")
     try:
         if not token_role <= 2:
-            raise ClientCustomError("not_authorized")
+            raise ValueCustomError("not_authorized")
         product = ProductModel.get_product(product_id)
         if not product:
-            raise ClientCustomError("not_found", products_resource)
+            raise ValueCustomError("not_found", products_resource)
         data = request.get_json()
         combined_data = {**product, **data}
         product_object = ProductModel(**combined_data)
@@ -80,7 +80,7 @@ def update_product(product_id):
             DishModel.update_dishes_availability(updated_product.get("name"), updated_product_stock != 0)
         session.commit_transaction()
         return db_json_response(updated_product)
-    except ClientCustomError as e:
+    except ValueCustomError as e:
         return e.response
     except ValidationError as e:
         return handle_validation_error(e)
@@ -99,21 +99,21 @@ def handle_product(product_id: str) -> tuple[Response, int]:
     try:
         token_role = get_jwt().get("role")
         if not token_role <= 2:
-            raise ClientCustomError("not_authorized")
+            raise ValueCustomError("not_authorized")
         if request.method == "GET":
             product = ProductModel.get_product(product_id)
             if product:
                 return db_json_response(product)
             else:
-                raise ClientCustomError("not_found", products_resource)
+                raise ValueCustomError("not_found", products_resource)
 
         if request.method == "DELETE":
             deleted_product = ProductModel.delete_product(product_id)
             if deleted_product.deleted_count > 0:
                 return success_json_response(product_id, products_resource, "eliminado")
             else:
-                raise ClientCustomError("not_found", products_resource)
-    except ClientCustomError as e:
+                raise ValueCustomError("not_found", products_resource)
+    except ValueCustomError as e:
         return e.response
     except PyMongoError as e:
         return handle_mongodb_exception(e)

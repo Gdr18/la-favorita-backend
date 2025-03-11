@@ -15,9 +15,9 @@ from src.services.security_service import (
     google,
     verify_password,
 )
-from src.utils.exception_handlers import (
+from src.utils.global_exception_handlers import (
     handle_unexpected_error,
-    ClientCustomError,
+    ValueCustomError,
     handle_validation_error,
     handle_send_email_error,
 )
@@ -32,13 +32,13 @@ def register() -> tuple[Response, int]:
     try:
         user_data = request.get_json()
         if user_data.get("role"):
-            raise ClientCustomError("not_authorized_to_set", "role")
+            raise ValueCustomError("not_authorized_to_set", "role")
         else:
             user_object = UserModel(**user_data)
             new_user = user_object.insert_user()
             send_email({**user_object.model_dump(), "_id": new_user.inserted_id})
             return success_json_response(new_user.inserted_id, "usuario", "añadido", 201)
-    except ClientCustomError as e:
+    except ValueCustomError as e:
         return e.response
     except PyMongoError as e:
         return handle_mongodb_exception(e)
@@ -69,7 +69,7 @@ def change_email() -> tuple[Response, int]:
         updated_user = user_object.update_user(user_id)
         send_email(updated_user)
         return success_json_response(user_id, "email del usuario", "cambiado")
-    except ClientCustomError as e:
+    except ValueCustomError as e:
         return e.response
     except PyMongoError as e:
         return handle_mongodb_exception(e)
@@ -87,11 +87,11 @@ def login() -> tuple[Response, int]:
         user_data = request.get_json()
         user_requested = UserModel.get_user_by_email(user_data.get("email"))
         if not user_requested:
-            raise ClientCustomError("not_found", "usuario")
+            raise ValueCustomError("not_found", "usuario")
         if not verify_password(user_requested.get("password"), user_data.get("password")):
-            raise ClientCustomError("not_match")
+            raise ValueCustomError("not_match")
         if not user_requested.get("confirmed"):
-            raise ClientCustomError("not_confirmed")
+            raise ValueCustomError("not_confirmed")
         access_token = generate_access_token(user_requested)
         refresh_token = generate_refresh_token(user_requested)
         return (
@@ -102,7 +102,7 @@ def login() -> tuple[Response, int]:
             ),
             200,
         )
-    except ClientCustomError as e:
+    except ValueCustomError as e:
         return e.response
     except PyMongoError as e:
         return handle_mongodb_exception(e)
@@ -178,8 +178,8 @@ def refresh_users_token() -> tuple[Response, int]:
             access_token = generate_access_token(user_data)
             return jsonify(access_token=access_token, msg="El token de acceso se ha generado"), 200
         else:
-            raise ClientCustomError("not_found", "refresh token")
-    except ClientCustomError as e:
+            raise ValueCustomError("not_found", "refresh token")
+    except ValueCustomError as e:
         return e.response
     except PyMongoError as e:
         return handle_mongodb_exception(e)
@@ -199,8 +199,8 @@ def confirm_email(token: str) -> tuple[Response, int]:
             user_object.update_user(user_id)
             return success_json_response(user_id, "usuario", "confirmado")
         else:
-            raise ClientCustomError("not_found", "usuario")
-    except ClientCustomError as e:
+            raise ValueCustomError("not_found", "usuario")
+    except ValueCustomError as e:
         return e.response
     except PyMongoError as e:
         return handle_mongodb_exception(e)
@@ -218,10 +218,10 @@ def resend_email(user_id: str) -> tuple[Response, int]:
                 send_email(user_data)
                 return success_json_response(user_id, "email de confirmación del usuario", "reenviado")
             else:
-                raise ClientCustomError("not_found", "usuario")
+                raise ValueCustomError("not_found", "usuario")
         else:
-            raise ClientCustomError("too_many_requests")
-    except ClientCustomError as e:
+            raise ValueCustomError("too_many_requests")
+    except ValueCustomError as e:
         return e.response
     except PyMongoError as e:
         return handle_mongodb_exception(e)

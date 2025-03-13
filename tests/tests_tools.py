@@ -3,7 +3,7 @@ from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
 from pydantic import ValidationError
 
-from src.utils.exception_handlers import ClientCustomError
+from src.utils.exception_handlers import ValueCustomError
 
 
 def validate_error_response_specific(
@@ -126,7 +126,7 @@ def request_resource_not_found(app, client, mock_db, header, method: str, url_re
 def request_resource_not_found_error(
     client, mock_db, header, method: str, url_resource: str, valid_resource_data: dict, resource: str
 ):
-    error = ClientCustomError(resource, "not_found")
+    error = ValueCustomError(resource, "not_found")
     response = None
     if method == "delete":
         mock_db.delete_one.side_effect = error

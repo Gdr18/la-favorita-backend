@@ -6,7 +6,7 @@ from pymongo.mongo_client import MongoClient
 from pymongo.errors import PyMongoError
 
 from config import DATABASE_URI
-from src.utils.mongodb_exception_handlers import handle_mongodb_exception
+from src.utils.exception_handlers import handle_mongodb_exception
 
 
 client = MongoClient(DATABASE_URI)

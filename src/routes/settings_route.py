@@ -1,12 +1,9 @@
 from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt
-from pydantic import ValidationError
-from pymongo.errors import PyMongoError
 
 from src.models.product_model import reload_allowed_values
 from src.models.setting_model import SettingModel
-from src.utils.exception_handlers import handle_unexpected_error, handle_validation_error, ClientCustomError
-from src.utils.mongodb_exception_handlers import handle_mongodb_exception
+from src.utils.exception_handlers import ValueCustomError
 from src.utils.json_responses import success_json_response, db_json_response
 
 settings_resource = "configuración"
@@ -17,83 +14,58 @@ settings_route = Blueprint("settings", __name__)
 @settings_route.route("/", methods=["POST"])
 @jwt_required()
 def add_setting() -> tuple[Response, int]:
-    try:
-        token_role = get_jwt().get("role")
-        if not token_role <= 1:
-            raise ClientCustomError("not_authorized")
-        else:
-            setting_data = request.get_json()
-            setting_object = SettingModel(**setting_data)
-            new_setting = setting_object.insert_setting()
-            return success_json_response(new_setting.inserted_id, settings_resource, "añadida", 201)
-    except ClientCustomError as e:
-        return e.response
-    except PyMongoError as e:
-        return handle_mongodb_exception(e)
-    except ValidationError as e:
-        return handle_validation_error(e)
-    except Exception as e:
-        return handle_unexpected_error(e)
+    token_role = get_jwt().get("role")
+    if not token_role <= 1:
+        raise ValueCustomError("not_authorized")
+    else:
+        setting_data = request.get_json()
+        setting_object = SettingModel(**setting_data)
+        new_setting = setting_object.insert_setting()
+        return success_json_response(new_setting.inserted_id, settings_resource, "añadida", 201)
 
 
 @settings_route.route("/", methods=["GET"])
 @jwt_required()
 def get_settings() -> tuple[Response, int]:
-    try:
-        token_role = get_jwt().get("role")
-        if not token_role <= 1:
-            raise ClientCustomError("not_authorized")
-        else:
-            page = int(request.args.get("page", 1))
-            per_page = int(request.args.get("per-page"))
-            skip = (page - 1) * per_page
-            settings = SettingModel.get_settings(skip, per_page)
-            return db_json_response(settings)
-    except ClientCustomError as e:
-        return e.response
-    except PyMongoError as e:
-        return handle_mongodb_exception(e)
-    except Exception as e:
-        return handle_unexpected_error(e)
+    token_role = get_jwt().get("role")
+    if not token_role <= 1:
+        raise ValueCustomError("not_authorized")
+    else:
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per-page"))
+        skip = (page - 1) * per_page
+        settings = SettingModel.get_settings(skip, per_page)
+        return db_json_response(settings)
 
 
 @settings_route.route("/<setting_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
 def manage_setting(setting_id: str) -> tuple[Response, int]:
-    try:
-        token_role = get_jwt().get("role")
-        if not token_role <= 1:
-            raise ClientCustomError("not_authorized")
-        if request.method == "GET":
-            setting = SettingModel.get_setting(setting_id)
-            if setting:
-                return db_json_response(setting)
-            else:
-                raise ClientCustomError("not_found", settings_resource)
+    token_role = get_jwt().get("role")
+    if not token_role <= 1:
+        raise ValueCustomError("not_authorized")
+    if request.method == "GET":
+        setting = SettingModel.get_setting(setting_id)
+        if setting:
+            return db_json_response(setting)
+        else:
+            raise ValueCustomError("not_found", settings_resource)
 
-        if request.method == "PUT":
-            setting = SettingModel.get_setting(setting_id)
-            if setting:
-                data = request.get_json()
-                mixed_data = {**setting, **data}
-                setting_object = SettingModel(**mixed_data)
-                updated_setting = setting_object.update_setting(setting_id)
-                reload_allowed_values()
-                return db_json_response(updated_setting)
-            else:
-                raise ClientCustomError("not_found", settings_resource)
+    if request.method == "PUT":
+        setting = SettingModel.get_setting(setting_id)
+        if setting:
+            data = request.get_json()
+            mixed_data = {**setting, **data}
+            setting_object = SettingModel(**mixed_data)
+            updated_setting = setting_object.update_setting(setting_id)
+            reload_allowed_values()
+            return db_json_response(updated_setting)
+        else:
+            raise ValueCustomError("not_found", settings_resource)
 
-        if request.method == "DELETE":
-            deleted_setting = SettingModel.delete_setting(setting_id)
-            if deleted_setting.deleted_count > 0:
-                return success_json_response(setting_id, settings_resource, "eliminada")
-            else:
-                raise ClientCustomError("not_found", settings_resource)
-    except ClientCustomError as e:
-        return e.response
-    except PyMongoError as e:
-        return handle_mongodb_exception(e)
-    except ValidationError as e:
-        return handle_validation_error(e)
-    except Exception as e:
-        return handle_unexpected_error(e)
+    if request.method == "DELETE":
+        deleted_setting = SettingModel.delete_setting(setting_id)
+        if deleted_setting.deleted_count > 0:
+            return success_json_response(setting_id, settings_resource, "eliminada")
+        else:
+            raise ValueCustomError("not_found", settings_resource)

@@ -7,7 +7,10 @@ from src.routes.refresh_tokens_route import refresh_tokens_route
 from src.routes.revoked_tokens_route import revoked_tokens_route
 from src.routes.settings_route import settings_route
 from src.routes.users_route import users_route
+from src.routes.orders_route import orders_route
+from src.routes.dishes_route import dishes_route
 from src.services.security_service import jwt, oauth, bcrypt
+from src.utils.exception_handlers import register_global_exception_handlers
 
 app = Flask(__name__)
 
@@ -26,5 +29,9 @@ def run_app(config):
     app.register_blueprint(revoked_tokens_route, url_prefix="/revoked-tokens")
     app.register_blueprint(refresh_tokens_route, url_prefix="/refresh-tokens")
     app.register_blueprint(email_tokens_route, url_prefix="/email-tokens")
+    app.register_blueprint(orders_route, url_prefix="/orders")
+    app.register_blueprint(dishes_route, url_prefix="/dishes")
+
+    register_global_exception_handlers(app)
 
     return app

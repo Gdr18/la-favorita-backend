@@ -3,22 +3,18 @@ from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
 from pydantic import ValidationError
 
-from src.utils.exceptions_management import ClientCustomError
+from src.utils.exception_handlers import ValueCustomError
 
 
 def validate_error_response_specific(
-    function: tuple,
-    expected_status_code: int,
-    expected_error_message: Union[str, list[str]],
+    function: tuple, expected_status_code: int, expected_error_message: Union[str, list[str]]
 ):
     response, status_code = function
     assert status_code == expected_status_code
     assert response.json["err"] == expected_error_message
 
 
-def validate_success_response_specific(
-    function: tuple, expected_status_code: int, expected_success_message: str
-):
+def validate_success_response_specific(function: tuple, expected_status_code: int, expected_success_message: str):
     response, status_code = function
     assert status_code == expected_status_code
     assert response.json["msg"] == expected_success_message
@@ -37,27 +33,21 @@ def validate_success_response_generic(function: tuple, expected_status_code: int
 
 
 # Funciones reutilizables para los tests de las rutas
-def request_adding_valid_resource(
-    client, mock_db, header, url_resource: str, valid_resource_data: dict
-):
+def request_adding_valid_resource(client, mock_db, header, url_resource: str, valid_resource_data: dict):
     mock_db.insert_one.return_value.inserted_id = ObjectId()
     response = client.post(url_resource, json=valid_resource_data, headers=header)
     assert response.status_code == 201
     assert "msg" in response.json
 
 
-def request_getting_resources(
-    client, mock_db, header, url_resource: str, valid_resource_data: dict
-):
+def request_getting_resources(client, mock_db, header, url_resource: str, valid_resource_data: dict):
     mock_db.find.return_value = [valid_resource_data]
     response = client.get(url_resource, headers=header)
     assert response.status_code == 200
     assert isinstance(response.json, list)
 
 
-def request_getting_resource(
-    client, mock_db, header, url_resource: str, valid_resource_data: dict
-):
+def request_getting_resource(client, mock_db, header, url_resource: str, valid_resource_data: dict):
     mock_db.find_one.return_value = valid_resource_data
     response = client.get(url_resource, headers=header)
     assert response.status_code == 200
@@ -65,18 +55,10 @@ def request_getting_resource(
 
 
 def request_updating_resource(
-    client,
-    mock_db,
-    header,
-    url_resource: str,
-    valid_resource_data: dict,
-    updated_resource_data: dict,
+    client, mock_db, header, url_resource: str, valid_resource_data: dict, updated_resource_data: dict
 ):
     mock_db.find_one.return_value = valid_resource_data
-    mock_db.find_one_and_update.return_value = {
-        **valid_resource_data,
-        **updated_resource_data,
-    }
+    mock_db.find_one_and_update.return_value = {**valid_resource_data, **updated_resource_data}
     response = client.put(url_resource, json=updated_resource_data, headers=header)
     assert response.status_code == 200
     assert isinstance(response.json, dict)
@@ -89,9 +71,7 @@ def request_deleting_resource(client, mock_db, header, url_resource: str):
     assert "msg" in response.json
 
 
-def request_unauthorized_access(
-    client, header, mock_jwt, request, url_resource: str, valid_resource_data: dict
-):
+def request_unauthorized_access(client, header, mock_jwt, request, url_resource: str, valid_resource_data: dict):
     response = None
     mock_jwt.return_value = {"role": 3}
     if request == "post":
@@ -120,19 +100,14 @@ def request_unauthorized_set(
     if request == "post":
         response = client.post(url_resource, json=valid_resource_data, headers=header)
     if request == "put":
-        mock_jwt.return_value = {
-            "role": valid_resource_data["role"],
-            "sub": "507f1f77bcf86cd799439011",
-        }
+        mock_jwt.return_value = {"role": valid_resource_data["role"], "sub": "507f1f77bcf86cd799439011"}
         mock_db.find_one.return_value = valid_resource_data
         response = client.put(url_resource, json=updated_resource_data, headers=header)
     assert response.status_code == 401
     assert "err" in response.json
 
 
-def request_resource_not_found(
-    app, client, mock_db, header, method: str, url_resource: str
-):
+def request_resource_not_found(app, client, mock_db, header, method: str, url_resource: str):
     with app.app_context():
         response = None
         if method == "delete":
@@ -149,15 +124,9 @@ def request_resource_not_found(
 
 
 def request_resource_not_found_error(
-    client,
-    mock_db,
-    header,
-    method: str,
-    url_resource: str,
-    valid_resource_data: dict,
-    resource: str,
+    client, mock_db, header, method: str, url_resource: str, valid_resource_data: dict, resource: str
 ):
-    error = ClientCustomError(resource, "not_found")
+    error = ValueCustomError(resource, "not_found")
     response = None
     if method == "delete":
         mock_db.delete_one.side_effect = error
@@ -189,9 +158,7 @@ def request_invalid_resource_duplicate_key_error(
         new_callable=mocker.PropertyMock,
         return_value={
             "keyValue": (
-                updated_resource_data
-                if method == "put"
-                else {field_required: valid_resource_data.get(field_required)}
+                updated_resource_data if method == "put" else {field_required: valid_resource_data.get(field_required)}
             )
         },
     )

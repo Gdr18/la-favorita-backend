@@ -75,8 +75,8 @@ class UserModel(BaseModel, extra="forbid"):
             raise ValueError(f"El campo '{field.field_name}' debe ser una lista de diccionarios o None.")
 
     # Solicitudes a la colección users
-    def insert_user(self) -> InsertOneResult:
-        user = db.users.insert_one(self.model_dump())
+    def insert_user(self, session=None) -> InsertOneResult:
+        user = db.users.insert_one(self.model_dump(), session=session)
         return user
 
     def insert_or_update_user_by_email(self) -> dict:

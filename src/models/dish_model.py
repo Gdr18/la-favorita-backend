@@ -66,9 +66,9 @@ class DishModel(BaseModel, extra="forbid"):
         return updated_dish
 
     @staticmethod
-    def update_dishes_availability(ingredient: str, value: bool) -> UpdateResult:
+    def update_dishes_availability(ingredient: str, value: bool, session=None) -> UpdateResult:
         updated_dishes = db.dishes.update_many(
-            {"ingredients": {"$elemMatch": {"name": ingredient}}}, {"$set": {"available": value}}
+            {"ingredients": {"$elemMatch": {"name": ingredient}}}, {"$set": {"available": value}}, session=session
         )
         return updated_dishes
 

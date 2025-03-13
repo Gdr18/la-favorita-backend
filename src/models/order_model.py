@@ -62,9 +62,12 @@ class OrderModel(BaseModel, extra="forbid"):
         order = db.orders.find_one({"_id": ObjectId(order_id)}, {"_id": 0})
         return order
 
-    def update_order(self, order_id: str) -> dict:
+    def update_order(self, order_id: str, session=None) -> dict:
         updated_order = db.orders.find_one_and_update(
-            {"_id": ObjectId(order_id)}, {"$set": self.model_dump()}, return_document=ReturnDocument.AFTER
+            {"_id": ObjectId(order_id)},
+            {"$set": self.model_dump()},
+            return_document=ReturnDocument.AFTER,
+            session=session,
         )
         return updated_order
 

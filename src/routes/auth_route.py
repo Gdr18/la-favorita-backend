@@ -14,20 +14,30 @@ from src.services.security_service import (
 )
 from src.utils.exception_handlers import ValueCustomError
 from src.utils.json_responses import success_json_response
+from src.services.db_services import client
 
 auth_route = Blueprint("auth", __name__)
 
 
 @auth_route.route("/register", methods=["POST"])
 def register() -> tuple[Response, int]:
+    session = client.start_session()
     user_data = request.get_json()
     if user_data.get("role"):
         raise ValueCustomError("not_authorized_to_set", "role")
     else:
         user_object = UserModel(**user_data)
-        new_user = user_object.insert_user()
-        send_email({**user_object.model_dump(), "_id": new_user.inserted_id})
-        return success_json_response(new_user.inserted_id, "usuario", "añadido", 201)
+        try:
+            session.start_transaction()
+            new_user = user_object.insert_user(session=session)
+            send_email({**user_object.model_dump(), "_id": new_user.inserted_id})
+            session.commit_transaction()
+            return success_json_response(new_user.inserted_id, "usuario", "añadido", 201)
+        except Exception as e:
+            session.abort_transaction()
+            raise e
+        finally:
+            session.end_session()
 
 
 # Se precisa de un login previo gestionado por el frontend

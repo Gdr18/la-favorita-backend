@@ -69,20 +69,26 @@ class ProductModel(BaseModel, extra="forbid"):
         product = db.products.find_one({"_id": ObjectId(product_id)}, {"_id": 0})
         return product
 
-    def update_product(self, product_id: str) -> dict:
+    def update_product(self, product_id: str, session=None) -> dict:
         updated_product = db.products.find_one_and_update(
-            {"_id": ObjectId(product_id)}, {"$set": self.model_dump()}, return_document=ReturnDocument.AFTER
+            {"_id": ObjectId(product_id)},
+            {"$set": self.model_dump()},
+            return_document=ReturnDocument.AFTER,
+            session=session,
         )
         return updated_product
 
     @staticmethod
-    def update_product_stock_by_name(dishes: list) -> list[dict]:
+    def update_product_stock_by_name(dishes: list, session=None) -> list[dict]:
         updated_products = []
         for dish in dishes:
             for ingredient in dish.get("ingredients"):
                 waste = ingredient.get("waste") * dish.get("qty")
                 updated_product = db.products.find_one_and_update(
-                    {"name": ingredient.get("name")}, {"$inc": {"stock": -waste}}, return_document=ReturnDocument.AFTER
+                    {"name": ingredient.get("name")},
+                    {"$inc": {"stock": -waste}},
+                    return_document=ReturnDocument.AFTER,
+                    session=session,
                 )
                 updated_products.append(updated_product)
         return updated_products

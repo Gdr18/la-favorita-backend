@@ -42,27 +42,29 @@ def get_products() -> tuple[Response, int]:
 
 @products_route.route("/<product_id>", methods=["PUT"])
 @jwt_required()
-def update_product(product_id):
+def update_product(product_id) -> tuple[Response, int]:
     session = client.start_session()
     token_role = get_jwt().get("role")
+    if not token_role <= 2:
+        raise ValueCustomError("not_authorized")
+    product = ProductModel.get_product(product_id)
+    if not product:
+        raise ValueCustomError("not_found", products_resource)
+    data = request.get_json()
+    combined_data = {**product, **data}
+    product_object = ProductModel(**combined_data)
     try:
-        if not token_role <= 2:
-            raise ValueCustomError("not_authorized")
-        product = ProductModel.get_product(product_id)
-        if not product:
-            raise ValueCustomError("not_found", products_resource)
-        data = request.get_json()
-        combined_data = {**product, **data}
-        product_object = ProductModel(**combined_data)
         session.start_transaction()
-        updated_product = product_object.update_product(product_id)
+        updated_product = product_object.update_product(product_id, session=session)
         updated_product_stock = updated_product.get("stock")
         product_stock = product.get("stock")
         if product_stock != updated_product_stock and 0 in (updated_product_stock, product_stock):
-            DishModel.update_dishes_availability(updated_product.get("name"), updated_product_stock != 0)
+            DishModel.update_dishes_availability(
+                updated_product.get("name"), updated_product_stock != 0, session=session
+            )
         session.commit_transaction()
         return db_json_response(updated_product)
-    except PyMongoError as e:
+    except Exception as e:
         session.abort_transaction()
         raise e
     finally:

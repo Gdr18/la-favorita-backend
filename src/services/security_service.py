@@ -59,11 +59,8 @@ def generate_refresh_token(user_data: dict) -> Union[str, tuple[Response, int]]:
         "expires_at": refresh_token_decoded.get("exp"),
     }
     refresh_token_object = TokenModel(**data_refresh_token_db)
-    try:
-        refresh_token_object.insert_refresh_token()
-        return refresh_token
-    except Exception as e:
-        raise Exception(f"Error de la base de datos: {str(e)}")
+    refresh_token_object.insert_refresh_token()
+    return refresh_token
 
 
 def generate_email_token(user_data: dict) -> Union[str, tuple[Response, int]]:
@@ -130,7 +127,7 @@ def revoked_token_callback(jwt_header: dict, jwt_payload: dict) -> tuple[Respons
 
 
 @jwt.expired_token_loader
-def expired_token_callback(jwt_header: dict, jwt_payload: dict) -> tuple[Response, int]:
+def expired_token_callback(jwt_header: dict, wt_payload: dict) -> tuple[Response, int]:
     return jsonify(err="El token ha expirado"), 401
 
 

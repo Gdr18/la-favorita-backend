@@ -52,27 +52,27 @@ def get_user_orders(user_id):
 @jwt_required()
 def update_order(order_id):
     session = client.start_session()
+    token_id = get_jwt().get("sub")
+    token_role = get_jwt().get("role")
+    order = OrderModel.get_order(order_id)
+    if not order:
+        raise ValueCustomError("not_found", orders_resource)
+    user_order = order.get("user_id")
+    if not any([token_id == user_order, token_role <= 1]):
+        raise ValueCustomError("not_authorized")
+    order_new_data = request.get_json()
+    if order_new_data.get("state") and order["state"] != order_new_data.get("state"):
+        OrderModel.check_level_state(order_new_data.get("state"), order["state"])
+    order_mixed_data = {**order, **order_new_data}
+    order_object = OrderModel(**order_mixed_data)
     try:
-        token_id = get_jwt().get("sub")
-        token_role = get_jwt().get("role")
-        order = OrderModel.get_order(order_id)
-        if not order:
-            raise ValueCustomError("not_found", orders_resource)
-        user_order = order.get("user_id")
-        if not any([token_id == user_order, token_role <= 1]):
-            raise ValueCustomError("not_authorized")
-        order_new_data = request.get_json()
-        if order_new_data.get("state") and order["state"] != order_new_data.get("state"):
-            OrderModel.check_level_state(order_new_data.get("state"), order["state"])
-        order_mixed_data = {**order, **order_new_data}
-        order_object = OrderModel(**order_mixed_data)
         session.start_transaction()
-        updated_order = order_object.update_order(order_id)
+        updated_order = order_object.update_order(order_id, session=session)
         if order_object.state == "ready":
-            ProductModel.update_product_stock_by_name(order_object.items)
+            ProductModel.update_product_stock_by_name(order_object.items, session=session)
         session.commit_transaction()
         return db_json_response(updated_order)
-    except PyMongoError as e:
+    except Exception as e:
         session.abort_transaction()
         raise e
     finally:

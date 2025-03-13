@@ -14,7 +14,7 @@ def send_email(user_info: dict) -> Response:
     else:
         # TODO: Cambiar la URL de producción
         confirmation_link = f"https://gador-auth.herokuapp.com/auth/confirm-email/{token_email}"
-    with open("src/utils/email_template.html", encoding="utf-8") as file:
+    with open("src/templates/email_template.html", encoding="utf-8") as file:
         email_template = file.read()
         email_template = email_template.replace("{{ confirmation_link }}", confirmation_link).replace(
             "{{ user_name }}", user_name

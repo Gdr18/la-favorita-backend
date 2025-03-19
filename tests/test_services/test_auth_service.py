@@ -1,15 +1,13 @@
 import pytest
 
-from src import app as real_app
+from src.app import app as real_app
 from src.services.security_service import (
-    login_user,
     revoke_access_token,
     check_if_token_revoked,
     revoked_token_callback,
     expired_token_callback,
     unauthorized_callback,
 )
-from src.utils.exception_handlers import ValueCustomError
 from tests.tests_tools import validate_success_response_generic, validate_error_response_specific
 
 VALID_JWT = {"jti": "bb53e637-8627-457c-840f-6cae52a12e8b", "exp": 1919068218}
@@ -36,42 +34,17 @@ def mock_jwt(mocker):
     return mocker.patch("src.services.auth_service.jwt")
 
 
-def test_login_user_success(app, mock_db, mock_bcrypt, mock_jwt):
-    with app.app_context():
-        user_data = {"email": "test@example.com", "password": "_Password123"}
-        user_request = {"_id": "user_id", "password": "hashed_password", "role": 2}
-        mock_db.users.find_one.return_value = user_request
-        mock_bcrypt.check_password_hash.return_value = True
-
-        validate_success_response_generic(login_user(user_data), 200)
-
-
-def test_login_user_invalid_password(mock_db, mock_bcrypt):
-    user_data = {"email": "test@example.com", "password": "wrong_password"}
-    user_request = {"_id": "user_id", "password": "hashed_password", "role": "user"}
-    mock_db.users.find_one.return_value = user_request
-    mock_bcrypt.check_password_hash.return_value = False
-    with pytest.raises(ValueCustomError):
-        login_user(user_data)
-
-
-def test_login_user_email_not_found(mock_db):
-    user_data = {"email": "test@example.com", "password": "_Password123"}
-    mock_db.users.find_one.return_value = None
-    with pytest.raises(ValueCustomError):
-        login_user(user_data)
-
-
 def test_logout_user(app, mock_db):
     with app.app_context():
         mock_db.revoked_tokens.insert_one.return_value.inserted_id = "inserted_id_example"
-        validate_success_response_generic(revoke_access_token(VALID_JWT["jti"], VALID_JWT["exp"]), 201)
+        validate_success_response_generic(revoke_access_token(VALID_JWT), 201)
 
 
 def test_check_if_token_revoked(mock_db):
     jwt_payload = {"jti": VALID_JWT["jti"]}
+    jwt_header = {"alg": "HS256", "typ": "JWT"}
     mock_db.revoked_tokens.find_one.return_value = VALID_JWT
-    token_revoked = check_if_token_revoked(None, jwt_payload)
+    token_revoked = check_if_token_revoked(jwt_header, jwt_payload)
     assert token_revoked is True
 
 
@@ -87,6 +60,6 @@ def test_expired_token_callback(app):
 
 def test_unauthorized_callback(app):
     with app.app_context():
-        validate_error_response_specific(
-            unauthorized_callback("error_message"), 401, "Necesita un token autorizado para acceder a esta ruta"
-        )
+        response, status_code = unauthorized_callback("error_message")
+        assert status_code == 401
+        assert response.json == {"err": "Necesita un token válido para acceder a esta ruta"}

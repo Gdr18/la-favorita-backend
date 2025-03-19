@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field, model_validator, ValidationError
-from src.services.db_services import db
 from typing import List, Literal, Optional
 from pymongo.results import InsertOneResult, DeleteResult, UpdateResult
 from pymongo import ReturnDocument
@@ -7,6 +6,7 @@ from bson import ObjectId
 from datetime import datetime
 
 from src.utils.models_helpers import Ingredient
+from src.services.db_services import db
 
 
 # Campos únicos: name. Está configurado en MongoDB Atlas.

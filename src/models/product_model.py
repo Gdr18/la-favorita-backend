@@ -27,7 +27,6 @@ def reload_allowed_values() -> None:
 class ProductModel(BaseModel, extra="forbid"):
     name: str = Field(..., min_length=1, max_length=50)
     categories: List[str] = Field(...)
-    # TODO: Comprobar número negativo.
     stock: int = Field(..., ge=0)
     brand: Optional[str] = Field(None, max_length=50)
     allergens: Optional[List[str]] = None
@@ -40,6 +39,8 @@ class ProductModel(BaseModel, extra="forbid"):
         if field == "allergens":
             if v is None:
                 return v
+        if not len(v):
+            raise ValueError(f"El campo '{field}' no puede ser una lista vacía.")
         checked_values = cls.checking_in_list(
             field, v, _allowed_allergens if field == "allergens" else _allowed_categories
         )
@@ -79,9 +80,9 @@ class ProductModel(BaseModel, extra="forbid"):
         return updated_product
 
     @staticmethod
-    def update_product_stock_by_name(dishes: list, session=None) -> list[dict]:
+    def update_product_stock_by_name(items_order: list, session=None) -> list[dict]:
         updated_products = []
-        for dish in dishes:
+        for dish in items_order:
             for ingredient in dish.get("ingredients"):
                 waste = ingredient.get("waste") * dish.get("qty")
                 updated_product = db.products.find_one_and_update(

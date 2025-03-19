@@ -136,6 +136,7 @@ def test_reload_allowed_values(mock_db_settings):
 @pytest.mark.parametrize(
     "name, stock, categories, allergens, brand, notes",
     [
+        (123, 345, ["snack"], ["cacahuete"], "marca", "notas"),
         ("", 345, ["snack"], ["cacahuete"], "marca", "notas"),
         ("a" * 51, 345, ["snack"], ["cacahuete"], "marca", "notas"),
         ("Cacahuetes", 345, "bebida", None, "marca", "notas"),
@@ -146,8 +147,12 @@ def test_reload_allowed_values(mock_db_settings):
         ("Cacahuetes", 345, ["snack"], [1234], "marca", "notas"),
         ("Cacahuetes", 345, [""], ["cacahuete"], "marca", "notas"),
         ("Cacahuetes", -345, ["snack"], ["cacahuete"], "marca", "notas"),
+        ("Cacahuetes", "hola", ["snack"], ["cacahuete"], "marca", "notas"),
         ("Cacahuetes", 345, ["snack"], ["cacahuete"], "a" * 51, "notas"),
+        ("Cacahuetes", 345, ["snack"], ["cacahuete"], 234, "notas"),
+        ("Cacahuetes", 345, ["snack"], ["cacahuete"], "", "notas"),
         ("Cacahuetes", 345, ["snack"], ["cacahuete"], "marca", "a" * 501),
+        ("Cacahuetes", 345, ["snack"], ["cacahuete"], "marca", ""),
     ],
 )
 def test_product_validation_errors(name, stock, categories, allergens, brand, notes):

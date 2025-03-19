@@ -26,11 +26,11 @@ def reload_allowed_values() -> None:
 # Campos únicos: name. Está configurado en MongoDB Atlas.
 class ProductModel(BaseModel, extra="forbid"):
     name: str = Field(..., min_length=1, max_length=50)
-    categories: List[str] = Field(...)
+    categories: List[str] = Field(..., min_length=1)
     stock: int = Field(..., ge=0)
-    brand: Optional[str] = Field(None, max_length=50)
-    allergens: Optional[List[str]] = None
-    notes: Optional[str] = Field(None, max_length=500)
+    brand: Optional[str] = Field(None, min_length=1, max_length=50)
+    allergens: Optional[List[str]] = Field(None, min_length=1)
+    notes: Optional[str] = Field(None, min_length=1, max_length=500)
 
     @field_validator("categories", "allergens", mode="after")
     @classmethod
@@ -39,8 +39,6 @@ class ProductModel(BaseModel, extra="forbid"):
         if field == "allergens":
             if v is None:
                 return v
-        if not len(v):
-            raise ValueError(f"El campo '{field}' no puede ser una lista vacía.")
         checked_values = cls.checking_in_list(
             field, v, _allowed_allergens if field == "allergens" else _allowed_categories
         )

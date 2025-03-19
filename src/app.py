@@ -12,10 +12,9 @@ from src.routes.dishes_route import dishes_route
 from src.services.security_service import jwt, oauth, bcrypt
 from src.utils.exception_handlers import register_global_exception_handlers
 
-app = Flask(__name__)
-
 
 def run_app(config):
+    app = Flask(__name__)
     app.config.from_object(config)
 
     bcrypt.init_app(app)

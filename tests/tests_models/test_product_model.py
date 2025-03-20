@@ -11,6 +11,60 @@ from src.models.product_model import (
     _allowed_categories,
 )
 
+PRODUCT_DATA = {
+    "name": "Cacahuetes",
+    "stock": 345,
+    "categories": ["snack", "otro"],
+    "allergens": ["cacahuete"],
+    "brand": "marca",
+    "notes": "notas",
+}
+
+ALLERGENS = [
+    "cereal",
+    "huevo",
+    "crustáceo",
+    "pescado",
+    "cacahuete",
+    "soja",
+    "lácteo",
+    "fruto de cáscara",
+    "apio",
+    "mostaza",
+    "sésamo",
+    "sulfito",
+    "altramuz",
+    "molusco",
+]
+CATEGORIES = [
+    "snack",
+    "dulce",
+    "fruta",
+    "verdura",
+    "carne",
+    "pescado",
+    "lácteo",
+    "pan",
+    "pasta",
+    "arroz",
+    "legumbre",
+    "huevo",
+    "salsa",
+    "condimento",
+    "especia",
+    "aceite",
+    "vinagre",
+    "bebida alcohólica",
+    "bebida no alcohólica",
+    "bebida con gas",
+    "bebida sin gas",
+    "bebida alcohólica fermentada",
+    "bebida energética",
+    "bebida isotónica",
+    "limpieza",
+    "otro",
+]
+
 
 @pytest.fixture
 def mock_db_settings(mocker):
@@ -34,103 +88,12 @@ def test_get_allowed_values(mock_db_settings):
 
 
 def test_reload_allowed_values(mock_db_settings):
-    mock_db_settings.find_one.side_effect = [
-        {
-            "values": [
-                "cereal",
-                "huevo",
-                "crustáceo",
-                "pescado",
-                "cacahuete",
-                "soja",
-                "lácteo",
-                "fruto de cáscara",
-                "apio",
-                "mostaza",
-                "sésamo",
-                "sulfito",
-                "altramuz",
-                "molusco",
-            ]
-        },
-        {
-            "values": [
-                "snack",
-                "dulce",
-                "fruta",
-                "verdura",
-                "carne",
-                "pescado",
-                "lácteo",
-                "pan",
-                "pasta",
-                "arroz",
-                "legumbre",
-                "huevo",
-                "salsa",
-                "condimento",
-                "especia",
-                "aceite",
-                "vinagre",
-                "bebida alcohólica",
-                "bebida no alcohólica",
-                "bebida con gas",
-                "bebida sin gas",
-                "bebida alcohólica fermentada",
-                "bebida energética",
-                "bebida isotónica",
-                "limpieza",
-                "otro",
-            ]
-        },
-    ]
+    mock_db_settings.find_one.side_effect = [{"values": ALLERGENS}, {"values": CATEGORIES}]
 
     reload_allowed_values()
 
-    assert _allowed_allergens == [
-        "cereal",
-        "huevo",
-        "crustáceo",
-        "pescado",
-        "cacahuete",
-        "soja",
-        "lácteo",
-        "fruto de cáscara",
-        "apio",
-        "mostaza",
-        "sésamo",
-        "sulfito",
-        "altramuz",
-        "molusco",
-    ]
-    assert _allowed_categories == [
-        "snack",
-        "dulce",
-        "fruta",
-        "verdura",
-        "carne",
-        "pescado",
-        "lácteo",
-        "pan",
-        "pasta",
-        "arroz",
-        "legumbre",
-        "huevo",
-        "salsa",
-        "condimento",
-        "especia",
-        "aceite",
-        "vinagre",
-        "bebida alcohólica",
-        "bebida no alcohólica",
-        "bebida con gas",
-        "bebida sin gas",
-        "bebida alcohólica fermentada",
-        "bebida energética",
-        "bebida isotónica",
-        "limpieza",
-        "otro",
-    ]
+    assert _allowed_allergens == ALLERGENS
+    assert _allowed_categories == CATEGORIES
 
 
 @pytest.mark.parametrize(
@@ -175,14 +138,7 @@ def test_product_validate_allergens_none():
 
 
 def test_product_validate_values_in_list():
-    product = ProductModel(
-        name="Cacahuetes",
-        stock=345,
-        categories=["snack", "otro"],
-        allergens=["cacahuete"],
-        brand="marca",
-        notes="notas",
-    )
+    product = ProductModel(**PRODUCT_DATA)
 
     assert all(isinstance(item, str) for item in product.categories)
     assert all(isinstance(item, str) for item in product.allergens)
@@ -191,15 +147,7 @@ def test_product_validate_values_in_list():
 
 
 def test_insert_product(mock_db_products):
-    product_data = {
-        "name": "Cacahuetes",
-        "stock": 345,
-        "categories": ["snack", "otro"],
-        "allergens": ["cacahuete"],
-        "brand": "marca",
-        "notes": "notas",
-    }
-    product = ProductModel(**product_data)
+    product = ProductModel(**PRODUCT_DATA)
 
     mock_db_products.insert_one.return_value = InsertOneResult(
         inserted_id="507f1f77bcf86cd799439011", acknowledged=True
@@ -213,71 +161,41 @@ def test_insert_product(mock_db_products):
 
 
 def test_get_products(mock_db_products):
-    product_data = {
-        "name": "Cacahuetes",
-        "stock": 345,
-        "categories": ["snack", "otro"],
-        "allergens": ["cacahuete"],
-        "brand": "marca",
-        "notes": "notas",
-    }
-
     mock_cursor = mock_db_products.find.return_value
     mock_cursor.skip.return_value = mock_cursor
-    mock_cursor.limit.return_value = [product_data]
+    mock_cursor.limit.return_value = [PRODUCT_DATA]
 
-    result = ProductModel.get_products(0, 10)
+    result = ProductModel.get_products(1, 10)
 
     assert isinstance(result, list)
-    assert result == [product_data]
+    assert all(isinstance(item, dict) for item in result)
+    assert result == [PRODUCT_DATA]
 
 
 def test_get_product(mock_db_products):
-    mock_db_products.find_one.return_value = {
-        "name": "Cacahuetes",
-        "stock": 345,
-        "categories": ["snack", "otro"],
-        "allergens": ["cacahuete"],
-        "brand": "marca",
-        "notes": "notas",
-    }
+    mock_db_products.find_one.return_value = PRODUCT_DATA
 
     result = ProductModel.get_product("507f1f77bcf86cd799439011")
 
     assert isinstance(result, dict)
+    assert result == PRODUCT_DATA
 
 
 def test_update_product(mock_db_products):
-    product_data = {
-        "name": "Cacahuetes",
-        "stock": 345,
-        "categories": ["snack", "otro"],
-        "allergens": ["cacahuete"],
-        "brand": "marca",
-        "notes": "notas",
-    }
-    product = ProductModel(**product_data)
+    product = ProductModel(**PRODUCT_DATA)
 
-    mock_db_products.find_one_and_update.return_value = {**product_data, "name": "new_value"}
+    mock_db_products.find_one_and_update.return_value = {**PRODUCT_DATA, "name": "new_value"}
 
     result = product.update_product("507f1f77bcf86cd799439011")
 
     assert isinstance(result, dict)
-    assert result["name"] == "new_value"
+    assert result == {**PRODUCT_DATA, "name": "new_value"}
 
 
 def test_update_product_stock_by_name(mock_db_products):
-    product_data = {
-        "name": "Cacahuetes",
-        "stock": 345,
-        "categories": ["snack", "otro"],
-        "allergens": ["cacahuete"],
-        "brand": "marca",
-        "notes": "notas",
-    }
-    product = ProductModel(**product_data)
+    product = ProductModel(**PRODUCT_DATA)
 
-    mock_db_products.find_one_and_update.return_value = {**product_data, "stock": 100}
+    mock_db_products.find_one_and_update.return_value = {**PRODUCT_DATA, "stock": 100}
 
     item_data = {
         "name": "Plato 1",
@@ -289,7 +207,7 @@ def test_update_product_stock_by_name(mock_db_products):
     result = product.update_product_stock_by_name([item_data])
 
     assert isinstance(result, list)
-    assert result[0]["stock"] == 100
+    assert result == [{**PRODUCT_DATA, "stock": 100}]
 
 
 def test_delete_product(mock_db_products):

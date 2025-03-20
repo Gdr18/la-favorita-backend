@@ -1,7 +1,6 @@
 import pytest
 from pydantic import ValidationError
 from flask_jwt_extended import create_access_token
-from pymongo.results import InsertOneResult
 
 from src.models.product_model import (
     ProductModel,
@@ -149,15 +148,11 @@ def test_product_validate_values_in_list():
 def test_insert_product(mock_db_products):
     product = ProductModel(**PRODUCT_DATA)
 
-    mock_db_products.insert_one.return_value = InsertOneResult(
-        inserted_id="507f1f77bcf86cd799439011", acknowledged=True
-    )
+    mock_db_products.insert_one.return_value.inserted_id = "507f1f77bcf86cd799439011"
 
     result = product.insert_product()
 
-    assert isinstance(result, InsertOneResult)
     assert result.inserted_id == "507f1f77bcf86cd799439011"
-    assert result.acknowledged is True
 
 
 def test_get_products(mock_db_products):
@@ -183,13 +178,14 @@ def test_get_product(mock_db_products):
 
 def test_update_product(mock_db_products):
     product = ProductModel(**PRODUCT_DATA)
+    product.name = "new_value"
 
     mock_db_products.find_one_and_update.return_value = {**PRODUCT_DATA, "name": "new_value"}
 
     result = product.update_product("507f1f77bcf86cd799439011")
 
     assert isinstance(result, dict)
-    assert result == {**PRODUCT_DATA, "name": "new_value"}
+    assert result == product.__dict__
 
 
 def test_update_product_stock_by_name(mock_db_products):

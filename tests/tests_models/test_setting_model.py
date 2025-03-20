@@ -1,8 +1,10 @@
 import pytest
 from pydantic import ValidationError
-from pymongo.results import InsertOneResult
 
 from src.models.setting_model import SettingModel
+
+
+SETTING_DATA = {"name": "TestSetting", "values": ["value1", "value2"]}
 
 
 @pytest.fixture
@@ -13,7 +15,7 @@ def mock_db(mocker):
 
 
 def test_setting_valid():
-    setting = SettingModel(name="TestSetting", values=["value1", "value2"])
+    setting = SettingModel(**SETTING_DATA)
     assert setting.name == "TestSetting"
     assert setting.values == ["value1", "value2"]
 
@@ -35,30 +37,46 @@ def test_setting_validation_error(name, values):
 
 
 def test_insert_setting(mock_db):
-    mock_db.insert_one.return_value = InsertOneResult(inserted_id="507f1f77bcf86cd799439011", acknowledged=True)
-    setting = SettingModel(name="TestSetting", values=["value1", "value2"])
+    mock_db.insert_one.return_value.inserted_id = "507f1f77bcf86cd799439011"
+    setting = SettingModel(**SETTING_DATA)
     result = setting.insert_setting()
 
-    assert isinstance(result, InsertOneResult)
     assert result.inserted_id == "507f1f77bcf86cd799439011"
-    assert result.acknowledged is True
 
 
 def test_get_settings(mock_db):
     mock_cursor = mock_db.find.return_value
     mock_cursor.skip.return_value = mock_cursor
-    mock_cursor.limit.return_value = [{"name": "TestSetting", "values": ["value1", "value2"]}]
+    mock_cursor.limit.return_value = [SETTING_DATA]
 
     result = SettingModel.get_settings(1, 10)
 
     assert isinstance(result, list)
     assert all(isinstance(item, dict) for item in result)
-    assert result == [{"name": "TestSetting", "values": ["value1", "value2"]}]
+    assert result == [SETTING_DATA]
 
 
 def test_get_setting(mock_db):
-    mock_db.find_one.return_value = {"name": "TestSetting", "values": ["value1", "value2"]}
+    mock_db.find_one.return_value = SETTING_DATA
     result = SettingModel.get_setting("507f1f77bcf86cd799439011")
 
     assert isinstance(result, dict)
-    assert result == {"name": "TestSetting", "values": ["value1", "value2"]}
+    assert result == SETTING_DATA
+
+
+def test_update_setting(mock_db):
+    setting = SettingModel(name="TestSetting2", values=SETTING_DATA["values"])
+    mock_db.find_one_and_update.return_value = {**SETTING_DATA, "name": "TestSetting2"}
+
+    result = setting.update_setting("507f1f77bcf86cd799439011")
+
+    assert isinstance(result, dict)
+    assert result == setting.__dict__
+
+
+def test_delete_setting(mock_db):
+    mock_db.delete_one.return_value.deleted_count = 1
+
+    result = SettingModel.delete_setting("507f1f77bcf86cd799439011")
+
+    assert result.deleted_count == 1

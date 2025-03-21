@@ -10,6 +10,7 @@ from src.models.product_model import (
     _allowed_categories,
 )
 
+USER_ID = "507f1f77bcf86cd799439011"
 PRODUCT_DATA = {
     "name": "Cacahuetes",
     "stock": 345,
@@ -148,11 +149,11 @@ def test_product_validate_values_in_list():
 def test_insert_product(mock_db_products):
     product = ProductModel(**PRODUCT_DATA)
 
-    mock_db_products.insert_one.return_value.inserted_id = "507f1f77bcf86cd799439011"
+    mock_db_products.insert_one.return_value.inserted_id = USER_ID
 
     result = product.insert_product()
 
-    assert result.inserted_id == "507f1f77bcf86cd799439011"
+    assert result.inserted_id == USER_ID
 
 
 def test_get_products(mock_db_products):
@@ -162,7 +163,6 @@ def test_get_products(mock_db_products):
 
     result = ProductModel.get_products(1, 10)
 
-    assert isinstance(result, list)
     assert all(isinstance(item, dict) for item in result)
     assert result == [PRODUCT_DATA]
 
@@ -170,9 +170,8 @@ def test_get_products(mock_db_products):
 def test_get_product(mock_db_products):
     mock_db_products.find_one.return_value = PRODUCT_DATA
 
-    result = ProductModel.get_product("507f1f77bcf86cd799439011")
+    result = ProductModel.get_product(USER_ID)
 
-    assert isinstance(result, dict)
     assert result == PRODUCT_DATA
 
 
@@ -182,9 +181,8 @@ def test_update_product(mock_db_products):
 
     mock_db_products.find_one_and_update.return_value = {**PRODUCT_DATA, "name": "new_value"}
 
-    result = product.update_product("507f1f77bcf86cd799439011")
+    result = product.update_product(USER_ID)
 
-    assert isinstance(result, dict)
     assert result == product.__dict__
 
 
@@ -202,13 +200,12 @@ def test_update_product_stock_by_name(mock_db_products):
 
     result = product.update_product_stock_by_name([item_data])
 
-    assert isinstance(result, list)
     assert result == [{**PRODUCT_DATA, "stock": 100}]
 
 
 def test_delete_product(mock_db_products):
     mock_db_products.delete_one.return_value.deleted_count = 1
 
-    result = ProductModel.delete_product("507f1f77bcf86cd799439011")
+    result = ProductModel.delete_product(USER_ID)
 
     assert result.deleted_count == 1

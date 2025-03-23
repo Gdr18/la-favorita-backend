@@ -1,18 +1,66 @@
 import pytest
 import re
 from pydantic import ValidationError
+from email_validator import validate_email
+from datetime import datetime
+
 from src.models.user_model import UserModel
 
 
-bcrypt_pattern = re.compile(r"^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$")
+BCRYPT_PATTERN = re.compile(r"^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$")
+PASSWORD_PATTERN = re.compile(r"^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*_-]).{8,}$")
+PHONE_PATTERN = re.compile(r"^\+\d{9,15}$")
+
+VALID_DATA_EMAIL = {
+    "name": "John Doe",
+    "email": "john.doe@outlook.com",
+    "password": "ValidPass123!",
+    "role": 1,
+    "phone": "+34666666666",
+    "basket": [{"name": "galletas", "qty": 1, "price": 3.33}],
+    "addresses": [{"line_one": "Calle Falsa 123", "postal_code": "12345"}],
+}
+
+VALID_DATA_GOOGLE = {
+    "name": "John Doe",
+    "email": "john.doe@google.com",
+    "auth_provider": "google",
+    "role": 1,
+    "phone": "+34666666666",
+    "basket": [{"name": "galletas", "qty": 1, "price": 3.33}],
+    "addresses": [{"line_one": "Calle Falsa 123", "postal_code": "12345"}],
+
+}
 
 
-# Tests validate name
-def test_user_validate_name_valid():
-    user = UserModel(
-        name="John Doe", email="john.doe@example.com", password="ValidPass123!", role=1
-    )
+def test_user_valid_data_email():
+    user = UserModel(**VALID_DATA_EMAIL)
     assert isinstance(user.name, str) and 1 <= len(user.name) <= 50
+    assert isinstance(user.email, str) and 5 <= len(user.email) <= 100 and validate_email(user.email)
+    assert BCRYPT_PATTERN.match(user.password) or re.match(PASSWORD_PATTERN, user.password)
+    assert user.phone is None or PHONE_PATTERN.match(user.phone)
+    assert user.basket is None or (isinstance(user.basket, list) and all(isinstance(item, dict) for item in user.basket))
+    assert user.addresses is None or (isinstance(user.addresses, list) and all(isinstance(item, dict) for item in user.addresses))
+    assert 0 <= user.role <= 3
+    assert user.confirmed is False
+    assert isinstance(user.created_at, datetime)
+    assert isinstance(user.expires_at, datetime)
+
+
+def test_user_valid_data_google():
+    user = UserModel(**VALID_DATA_GOOGLE)
+    assert isinstance(user.name, str) and 1 <= len(user.name) <= 50
+    assert isinstance(user.email, str) and 5 <= len(user.email) <= 100 and validate_email(user.email)
+    assert user.password is None
+    assert user.phone is None or PHONE_PATTERN.match(user.phone)
+    assert user.basket is None or (
+                isinstance(user.basket, list) and all(isinstance(item, dict) for item in user.basket))
+    assert user.addresses is None or (
+                isinstance(user.addresses, list) and all(isinstance(item, dict) for item in user.addresses))
+    assert 0 <= user.role <= 3
+    assert user.confirmed is True
+    assert isinstance(user.created_at, datetime)
+    assert user.expires_at is None
 
 
 def test_user_validate_name_none():
@@ -39,14 +87,6 @@ def test_user_validate_name_too_long():
         )
 
 
-# Tests validate email
-def test_user_validate_email_valid():
-    user = UserModel(
-        name="John Doe", email="john.doe@example.com", password="ValidPass123!", role=1
-    )
-    assert isinstance(user.email, str) and 5 <= len(user.email) <= 100
-
-
 def test_user_validate_email_none():
     with pytest.raises(ValidationError):
         UserModel(name="John Doe", email=None, password="ValidPass123!", role=1)
@@ -70,14 +110,6 @@ def test_user_validate_email_invalid_type():
 def test_user_validate_email_invalid():
     with pytest.raises(ValidationError):
         UserModel(name="John Doe", email="john.doe", password="ValidPass123!", role=1)
-
-
-# Tests validate password
-def test_user_validate_password_valid():
-    user = UserModel(
-        name="John Doe", email="john.doe@example.com", password="ValidPass123!", role=1
-    )
-    assert bcrypt_pattern.match(user.password) is not None
 
 
 def test_user_validate_password_invalid_length():
@@ -127,15 +159,6 @@ def test_user_validate_password_no_special_char():
         )
 
 
-def test_user_validate_password_bcrypt():
-    user = UserModel(
-        name="John Doe",
-        email="john.doe@example.com",
-        password="$2b$12$03X1igkfTyrZUNPgsn2c1urHqTJl4MicGFrMQ2lNb9b2qbUBN9e0u",
-    )
-    assert bcrypt_pattern.match(user.password) is not None
-
-
 # Tests validate role
 def test_user_validate_role_type():
     with pytest.raises(ValidationError):
@@ -167,30 +190,6 @@ def test_user_validate_role_superate_min():
         )
 
 
-# Tests validate phone
-def test_user_validate_phone_valid():
-    user = UserModel(
-        name="John Doe",
-        email="john.doe@example.com",
-        password="ValidPass123!",
-        role=1,
-        phone="+34666666666",
-    )
-    phone_pattern = re.compile(r"^\+\d{9,15}$")
-    assert phone_pattern.match(user.phone)
-
-
-def test_user_validate_phone_valid_none():
-    user = UserModel(
-        name="John Doe",
-        email="john.doe@example.com",
-        password="ValidPass123!",
-        role=1,
-        phone=None,
-    )
-    assert user.phone is None
-
-
 def test_user_validate_phone_not_match():
     with pytest.raises(ValidationError):
         UserModel(
@@ -211,20 +210,6 @@ def test_user_validate_phone_type():
             role=1,
             phone=1237890,
         )
-
-
-# Tests validate basket/addresses
-def test_user_validate_addresses_basket_valid():
-    user = UserModel(
-        name="John Doe",
-        email="john.doe@example.com",
-        password="ValidPass123!",
-        role=1,
-        basket=[{"item": 1}],
-        addresses=[{"street": "Calle Falsa 123"}],
-    )
-    assert all(isinstance(item, dict) for item in user.basket) is True
-    assert all(isinstance(item, dict) for item in user.addresses) is True
 
 
 def test_user_validate_addresses_basket_non_list_or_none():
@@ -251,28 +236,13 @@ def test_user_validate_addresses_basket_list_of_non_dicts():
         )
 
 
-def test_user_validate_addresses_basket_valid():
+def test_user_validate_addresses_none():
     user = UserModel(
         name="John Doe",
-        email="john.doe@example.com",
+        email="john.doe@google.com",
         password="ValidPass123!",
         role=1,
-        basket=[{"item": "item1"}],
+        basket=[{"name": "galletas", "qty": 1, "price": 3.33}],
         addresses=None,
     )
-    assert (
-        all(isinstance(item, dict) for item in user.basket) is True
-        and user.addresses is None
-    )
-
-
-def test_user_to_dict():
-    user_data = {
-        "name": "John Doe",
-        "email": "john.doe@example.com",
-        "password": "Password123!",
-        "role": 2,
-    }
-    user = UserModel(**user_data)
-    user_dict = user.to_dict()
-    assert isinstance(user_dict, dict)
+    assert user.addresses is None

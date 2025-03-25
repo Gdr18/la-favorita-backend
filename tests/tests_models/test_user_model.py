@@ -63,10 +63,32 @@ def test_user_valid_data_google():
     assert user.expires_at is None
 
 
-def test_user_validate_name_none():
+def test_user_validate_password_bcrypt():
+    user = UserModel(name=VALID_DATA_EMAIL["name"], email=VALID_DATA_EMAIL["email"], password="$2a$10$JN3FJiqzSy22GplwwrCbuuf/EwUj3Oa3yhi3r.1HyRL7FxOAcvSGu")
+    assert user.password == "$2a$10$JN3FJiqzSy22GplwwrCbuuf/EwUj3Oa3yhi3r.1HyRL7FxOAcvSGu"
+
+
+@pytest.mark.parametrize("name, email, password, role, auth_provider, phone, basket, addresses", [
+    (None, VALID_DATA_EMAIL["email"], VALID_DATA_EMAIL["password"], VALID_DATA_EMAIL["role"], "email", None, None, None),
+    ("", VALID_DATA_EMAIL["email"], VALID_DATA_EMAIL["password"], VALID_DATA_EMAIL["role"], "email", None, None, None),
+    (VALID_DATA_EMAIL["name"], None, VALID_DATA_EMAIL["password"], VALID_DATA_EMAIL["role"], "email", None, None, None),
+    (VALID_DATA_EMAIL["name"], "gador@e.eu", VALID_DATA_EMAIL["password"], VALID_DATA_EMAIL["role"], "email", None, None, None),
+    (VALID_DATA_EMAIL["name"], VALID_DATA_EMAIL["email"], None, VALID_DATA_EMAIL["role"], "email", None, None, None),
+    (VALID_DATA_EMAIL["name"], VALID_DATA_EMAIL["email"], "short1!", VALID_DATA_EMAIL["role"], "email", None, None, None),
+    (VALID_DATA_EMAIL["name"], VALID_DATA_EMAIL["email"], "nouppercase1!", VALID_DATA_EMAIL["role"], "email", None, None, None),
+    (VALID_DATA_EMAIL["name"], VALID_DATA_EMAIL["email"], "NOLOWERCASE1!", VALID_DATA_EMAIL["role"], "email", None, None, None),
+    (VALID_DATA_EMAIL["name"], VALID_DATA_EMAIL["email"], "NoDigitPass!", VALID_DATA_EMAIL["role"], "email", None, None, None),
+    (VALID_DATA_EMAIL["name"], VALID_DATA_EMAIL["email"], "NoSpecialChar1", VALID_DATA_EMAIL["role"], "email", None, None, None),
+    (VALID_DATA_EMAIL["name"], VALID_DATA_EMAIL["email"], VALID_DATA_EMAIL["password"], 4, "email", None, None, None),
+    (VALID_DATA_EMAIL["name"], VALID_DATA_EMAIL["email"], VALID_DATA_EMAIL["password"], VALID_DATA_EMAIL["role"], "hola", None, None, None),
+    (VALID_DATA_EMAIL["name"], VALID_DATA_EMAIL["email"], VALID_DATA_EMAIL["password"], VALID_DATA_EMAIL["role"], "email", "+1234567890", None, None),
+    (VALID_DATA_EMAIL["name"], VALID_DATA_EMAIL["email"], VALID_DATA_EMAIL["password"], VALID_DATA_EMAIL["role"], "email", None, ["hola"], None),
+    (VALID_DATA_EMAIL["name"], VALID_DATA_EMAIL["email"], VALID_DATA_EMAIL["password"], VALID_DATA_EMAIL["role"], "email", None, None, [123456]),
+])
+def test_user_validation_error(name, email, password, role, auth_provider, phone, basket, addresses):
     with pytest.raises(ValidationError):
         UserModel(
-            name=None, email="john.doe@example.com", password="ValidPass123!", role=1
+            name=name, email=email, password=password, role=role, auth_provider=auth_provider, phone=phone, basket=basket, addresses=addresses
         )
 
 

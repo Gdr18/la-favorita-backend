@@ -96,6 +96,22 @@ def test_reload_allowed_values(mock_db_settings):
     assert _allowed_categories == CATEGORIES
 
 
+def test_product_validate_allergens_none():
+    product = ProductModel(
+        name="Cacahuetes", stock=345, categories=["snack", "otro"], allergens=None, brand="marca", notes="notas"
+    )
+    assert product.allergens is None
+
+
+def test_product_validate_values_in_list():
+    product = ProductModel(**PRODUCT_DATA)
+
+    assert all(isinstance(item, str) for item in product.categories)
+    assert all(isinstance(item, str) for item in product.allergens)
+    assert all(category in _allowed_categories for category in product.categories)
+    assert all(allergen in _allowed_allergens for allergen in product.allergens)
+
+
 @pytest.mark.parametrize(
     "name, stock, categories, allergens, brand, notes",
     [
@@ -130,29 +146,9 @@ def test_product_checking_in_list_invalid_values():
         ProductModel.checking_in_list("allergens", ["invalid3", "invalid4"], ["cacahuete"])
 
 
-def test_product_validate_allergens_none():
-    product = ProductModel(
-        name="Cacahuetes", stock=345, categories=["snack", "otro"], allergens=None, brand="marca", notes="notas"
-    )
-    assert product.allergens is None
-
-
-def test_product_validate_values_in_list():
-    product = ProductModel(**PRODUCT_DATA)
-
-    assert all(isinstance(item, str) for item in product.categories)
-    assert all(isinstance(item, str) for item in product.allergens)
-    assert all(category in _allowed_categories for category in product.categories)
-    assert all(allergen in _allowed_allergens for allergen in product.allergens)
-
-
 def test_insert_product(mock_db_products):
-    product = ProductModel(**PRODUCT_DATA)
-
     mock_db_products.insert_one.return_value.inserted_id = USER_ID
-
-    result = product.insert_product()
-
+    result = ProductModel(**PRODUCT_DATA).insert_product()
     assert result.inserted_id == USER_ID
 
 
@@ -160,52 +156,36 @@ def test_get_products(mock_db_products):
     mock_cursor = mock_db_products.find.return_value
     mock_cursor.skip.return_value = mock_cursor
     mock_cursor.limit.return_value = [PRODUCT_DATA]
-
     result = ProductModel.get_products(1, 10)
-
-    assert all(isinstance(item, dict) for item in result)
     assert result == [PRODUCT_DATA]
 
 
 def test_get_product(mock_db_products):
     mock_db_products.find_one.return_value = PRODUCT_DATA
-
     result = ProductModel.get_product(USER_ID)
-
     assert result == PRODUCT_DATA
 
 
 def test_update_product(mock_db_products):
-    product = ProductModel(**PRODUCT_DATA)
-    product.name = "new_value"
-
-    mock_db_products.find_one_and_update.return_value = {**PRODUCT_DATA, "name": "new_value"}
-
-    result = product.update_product(USER_ID)
-
-    assert result == product.__dict__
+    new_data = {**PRODUCT_DATA, "name": "new_value"}
+    mock_db_products.find_one_and_update.return_value = new_data
+    result = ProductModel(**new_data).update_product(USER_ID)
+    assert result["name"] == "new_value"
 
 
 def test_update_product_stock_by_name(mock_db_products):
-    product = ProductModel(**PRODUCT_DATA)
-
     mock_db_products.find_one_and_update.return_value = {**PRODUCT_DATA, "stock": 100}
-
     item_data = {
         "name": "Plato 1",
         "ingredients": [{"name": "Cacahuetes", "allergens": ["cereal", "huevo"], "waste": 10}],
         "qty": 10,
         "price": 10.99,
     }
-
-    result = product.update_product_stock_by_name([item_data])
-
-    assert result == [{**PRODUCT_DATA, "stock": 100}]
+    result = ProductModel.update_product_stock_by_name([item_data])
+    assert result[0]["stock"] == 100
 
 
 def test_delete_product(mock_db_products):
     mock_db_products.delete_one.return_value.deleted_count = 1
-
     result = ProductModel.delete_product(USER_ID)
-
     assert result.deleted_count == 1

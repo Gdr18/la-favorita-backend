@@ -5,7 +5,7 @@ from typing import List, NotRequired
 class Ingredient(TypedDict):
     name: str
     allergens: NotRequired[List[str]]
-    waste: int
+    waste: float
 
 
 class ItemOrder(TypedDict):

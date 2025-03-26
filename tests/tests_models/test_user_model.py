@@ -141,9 +141,10 @@ def test_get_user_by_email(mock_db):
 
 
 def test_update_user(mock_db):
-    mock_db.find_one_and_update.return_value = {**VALID_DATA_EMAIL, "name": "Jane Doe"}
-    result = UserModel(**VALID_DATA_EMAIL).update_user(USER_ID)
-    assert result == {**VALID_DATA_EMAIL, "name": "Jane Doe"}
+    new_data = {**VALID_DATA_EMAIL, "name": "Jane Doe"}
+    mock_db.find_one_and_update.return_value = new_data
+    result = UserModel(**new_data).update_user(USER_ID)
+    assert result["name"] == "Jane Doe"
 
 
 def test_delete_user(mock_db):

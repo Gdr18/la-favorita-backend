@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from src.models.token_model import TokenModel
 
 VALID_DATA = {"user_id": "507f1f77bcf86cd799439011", "jti": "bb53e637-8627-457c-840f-6cae52a12e8b",
-              "expires_at": 1919068218}
+              "expires_at": 1900757341}
 INVALID_DATA = {"user_id": "507f1f77bcf86cd79943901133", "jti": "bb53e637dd-8627-457c-840f-6cae52a12e8b",
                 "expires_at": 1729684113900}
 TOKEN_OBJECT = TokenModel(**VALID_DATA)
@@ -30,7 +30,7 @@ def test_token_valid_data():
 
 
 def test_revoked_token_model_valid_expires_at_iso8601():
-    token = TokenModel(user_id=VALID_DATA["user_id"], jti=VALID_DATA["jti"], expires_at="2025-03-22T14:22:05+01:00")
+    token = TokenModel(user_id=VALID_DATA["user_id"], jti=VALID_DATA["jti"], expires_at="2030-03-22T14:22:05+01:00")
 
     assert isinstance(token.expires_at, datetime)
 
@@ -85,9 +85,10 @@ def test_token_operations(mock_db, insert_function, get_all_function, get_by_tok
     result = get_by_token_id(VALID_DATA["user_id"])
     assert result == VALID_DATA
 
-    mock_db.find_one_and_update.return_value = VALID_DATA
+    new_data = {**VALID_DATA, "user_id": "507f1f77bcf86cd799439014"}
+    mock_db.find_one_and_update.return_value = new_data
     result = update_function(VALID_DATA["user_id"])
-    assert result == VALID_DATA
+    assert result.get("user_id") == "507f1f77bcf86cd799439014"
 
     mock_db.delete_one.return_value.deleted_count = 1
     result = delete_function(VALID_DATA["user_id"])

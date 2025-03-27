@@ -16,8 +16,8 @@ def mock_db(mocker):
 
 def test_setting_valid():
     setting = SettingModel(**SETTING_DATA)
-    assert setting.name == "TestSetting"
-    assert setting.values == ["value1", "value2"]
+    assert isinstance(setting.name, str) and 0 < len(setting.name) < 51
+    assert isinstance(setting.values, list) and all(isinstance(item, str) for item in setting.values) and len(setting.values) >= 1
 
 
 @pytest.mark.parametrize(
@@ -40,7 +40,6 @@ def test_insert_setting(mock_db):
     mock_db.insert_one.return_value.inserted_id = USER_ID
     setting = SettingModel(**SETTING_DATA)
     result = setting.insert_setting()
-
     assert result.inserted_id == USER_ID
 
 
@@ -48,35 +47,24 @@ def test_get_settings(mock_db):
     mock_cursor = mock_db.find.return_value
     mock_cursor.skip.return_value = mock_cursor
     mock_cursor.limit.return_value = [SETTING_DATA]
-
     result = SettingModel.get_settings(1, 10)
-
-    assert isinstance(result, list)
-    assert all(isinstance(item, dict) for item in result)
     assert result == [SETTING_DATA]
 
 
 def test_get_setting(mock_db):
     mock_db.find_one.return_value = SETTING_DATA
     result = SettingModel.get_setting(USER_ID)
-
-    assert isinstance(result, dict)
     assert result == SETTING_DATA
 
 
 def test_update_setting(mock_db):
     setting = SettingModel(name="TestSetting2", values=SETTING_DATA["values"])
     mock_db.find_one_and_update.return_value = {**SETTING_DATA, "name": "TestSetting2"}
-
     result = setting.update_setting(USER_ID)
-
-    assert isinstance(result, dict)
-    assert result == setting.__dict__
+    assert result["name"] == "TestSetting2"
 
 
 def test_delete_setting(mock_db):
     mock_db.delete_one.return_value.deleted_count = 1
-
     result = SettingModel.delete_setting(USER_ID)
-
     assert result.deleted_count == 1

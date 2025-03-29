@@ -73,11 +73,8 @@ def generate_email_token(user_data: dict) -> Union[str, tuple[Response, int]]:
         "jti": decoded_token_email.get("jti"),
         "expires_at": decoded_token_email.get("exp"),
     }
-    try:
-        TokenModel(**data_email_token_db).insert_email_token()
-        return email_token
-    except Exception as e:
-        raise Exception(f"Error de la base de datos: {str(e)}")
+    TokenModel(**data_email_token_db).insert_email_token()
+    return email_token
 
 
 def get_expiration_time_access_token(role: int) -> timedelta:
@@ -100,19 +97,13 @@ def get_expiration_time_refresh_token(role: int) -> timedelta:
 
 def revoke_access_token(token: dict) -> InsertOneResult:
     token_object = TokenModel(user_id=token["sub"], jti=token["jti"], expires_at=token["exp"])
-    try:
-        token_revoked = token_object.insert_revoked_token()
-        return token_revoked
-    except Exception as e:
-        raise Exception(f"Error de la base de datos: {str(e)}")
+    token_revoked = token_object.insert_revoked_token()
+    return token_revoked
 
 
 def delete_refresh_token(user_id: str) -> DeleteResult:
-    try:
-        deleted_refresh_token = TokenModel.delete_refresh_token_by_user_id(user_id)
-        return deleted_refresh_token
-    except Exception as e:
-        raise Exception(f"Error de la base de datos: {str(e)}")
+    deleted_refresh_token = TokenModel.delete_refresh_token_by_user_id(user_id)
+    return deleted_refresh_token
 
 
 @jwt.token_in_blocklist_loader

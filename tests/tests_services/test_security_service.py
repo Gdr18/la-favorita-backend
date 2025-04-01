@@ -1,5 +1,6 @@
 import pytest
 import re
+from datetime import timedelta
 
 from config import config
 from src.app import run_app
@@ -10,6 +11,8 @@ from src.services.security_service import (
     generate_access_token,
     generate_refresh_token,
     generate_email_token,
+    get_expiration_time_access_token,
+    get_expiration_time_refresh_token,
     revoke_access_token,
     delete_refresh_token,
     check_if_token_revoked,
@@ -20,7 +23,7 @@ from src.services.security_service import (
 from tests.tests_utils.test_exceptions_management import validate_error_response_specific
 
 JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
-VALID_JWT = {"jti": "bb53e637-8627-457c-840f-6cae52a12e8b", "exp": 1919068218}
+VALID_JWT = {"sub": "507f1f77bcf86cd799439011", "jti": "bb53e637-8627-457c-840f-6cae52a12e8b", "exp": 1919068218}
 VALID_USER_DATA = {
     "_id": "507f1f77bcf86cd799439011",
     "name": "John Doe",
@@ -67,6 +70,24 @@ def mock_jwt(mocker):
     return mocker.patch("src.services.security_service.jwt")
 
 
+def test_validation_get_expiration_time_access_token():
+    role_1 = get_expiration_time_access_token(1)
+    role_2 = get_expiration_time_access_token(2)
+    role_3 = get_expiration_time_access_token(3)
+    assert isinstance(role_1, timedelta) and role_1 == timedelta(minutes=15)
+    assert isinstance(role_2, timedelta) and role_2 == timedelta(hours=3)
+    assert isinstance(role_3, timedelta) and role_3 == timedelta(days=1)
+
+
+def test_validation_get_expiration_time_refresh_token():
+    role_1 = get_expiration_time_refresh_token(1)
+    role_2 = get_expiration_time_refresh_token(2)
+    role_3 = get_expiration_time_refresh_token(3)
+    assert isinstance(role_1, timedelta) and role_1 == timedelta(hours=3)
+    assert isinstance(role_2, timedelta) and role_2 == timedelta(hours=6)
+    assert isinstance(role_3, timedelta) and role_3 == timedelta(days=30)
+
+
 def test_verify_password(mocker):
     mocker.patch("src.services.security_service.bcrypt.check_password_hash", return_value=True)
     db_password = "hashed_password"
@@ -99,6 +120,29 @@ def test_generate_refresh_token(mock_jwt, mock_db_refresh_tokens, app):
         result = generate_refresh_token(VALID_USER_DATA)
         assert JWT_PATTERN.match(result)
         assert mock_db_refresh_tokens.insert_one.called
+
+
+def test_generate_email_token(mock_jwt, mock_db_email_tokens, app):
+    with app.app_context():
+        mock_jwt.create_access_token.return_value = JWT
+        mock_db_email_tokens.insert_one.return_value = {"inserted_id": "507f1f77bcf86cd799439011"}
+        result = generate_email_token(VALID_USER_DATA)
+        assert JWT_PATTERN.match(result)
+        assert mock_db_email_tokens.insert_one.called
+
+
+def test_revoke_access_token(mock_db_revoked_tokens):
+    mock_db_revoked_tokens.insert_one.return_value = {"inserted_id": "507f1f77bcf86cd799439011"}
+    result = revoke_access_token(VALID_JWT)
+    assert result["inserted_id"] == "507f1f77bcf86cd799439011"
+    assert mock_db_revoked_tokens.insert_one.called
+
+
+def test_delete_refresh_token(mock_db_refresh_tokens):
+    mock_db_refresh_tokens.delete_one.return_value = {"deleted_count": 1}
+    result = delete_refresh_token(VALID_USER_DATA["_id"])
+    assert result["deleted_count"] == 1
+    assert mock_db_refresh_tokens.delete_one.called
 
 
 def test_check_if_token_revoked(mock_db_revoked_tokens):

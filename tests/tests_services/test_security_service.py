@@ -113,12 +113,15 @@ def test_generate_access_token(mock_jwt, app):
         assert JWT_PATTERN.match(result)
 
 
-def test_generate_refresh_token(mock_jwt, mock_db_refresh_tokens, app):
+def test_generate_refresh_token(mocker, mock_jwt, mock_db_refresh_tokens, app):
     with app.app_context():
-        mock_jwt.generate_refresh_token.return_value = JWT
-        mock_db_refresh_tokens.insert_one.return_value = {"inserted_id": "507f1f77bcf86cd799439011"}
+        mocker.patch("src.services.security_service.generate_refresh_token", return_value=JWT)
+        mock_jwt.create_refresh_token.return_value = JWT
+        mock_db_refresh_tokens.insert_one.return_value = {"inserted_id": VALID_JWT["sub"]}
         result = generate_refresh_token(VALID_USER_DATA)
         assert JWT_PATTERN.match(result)
+        assert result == JWT
+        assert mock_jwt.generate_refresh_token.called
         assert mock_db_refresh_tokens.insert_one.called
 
 

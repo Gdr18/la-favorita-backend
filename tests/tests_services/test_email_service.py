@@ -1,5 +1,4 @@
 import pytest
-from unittest.mock import MagicMock, patch, mock_open
 from sendgrid import Mail
 from flask import Response
 
@@ -32,7 +31,7 @@ def test_send_email(app, mocker):
             "exp": 1723934650
         })
 
-        mocked_token_model = MagicMock()
+        mocked_token_model = mocker.MagicMock()
         mocker.patch("src.services.security_service.TokenModel", return_value=mocked_token_model)
         mocked_token_model.insert_email_token.return_value = None
 
@@ -41,9 +40,9 @@ def test_send_email(app, mocker):
 
         mock_sendgrid_client = mocker.patch("src.services.email_service.SendGridAPIClient", autospec=True)
         mock_instance = mock_sendgrid_client.return_value
-        mock_response = MagicMock(spec=Response)
+        mock_response = mocker.MagicMock(spec=Response)
         mock_response.status_code = 202
-        mock_instance.send = MagicMock(return_value=mock_response)
+        mock_instance.send = mocker.MagicMock(return_value=mock_response)
 
         response = send_email(USER_INFO)
 

@@ -47,13 +47,13 @@ def change_email() -> tuple[Response, int]:
     user_data = request.get_json()
     user_id = get_jwt().get("sub")
     user_requested = UserModel.get_user_by_user_id_without_id(user_id)
-    if user_requested.get("auth_provider") == "google":
+    if user_requested["auth_provider"] == "google":
         user_requested["auth_provider"] = "email"
         user_requested["confirmed"] = False
         if not user_data.get("password"):
             raise Exception("Se necesita contraseña para cambiar el email")
-        user_requested["password"] = user_data.get("password")
-    user_requested["email"] = user_data.get("email")
+        user_requested["password"] = user_data["password"]
+    user_requested["email"] = user_data["email"]
     user_object = UserModel(**user_requested)
     updated_user = user_object.update_user(user_id)
     send_email(updated_user)
@@ -126,11 +126,11 @@ def authorize_google() -> tuple[Response, int]:
 
 @auth_route.route("/refresh-token")
 @jwt_required(refresh=True)
-def refresh_users_token() -> tuple[Response, int]:
+def refresh_users_token():
     user_id = get_jwt().get("sub")
     check_refresh_token = TokenModel.get_refresh_token_by_user_id(user_id)
     if check_refresh_token:
-        user_data = UserModel.get_user_by_user_id_without_id(user_id)
+        user_data = UserModel.get_user_by_user_id(user_id)
         access_token = generate_access_token(user_data)
         return jsonify(access_token=access_token, msg="El token de acceso se ha generado"), 200
     else:

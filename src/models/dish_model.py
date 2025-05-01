@@ -29,7 +29,7 @@ class DishModel(BaseModel, extra="forbid"):
         )
         difference_between = set(ingredients_names).difference(set([value["name"] for value in checked_ingredients]))
         if difference_between:
-            raise ValueError(f"El ingrediente '{difference_between}' no existe.")
+            raise ValueError(f"""El ingrediente {', '.join([f"'{ingredient}'" for ingredient in list(difference_between)])} no existe.""")
 
         for product in checked_ingredients:
             for ingredient in self.ingredients:

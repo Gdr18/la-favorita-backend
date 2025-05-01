@@ -19,7 +19,7 @@ def insert_dish():
     dish_data = request.get_json()
     dish_object = DishModel(**dish_data)
     new_dish = dish_object.insert_dish()
-    return success_json_response(new_dish.inserted_id, dishes_resource, "añadido")
+    return success_json_response(new_dish.inserted_id, dishes_resource, "añadido", 201)
 
 
 @dishes_route.route("/")

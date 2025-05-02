@@ -2,7 +2,7 @@ import pytest
 import json
 
 from src.models.dish_model import DishModel
-from tests.tests_tools import app, client, auth_header
+from tests.test_helpers import app, client, auth_header
 
 
 VALID_DISH_DATA = {"name": "Pizza", "description": "Delicious pizza", "category": "main", "ingredients": [{"name": "tomato", "waste": 0}], "price": 10.99, "available": True}

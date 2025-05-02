@@ -2,7 +2,7 @@ import pytest
 from flask import Response
 
 from src.utils.json_responses import success_json_response, db_json_response
-from tests.tests_tools import validate_success_response_specific
+from tests.test_helpers import validate_success_response_specific
 from run import app as real_app
 
 

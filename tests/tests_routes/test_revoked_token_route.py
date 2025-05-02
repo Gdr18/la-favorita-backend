@@ -3,7 +3,7 @@ import pendulum
 from flask_jwt_extended import create_access_token
 
 from src import app as real_app
-from tests.tests_tools import (
+from tests.test_helpers import (
     request_adding_valid_resource,
     request_invalid_resource_duplicate_key_error,
     request_invalid_resource_validation_error,

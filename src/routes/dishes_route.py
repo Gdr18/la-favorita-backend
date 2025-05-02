@@ -12,7 +12,7 @@ dishes_route = Blueprint("dishes", __name__)
 
 @dishes_route.route("/", methods=["POST"])
 @jwt_required()
-def insert_dish():
+def add_dish():
     token_role = get_jwt().get("role")
     if token_role != 1:
         raise ValueCustomError("not_authorized")

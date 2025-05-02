@@ -14,9 +14,9 @@ def mock_jwt(mocker):
     return mocker.patch("src.routes.dishes_route.get_jwt")
 
 
-def test_insert_dish_success(mocker, client, auth_header, mock_jwt):
+def test_add_dish_success(mocker, client, auth_header, mock_jwt):
     mock_jwt.return_value = {"role": 1}
-    mocker.patch.object(DishModel, "insert_dish", return_value=mocker.MagicMock(inserted_id=ID))
+    mocker.patch.object(DishModel, "add_dish", return_value=mocker.MagicMock(added_id=ID))
 
     response = client.post("/dishes/", json=VALID_DISH_DATA, headers=auth_header)
 
@@ -24,7 +24,7 @@ def test_insert_dish_success(mocker, client, auth_header, mock_jwt):
     assert response.json["msg"] == f"Plato '{ID}' ha sido añadido de forma satisfactoria"
 
 
-def test_insert_dish_not_authorized_error(mock_jwt, client, auth_header):
+def test_add_dish_not_authorized_error(mock_jwt, client, auth_header):
     mock_jwt.return_value = {"role": 2}
 
     response = client.post("/dishes/", json=VALID_DISH_DATA, headers=auth_header)

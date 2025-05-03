@@ -5,8 +5,8 @@ from src.models.token_model import TokenModel
 from tests.test_helpers import app, client, auth_header
 
 
-VALID_EMAIL_TOKEN_DATA = {"user_id": "507f1f77bcf86cd799439011", "jti": "123e4567-e89b-42d3-a456-426614174000", "expires_at": "2025-10-01T00:00:00Z"}
 ID = "507f1f77bcf86cd799439011"
+VALID_EMAIL_TOKEN_DATA = {"user_id": ID, "jti": "123e4567-e89b-42d3-a456-426614174000", "expires_at": "2025-10-01T00:00:00Z"}
 
 
 @pytest.fixture

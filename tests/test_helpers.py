@@ -20,7 +20,7 @@ def client(app):
 @pytest.fixture
 def auth_header(app):
     with app.app_context():
-        access_token = create_access_token(identity="507f1f77bcf86cd799439011", additional_claims={"role": 1}, fresh=True)
+        access_token = create_access_token(identity="507f1f77bcf86cd799439011", additional_claims={"role": 0}, fresh=True)
         return {"Authorization": f"Bearer {access_token}"}
 
 

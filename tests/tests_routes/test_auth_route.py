@@ -11,7 +11,7 @@ from src.models.token_model import TokenModel
 VALID_USER_DATA = {"name": "TestUser", "email": "test_user@outlook.com", "password": "_Test1234"}
 INVALID_USER_DATA = {"name": "TestUser", "email": "test_user@outlook.com", "password": "wrong_password"}
 ID = "507f1f77bcf86cd799439011"
-VALID_TOKEN_DATA = {"user_id": ID, "jti": "123e4567-e89b-12d3-a456-426614174000", "created_at": "2025-10-10T12:00:00Z", "expires_at": "2025-12-10T12:00:00Z"}
+VALID_TOKEN_DATA = {"user_id": ID, "jti": "123e4567-e89b-42d3-a456-426614174000", "created_at": "2025-10-10T12:00:00Z", "expires_at": "2025-12-10T12:00:00Z"}
 
 
 @pytest.fixture

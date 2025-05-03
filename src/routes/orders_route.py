@@ -14,11 +14,11 @@ orders_route = Blueprint("orders", __name__)
 
 @orders_route.route("/", methods=["POST"])
 @jwt_required()
-def insert_order() -> tuple[Response, int]:
+def add_order() -> tuple[Response, int]:
     order_data = request.get_json()
     order_object = OrderModel(**order_data)
     inserted_order = order_object.insert_order()
-    return success_json_response(inserted_order.inserted_id, orders_resource, "insertado")
+    return success_json_response(inserted_order.inserted_id, orders_resource, "insertado", 201)
 
 
 @orders_route.route("/")
@@ -86,6 +86,8 @@ def handle_order(order_id):
     token_role = get_jwt().get("role")
     if request.method == "GET":
         order = OrderModel.get_order(order_id)
+        if not order:
+            raise ValueCustomError("not_found", orders_resource)
         user_order = order.get("user_id")
         if not any([token_id == user_order, token_role <= 1]):
             raise ValueCustomError("not_authorized")

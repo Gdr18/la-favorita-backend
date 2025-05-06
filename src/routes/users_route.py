@@ -43,7 +43,7 @@ def handle_user(user_id: str) -> tuple[Response, int]:
     token = get_jwt()
     token_user_id = token["sub"]
     token_role = token["role"]
-    if all([token_user_id != user_id, token_role <= 1]):
+    if not any([token_user_id == user_id, token_role <= 1]):
         raise ValueCustomError("not_authorized")
 
     if request.method == "GET":

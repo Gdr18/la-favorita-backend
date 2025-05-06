@@ -14,23 +14,56 @@ def mock_jwt(mocker):
     return mocker.patch("src.routes.dishes_route.get_jwt")
 
 
+@pytest.mark.parametrize("url, method", [
+    ("/dishes/", "post"),
+    ("/dishes/507f1f77bcf86cd799439011", "put"),
+    ("/dishes/507f1f77bcf86cd799439011", "delete"),
+])
+def test_token_not_authorized_error(mock_jwt, client, auth_header, url, method):
+    mock_jwt.return_value = {"role": 2}
+
+    if method == "put":
+        response = client.put(url, json=VALID_DISH_DATA, headers=auth_header)
+    elif method == "delete":
+        response = client.delete(url, headers=auth_header)
+    elif method == "post":
+        response = client.post(url, json=VALID_DISH_DATA, headers=auth_header)
+
+    assert response.status_code == 401
+    assert response.json["err"] == "El token no está autorizado a acceder a esta ruta"
+
+
+@pytest.mark.parametrize("url, method", [
+    ("/dishes/507f1f77bcf86cd799439011", "get"),
+    ("/dishes/507f1f77bcf86cd799439011", "put"),
+    ("/dishes/507f1f77bcf86cd799439011", "delete"),
+])
+def test_dish_not_found_error(mocker, mock_jwt, client, auth_header, url, method):
+    mock_jwt.return_value = {"role": 1}
+    if method in ["put", "get"]:
+        mocker.patch.object(DishModel, "get_dish", return_value=None)
+    else:
+        mocker.patch.object(DishModel, "delete_dish", return_value=mocker.MagicMock(deleted_count=0))
+
+    if method == "get":
+        response = client.get(url)
+    elif method == "put":
+        response = client.put(url, json=VALID_DISH_DATA, headers=auth_header)
+    elif method == "delete":
+        response = client.delete(url, headers=auth_header)
+
+    assert response.status_code == 404
+    assert response.json["err"] == "Plato no encontrado"
+
+
 def test_add_dish_success(mocker, client, auth_header, mock_jwt):
     mock_jwt.return_value = {"role": 1}
-    mocker.patch.object(DishModel, "add_dish", return_value=mocker.MagicMock(added_id=ID))
+    mocker.patch.object(DishModel, "insert_dish", return_value=mocker.MagicMock(inserted_id=ID))
 
     response = client.post("/dishes/", json=VALID_DISH_DATA, headers=auth_header)
 
     assert response.status_code == 201
     assert response.json["msg"] == f"Plato '{ID}' ha sido añadido de forma satisfactoria"
-
-
-def test_add_dish_not_authorized_error(mock_jwt, client, auth_header):
-    mock_jwt.return_value = {"role": 2}
-
-    response = client.post("/dishes/", json=VALID_DISH_DATA, headers=auth_header)
-
-    assert response.status_code == 401
-    assert response.json["err"] == "El token no está autorizado a acceder a esta ruta"
 
 
 def test_get_dishes_success(mocker, client):
@@ -60,43 +93,15 @@ def test_get_dish_success(mocker, client):
     assert json.loads(response.data.decode()) == VALID_DISH_DATA
 
 
-def test_get_dish_not_found(mocker, client):
-    mocker.patch.object(DishModel, "get_dish", return_value=None)
-
-    response = client.get(f"/dishes/{ID}")
-
-    assert response.status_code == 404
-    assert response.json["err"] == "Plato no encontrado"
-
-
-def test_handle_dish_not_authorized_error(mock_jwt, client, auth_header):
-    mock_jwt.return_value = {"role": 2}
-
-    response = client.put(f"/dishes/{ID}", json=VALID_DISH_DATA, headers=auth_header)
-
-    assert response.status_code == 401
-    assert response.json["err"] == "El token no está autorizado a acceder a esta ruta"
-
-
 def test_update_dish_success(mocker, client, auth_header, mock_jwt):
     mock_jwt.return_value = {"role": 1}
     mocker.patch.object(DishModel, "get_dish", return_value=VALID_DISH_DATA)
     mocker.patch.object(DishModel, "update_dish", return_value={**VALID_DISH_DATA, "name": "Updated Pizza"})
 
-    response = client.put(f"/dishes/{ID}", json={**VALID_DISH_DATA, "name": "Updated Pizza"}, headers=auth_header)
+    response = client.put(f"/dishes/{ID}", json={"name": "Updated Pizza"}, headers=auth_header)
 
     assert response.status_code == 200
     assert json.loads(response.data.decode()) == {**VALID_DISH_DATA, "name": "Updated Pizza"}
-
-
-def test_update_dish_not_found(mocker, client, auth_header, mock_jwt):
-    mock_jwt.return_value = {"role": 1}
-    mocker.patch.object(DishModel, "get_dish", return_value=None)
-
-    response = client.put(f"/dishes/{ID}", json=VALID_DISH_DATA, headers=auth_header)
-
-    assert response.status_code == 404
-    assert response.json["err"] == "Plato no encontrado"
 
 
 def test_delete_dish_success(mocker, client, auth_header, mock_jwt):
@@ -107,13 +112,3 @@ def test_delete_dish_success(mocker, client, auth_header, mock_jwt):
 
     assert response.status_code == 200
     assert response.json["msg"] == f"Plato '{ID}' ha sido eliminado de forma satisfactoria"
-
-
-def test_delete_dish_not_found(mocker, client, auth_header, mock_jwt):
-    mock_jwt.return_value = {"role": 1}
-    mocker.patch.object(DishModel, "delete_dish", return_value=mocker.MagicMock(deleted_count=0))
-
-    response = client.delete(f"/dishes/{ID}", headers=auth_header)
-
-    assert response.status_code == 404
-    assert response.json["err"] == "Plato no encontrado"

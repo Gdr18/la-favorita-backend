@@ -25,7 +25,7 @@ def mock_jwt(mocker):
     ("/refresh-tokens/507f1f77bcf86cd799439011", "put"),
     ("/refresh-tokens/507f1f77bcf86cd799439011", "get"),
 ])
-def test_not_authorized_token_error(mock_jwt, client, auth_header, url, method):
+def test_token_not_authorized_error(mock_jwt, client, auth_header, url, method):
     mock_jwt.return_value = {"role": 1}
 
     if method == "post":
@@ -46,7 +46,7 @@ def test_not_authorized_token_error(mock_jwt, client, auth_header, url, method):
     ("/refresh-tokens/507f1f77bcf86cd799439011", "delete"),
     ("/refresh-tokens/507f1f77bcf86cd799439011", "put"),
 ])
-def test_not_found_error(mocker, mock_jwt, client, auth_header, url, method):
+def test_refresh_token_not_found_error(mocker, mock_jwt, client, auth_header, url, method):
     mock_jwt.return_value = {"role": 0}
 
     if method in ["get", "put"]:
@@ -100,7 +100,7 @@ def test_update_refresh_token_success(mock_jwt, mocker, client, auth_header):
     mocker.patch.object(TokenModel, "get_refresh_token_by_token_id", return_value=VALID_REFRESH_TOKEN_DATA)
     mocker.patch.object(TokenModel, "update_refresh_token", return_value={**VALID_REFRESH_TOKEN_DATA, "expires_at": "2026-10-01T00:00:00Z"})
 
-    response = client.put(f"/refresh-tokens/{ID}", json={**VALID_REFRESH_TOKEN_DATA, "expires_at": "2026-10-01T00:00:00Z"} , headers=auth_header)
+    response = client.put(f"/refresh-tokens/{ID}", json={"expires_at": "2026-10-01T00:00:00Z"} , headers=auth_header)
 
     assert response.status_code == 200
     assert json.loads(response.data.decode()) == {**VALID_REFRESH_TOKEN_DATA, "expires_at": "2026-10-01T00:00:00Z"}

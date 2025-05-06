@@ -32,6 +32,52 @@ def mock_jwt(mocker):
     return mocker.patch("src.routes.orders_route.get_jwt")
 
 
+@pytest.mark.parametrize("url, method", [
+    ("/orders/", "get"),
+    ("/orders/users/507f1f77bcf86cd799439011", "get"),
+    ("/orders/507f1f77bcf86cd799439011", "put"),
+    ("/orders/507f1f77bcf86cd799439011", "get"),
+    ("/orders/507f1f77bcf86cd799439011", "delete"),
+])
+def test_not_authorized_error(mocker, mock_jwt, client, auth_header, url, method):
+    mock_jwt.return_value = {"role": 3, "sub": "507f1f77bcf86cd799439012"}
+    mocker.patch.object(OrderModel, "get_order", return_value=VALID_ORDER_DATA)
+
+    if method == "get":
+        response = client.get(url, headers=auth_header)
+    elif method == "put":
+        response = client.put(url, json={"state": "cooking"}, headers=auth_header)
+    elif method == "delete":
+        response = client.delete(url, headers=auth_header)
+
+    assert response.status_code == 401
+    assert response.json["err"] == "El token no está autorizado a acceder a esta ruta"
+
+
+@pytest.mark.parametrize("url, method", [
+    ("/orders/507f1f77bcf86cd799439011", "put"),
+    ("/orders/507f1f77bcf86cd799439011", "get"),
+    ("/orders/507f1f77bcf86cd799439011", "delete"),
+])
+def test_order_not_found_error(mocker, client, auth_header, mock_jwt, url, method):
+    mock_jwt.return_value = {"role": 1}
+
+    if method in ["get", "put"]:
+        mocker.patch.object(OrderModel, "get_order", return_value=None)
+    else:
+        mocker.patch.object(OrderModel, "delete_order", return_value=mocker.MagicMock(deleted_count=0))
+
+    if method == "put":
+        response = client.put(f"/orders/{ID}", json={"state": "cooking"}, headers=auth_header)
+    elif method == "get":
+        response = client.get(f"/orders/{ID}", headers=auth_header)
+    elif method == "delete":
+        response = client.delete(f"/orders/{ID}", headers=auth_header)
+
+    assert response.status_code == 404
+    assert response.json["err"] == "Orden no encontrado"
+
+
 def test_add_order_success(mocker, client, auth_header):
     mocker.patch.object(
         OrderModel,
@@ -54,16 +100,6 @@ def test_get_orders_success(mocker, client, auth_header):
     assert json.loads(response.data.decode()) == [VALID_ORDER_DATA]
 
 
-def test_get_orders_not_authorized_error(mocker, mock_jwt, client, auth_header):
-    mock_jwt.return_value = {"role": 3}
-    mocker.patch.object(OrderModel, "get_orders", return_value=[VALID_ORDER_DATA])
-
-    response = client.get("/orders/", headers=auth_header)
-
-    assert response.status_code == 401
-    assert response.json["err"] == "El token no está autorizado a acceder a esta ruta"
-
-
 def test_get_user_orders_success(mocker, client, auth_header):
     mocker.patch.object(OrderModel, "get_orders_by_user_id", return_value=[VALID_ORDER_DATA])
 
@@ -71,16 +107,6 @@ def test_get_user_orders_success(mocker, client, auth_header):
 
     assert response.status_code == 200
     assert json.loads(response.data.decode()) == [VALID_ORDER_DATA]
-
-
-def test_get_user_orders_not_authorized_error(mocker, mock_jwt, client, auth_header):
-    mock_jwt.return_value = {"role": 3}
-    mocker.patch.object(OrderModel, "get_orders_by_user_id", return_value=[VALID_ORDER_DATA])
-
-    response = client.get(f"/orders/users/{ID}", headers=auth_header)
-
-    assert response.status_code == 401
-    assert response.json["err"] == "El token no está autorizado a acceder a esta ruta"
 
 
 def test_update_order_success(mocker, client, auth_header):
@@ -109,24 +135,6 @@ def test_update_order_success(mocker, client, auth_header):
     assert json.loads(response.data.decode()) == {**VALID_ORDER_DATA, "state": "ready"}
 
 
-def test_update_order_not_authorized_error(mocker, mock_jwt, client, auth_header):
-    mock_jwt.return_value = {"role": 3, "sub": "507f1f77bcf86cd799439012"}
-    mocker.patch.object(OrderModel, "get_order", return_value=VALID_ORDER_DATA)
-
-    response = client.put(f"/orders/{ID}", json={"state": "cooking"}, headers=auth_header)
-    assert response.status_code == 401
-    assert response.json["err"] == "El token no está autorizado a acceder a esta ruta"
-
-
-def test_update_order_not_found(mocker, client, auth_header):
-    mocker.patch.object(OrderModel, "get_order", return_value=None)
-
-    response = client.put(f"/orders/{ID}", json={"state": "cooking"}, headers=auth_header)
-
-    assert response.status_code == 404
-    assert response.json["err"] == "Orden no encontrado"
-
-
 def test_update_order_exception(mocker, client, auth_header):
     mocker.patch.object(OrderModel, "get_order", return_value=VALID_ORDER_DATA)
     mocker.patch.object(OrderModel, "update_order", side_effect=PyMongoError("Database error"))
@@ -146,25 +154,6 @@ def test_get_order_success(mocker, client, auth_header):
     assert json.loads(response.data.decode()) == VALID_ORDER_DATA
 
 
-def test_get_order_not_found(mocker, client, auth_header):
-    mocker.patch.object(OrderModel, "get_order", return_value=None)
-
-    response = client.get(f"/orders/{ID}", headers=auth_header)
-
-    assert response.status_code == 404
-    assert response.json["err"] == "Orden no encontrado"
-
-
-def test_get_order_not_authorized_error(mocker, mock_jwt, client, auth_header):
-    mock_jwt.return_value = {"role": 3, "sub": "507f1f77bcf86cd799439012"}
-    mocker.patch.object(OrderModel, "get_order", return_value=VALID_ORDER_DATA)
-
-    response = client.get(f"/orders/{ID}", headers=auth_header)
-
-    assert response.status_code == 401
-    assert response.json["err"] == "El token no está autorizado a acceder a esta ruta"
-
-
 def test_delete_order_success(mocker, client, auth_header):
     mocker.patch.object(OrderModel, "delete_order", return_value=mocker.MagicMock(deleted_count=1))
 
@@ -172,21 +161,3 @@ def test_delete_order_success(mocker, client, auth_header):
 
     assert response.status_code == 200
     assert response.json["msg"] == f"Orden '{ID}' ha sido eliminado de forma satisfactoria"
-
-
-def test_delete_order_not_authorized_error(mock_jwt, client, auth_header):
-    mock_jwt.return_value = {"role": 3}
-
-    response = client.delete(f"/orders/{ID}", headers=auth_header)
-
-    assert response.status_code == 401
-    assert response.json["err"] == "El token no está autorizado a acceder a esta ruta"
-
-
-def test_delete_order_not_found(mocker, client, auth_header):
-    mocker.patch.object(OrderModel, "delete_order", return_value=mocker.MagicMock(deleted_count=0))
-
-    response = client.delete(f"/orders/{ID}", headers=auth_header)
-
-    assert response.status_code == 404
-    assert response.json["err"] == "Orden no encontrado"

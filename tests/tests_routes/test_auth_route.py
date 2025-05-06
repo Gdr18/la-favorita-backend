@@ -19,6 +19,30 @@ def mock_jwt(mocker):
     return mocker.patch("src.routes.auth_route.get_jwt")
 
 
+@pytest.mark.parametrize("url, method", [
+    ("/auth/resend-email/507f1f77bcf86cd799439011", "post"),
+    ("/auth/login", "post"),
+    ("/auth/confirm-email/test_token", "get"),
+])
+def test_user_not_found_error(client, mocker, url, method):
+    if "resend-email" in url:
+        mocker.patch.object(TokenModel, "get_email_tokens_by_user_id", return_value=[{"user_id": ID, "jti": "123e4567-e89b-12d3-a456-426614174000", "created_at": "2025-10-10T12:00:00Z", "expires_at": "2025-12-10T12:00:00Z"}])
+        mocker.patch.object(UserModel, "get_user_by_user_id", return_value=None)
+    elif "login" in url:
+        mocker.patch.object(UserModel, "get_user_by_email", return_value=None)
+    elif "confirm-email" in url:
+        mocker.patch("src.routes.auth_route.decode_token", return_value={"sub": ID})
+        mocker.patch.object(UserModel, "get_user_by_user_id_without_id", return_value=None)
+
+    if method == "post":
+        response = client.post(url, json=VALID_USER_DATA)
+    elif method == "get":
+        response = client.get(url)
+
+    assert response.status_code == 404
+    assert response.json["err"] == "Usuario no encontrado"
+
+
 def test_register_success(mocker, client):
     mock_insert_result = mocker.MagicMock(inserted_id=ID)
     mocker.patch.object(UserModel, "insert_user", return_value=mock_insert_result)
@@ -43,7 +67,7 @@ def test_register_with_role_error(client):
     assert response.json["err"] == "El token no está autorizado a establecer 'role'"
 
 
-def test_register_database_error(mocker, client):
+def test_register_exception_error(mocker, client):
     mock_user = mocker.MagicMock()
     mock_user.insert_user.side_effect = PyMongoError("Database error")
     mocker.patch("src.routes.auth_route.UserModel", return_value=mock_user)
@@ -81,7 +105,7 @@ def test_change_email_auth_provider_google_success(client, auth_header, mock_jwt
     assert response.json["msg"] == "Email del usuario '507f1f77bcf86cd799439011' ha sido cambiado de forma satisfactoria"
 
 
-def test_change_email_without_password(client, auth_header, mock_jwt, mocker):
+def test_change_email_without_password_error(client, auth_header, mock_jwt, mocker):
     mock_jwt.return_value({"role": 3, "sub": ID})
     mocker.patch.object(UserModel, "get_user_by_user_id_without_id", return_value={**VALID_USER_DATA, "auth_provider": "google"})
 
@@ -106,16 +130,7 @@ def test_login_success(client, mocker):
     assert response.json["refresh_token"] == "refresh_token"
 
 
-def test_login_user_not_found(client, mocker):
-    mocker.patch.object(UserModel, "get_user_by_email", return_value=None)
-
-    response = client.post("/auth/login", json=VALID_USER_DATA)
-
-    assert response.status_code == 404
-    assert response.json["err"] == "Usuario no encontrado"
-
-
-def test_login_password_not_match(client, mocker):
+def test_login_password_not_match_error(client, mocker):
     mocker.patch.object(UserModel, "get_user_by_email", return_value=INVALID_USER_DATA)
     mocker.patch("src.routes.auth_route.verify_password", return_value=False)
 
@@ -125,7 +140,7 @@ def test_login_password_not_match(client, mocker):
     assert response.json["err"] == "La contraseña no coincide"
 
 
-def test_login_user_not_confirmed(client, mocker):
+def test_login_user_not_confirmed_error(client, mocker):
     mocker.patch.object(UserModel, "get_user_by_email", return_value={**INVALID_USER_DATA, "confirmed": False})
     mocker.patch("src.routes.auth_route.verify_password", return_value=True)
 
@@ -208,17 +223,7 @@ def test_confirm_email_success(client, mocker):
     assert response.json["msg"] == f"""Usuario '{ID}' ha sido confirmado de forma satisfactoria"""
 
 
-def test_confirm_email_user_not_found(client, mocker):
-    mocker.patch("src.routes.auth_route.decode_token", return_value={"sub": ID})
-    mocker.patch.object(UserModel, "get_user_by_user_id_without_id", return_value=None)
-
-    response = client.get("/auth/confirm-email/test_token")
-
-    assert response.status_code == 404
-    assert response.json["err"] == "Usuario no encontrado"
-
-
-def test_confirm_email_invalid_token(client, mocker):
+def test_confirm_email_invalid_token_error(client, mocker):
     mocker.patch("src.routes.auth_route.decode_token", side_effect=Exception("Invalid token"))
 
     response = client.get("/auth/confirm-email/test_token")
@@ -238,21 +243,10 @@ def test_resend_email_success(client, mocker):
     assert response.json["msg"] == f"Email de confirmación del usuario '{ID}' ha sido reenviado de forma satisfactoria"
 
 
-def test_resend_email_user_not_found(client, mocker):
-    mocker.patch.object(TokenModel, "get_email_tokens_by_user_id", return_value=[{"user_id": ID, "jti": "123e4567-e89b-12d3-a456-426614174000", "created_at": "2025-10-10T12:00:00Z", "expires_at": "2025-12-10T12:00:00Z"}])
-    mocker.patch.object(UserModel, "get_user_by_user_id", return_value=None)
-
-    response = client.post(f"/auth/resend-email/{ID}")
-
-    assert response.status_code == 404
-    assert response.json["err"] == "Usuario no encontrado"
-
-
-def test_resend_email_too_many_requests(client, mocker):
+def test_resend_email_too_many_requests_error(client, mocker):
     mocker.patch.object(TokenModel, "get_email_tokens_by_user_id", return_value=[{"user_id": ID, "jti": "123e4567-e89b-12d3-a456-426614174000", "created_at": "2025-10-10T12:00:00Z", "expires_at": "2025-12-10T12:00:00Z"}] * 5)
 
     response = client.post(f"/auth/resend-email/{ID}")
 
     assert response.status_code == 429
     assert response.json["err"] == "Se han reenviado demasiados emails de confirmación. Inténtalo mañana."
-

@@ -20,7 +20,7 @@ def mock_jwt(mocker):
     ("/settings/507f1f77bcf86cd799439011", "put"),
     ("/settings/507f1f77bcf86cd799439011", "get"),
 ])
-def test_not_authorized_token_error(mock_jwt, client, auth_header, url, method):
+def test_token_not_authorized_error(mock_jwt, client, auth_header, url, method):
     mock_jwt.return_value = {"role": 3}
 
     if method == "post":
@@ -41,7 +41,7 @@ def test_not_authorized_token_error(mock_jwt, client, auth_header, url, method):
     ("/settings/507f1f77bcf86cd799439011", "delete"),
     ("/settings/507f1f77bcf86cd799439011", "put"),
 ])
-def test_not_found_error(mocker, mock_jwt, client, auth_header, url, method):
+def test_setting_not_found_error(mocker, mock_jwt, client, auth_header, url, method):
     mock_jwt.return_value = {"role": 1}
 
     if method in ["get", "put"]:

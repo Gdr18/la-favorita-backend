@@ -32,7 +32,7 @@ def get_settings() -> tuple[Response, int]:
         raise ValueCustomError("not_authorized")
     else:
         page = int(request.args.get("page", 1))
-        per_page = int(request.args.get("per-page"))
+        per_page = int(request.args.get("per-page", 10))
         skip = (page - 1) * per_page
         settings = SettingModel.get_settings(skip, per_page)
         return db_json_response(settings)
@@ -40,7 +40,7 @@ def get_settings() -> tuple[Response, int]:
 
 @settings_route.route("/<setting_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
-def manage_setting(setting_id: str) -> tuple[Response, int]:
+def handle_setting(setting_id: str) -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     if not token_role <= 1:
         raise ValueCustomError("not_authorized")

@@ -1,20 +1,16 @@
 import pytest
 from flask import Flask
-from src.app import run_app
+
+from tests.test_helpers import app
 from src.services.security_service import jwt, oauth, bcrypt
-
-
-@pytest.fixture()
-def app():
-    config = {}
-    return run_app(config)
+from src.app import run_app
 
 
 def test_app_creation(app):
     assert isinstance(app, Flask)
 
 
-def test_blueprints_registration(app):
+def test_blueprints_registration(app, mocker):
     expected_blueprints = [
         "users",
         "products",
@@ -26,6 +22,7 @@ def test_blueprints_registration(app):
         "orders",
         "dishes",
     ]
+
     assert all(bp in app.blueprints for bp in expected_blueprints)
 
 

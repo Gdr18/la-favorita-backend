@@ -107,7 +107,7 @@ def delete_refresh_token(user_id: str) -> DeleteResult:
 
 
 @jwt.token_in_blocklist_loader
-def check_if_token_revoked(jwt_header: dict, jwt_payload: dict) -> Union[bool, None]:
+def check_if_token_revoked_callback(jwt_header: dict, jwt_payload: dict) -> Union[bool, None]:
     check_token = TokenModel.get_revoked_token_by_jti(jwt_payload["jti"])
     return True if check_token else None
 

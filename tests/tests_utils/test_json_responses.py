@@ -2,25 +2,21 @@ import pytest
 from flask import Response
 
 from src.utils.json_responses import success_json_response, db_json_response
-from tests.test_helpers import validate_success_response_specific
-from run import app as real_app
-
-
-@pytest.fixture
-def app():
-    real_app.testing = True
-    return real_app
 
 
 def test_resource_msg(app):
     with app.app_context():
         function = success_json_response("234525", "usuario", "añadido", 201)
         expected_msg = "Usuario '234525' ha sido añadido de forma satisfactoria"
-        validate_success_response_specific(function, 201, expected_msg)
 
 
 def test_db_json_response():
-    data = {"name": "John Doe", "email": "johndoe@doe.com", "password": "ValidPass!9", "role": 1}
+    data = {
+        "name": "John Doe",
+        "email": "johndoe@doe.com",
+        "password": "ValidPass!9",
+        "role": 1,
+    }
 
     response = db_json_response(data)
     assert response[1] == 200

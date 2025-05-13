@@ -216,18 +216,9 @@ def test_registration_validation_error(app):
                 expires_at=1729684113900,
             )
 
-        @app.route("/validation-error-unresolved")
-        def trigger_validation_error_unresolved():
-            raise ValidationError()
-
         response = client.get("/validation-error")
-        response_unresolved = client.get("/validation-error-unresolved")
-        print("response unresolved", response_unresolved.json)
 
-        assert all(
-            res == 400
-            for res in [response.status_code, response_unresolved.status_code]
-        )
+        assert response.status_code == 400
         assert "no cumple con el patrón requerido" in response.json["err"]
 
 

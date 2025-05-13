@@ -1,23 +1,30 @@
 import pytest
-from flask import Response
+import json
 
 from src.utils.json_responses import success_json_response, db_json_response
+from tests.test_helpers import app
 
 
 def test_resource_msg(app):
     with app.app_context():
-        function = success_json_response("234525", "usuario", "añadido", 201)
-        expected_msg = "Usuario '234525' ha sido añadido de forma satisfactoria"
+        response, status_code = success_json_response(
+            "234525", "usuario", "añadido", 201
+        )
+        assert (
+            response.json["msg"]
+            == "Usuario '234525' ha sido añadido de forma satisfactoria"
+        )
+        assert status_code == 201
 
 
-def test_db_json_response():
-    data = {
-        "name": "John Doe",
-        "email": "johndoe@doe.com",
-        "password": "ValidPass!9",
-        "role": 1,
-    }
-
-    response = db_json_response(data)
-    assert response[1] == 200
-    assert isinstance(response[0], Response)
+def test_db_json_response(app):
+    with app.app_context():
+        data = {
+            "name": "John Doe",
+            "email": "johndoe@doe.com",
+            "password": "ValidPass!9",
+            "role": 1,
+        }
+        response, status_code = db_json_response(data)
+        assert status_code == 200
+        assert json.loads(response.data.decode()) == data

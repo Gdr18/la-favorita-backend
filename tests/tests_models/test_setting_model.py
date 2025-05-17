@@ -2,9 +2,16 @@ import pytest
 from pydantic import ValidationError
 
 from src.models.setting_model import SettingModel
+from tests.test_helpers import (
+    assert_insert_document_template,
+    assert_get_all_documents_template,
+    assert_get_document_by_id_template,
+    assert_update_document_template,
+    assert_delete_document_template,
+)
 
-USER_ID = "507f1f77bcf86cd799439011"
-SETTING_DATA = {"name": "TestSetting", "values": ["value1", "value2"]}
+ID = "507f1f77bcf86cd799439011"
+VALID_DATA = {"name": "TestSetting", "values": ["value1", "value2"]}
 
 
 @pytest.fixture
@@ -15,20 +22,24 @@ def mock_db(mocker):
 
 
 def test_setting_valid():
-    setting = SettingModel(**SETTING_DATA)
+    setting = SettingModel(**VALID_DATA)
     assert isinstance(setting.name, str) and 0 < len(setting.name) < 51
-    assert isinstance(setting.values, list) and all(isinstance(item, str) for item in setting.values) and len(setting.values) >= 1
+    assert (
+        isinstance(setting.values, list)
+        and all(isinstance(item, str) for item in setting.values)
+        and len(setting.values) >= 1
+    )
 
 
 @pytest.mark.parametrize(
     "name, values",
     [
-        ("", ["value1", "value2"]),
-        ("a" * 51, ["value1", "value2"]),
-        ("TestSetting", "not_a_list"),
-        ("TestSetting", [1, 2, 3]),
-        ("TestSetting", ["", "", ""]),
-        ("TestSetting", []),
+        ("", VALID_DATA["values"]),
+        ("a" * 51, VALID_DATA["values"]),
+        (VALID_DATA["name"], "not_a_list"),
+        (VALID_DATA["name"], [1, 2, 3]),
+        (VALID_DATA["name"], ["", "", ""]),
+        (VALID_DATA["name"], []),
     ],
 )
 def test_setting_validation_error(name, values):
@@ -37,34 +48,32 @@ def test_setting_validation_error(name, values):
 
 
 def test_insert_setting(mock_db):
-    mock_db.insert_one.return_value.inserted_id = USER_ID
-    setting = SettingModel(**SETTING_DATA)
-    result = setting.insert_setting()
-    assert result.inserted_id == USER_ID
+    return assert_insert_document_template(
+        mock_db, SettingModel(**VALID_DATA).insert_setting
+    )
 
 
 def test_get_settings(mock_db):
-    mock_cursor = mock_db.find.return_value
-    mock_cursor.skip.return_value = mock_cursor
-    mock_cursor.limit.return_value = [SETTING_DATA]
-    result = SettingModel.get_settings(1, 10)
-    assert result == [SETTING_DATA]
+    return assert_get_all_documents_template(
+        mock_db, SettingModel.get_settings, [VALID_DATA]
+    )
 
 
 def test_get_setting(mock_db):
-    mock_db.find_one.return_value = SETTING_DATA
-    result = SettingModel.get_setting(USER_ID)
-    assert result == SETTING_DATA
+    return assert_get_document_by_id_template(
+        mock_db, SettingModel.get_setting, VALID_DATA
+    )
 
 
 def test_update_setting(mock_db):
-    setting = SettingModel(name="TestSetting2", values=SETTING_DATA["values"])
-    mock_db.find_one_and_update.return_value = {**SETTING_DATA, "name": "TestSetting2"}
-    result = setting.update_setting(USER_ID)
-    assert result["name"] == "TestSetting2"
+    new_data = {**VALID_DATA, "name": "TestSetting2"}
+    setting_object = SettingModel(**new_data)
+    return assert_update_document_template(
+        mock_db,
+        setting_object.update_setting,
+        new_data,
+    )
 
 
 def test_delete_setting(mock_db):
-    mock_db.delete_one.return_value.deleted_count = 1
-    result = SettingModel.delete_setting(USER_ID)
-    assert result.deleted_count == 1
+    return assert_delete_document_template(mock_db, SettingModel.delete_setting)

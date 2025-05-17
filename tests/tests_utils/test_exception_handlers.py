@@ -193,7 +193,7 @@ def test_exceptions_handlers(app, function, arguments, code, message):
         assert response.json["err"] == message
 
 
-def test_registration_mongodb_error(app):
+def test_mongodb_error_flask_handler(app):
     with app.test_client() as client:
 
         @app.route("/mongodb-error")
@@ -205,7 +205,7 @@ def test_registration_mongodb_error(app):
         assert "Error de conexión" in response.json["err"]
 
 
-def test_registration_validation_error(app):
+def test_validation_error_flask_handler(app):
     with app.test_client() as client:
 
         @app.route("/validation-error")
@@ -222,7 +222,7 @@ def test_registration_validation_error(app):
         assert "no cumple con el patrón requerido" in response.json["err"]
 
 
-def test_registration_value_custom_error(app):
+def test_value_custom_error_flask_handler(app):
     with app.test_client() as client:
 
         @app.route("/value-custom-error")
@@ -234,7 +234,7 @@ def test_registration_value_custom_error(app):
         assert "Usuario no encontrado" in response.json["err"]
 
 
-def test_registration_sendgrid_error(app):
+def test_sendgrid_error_flask_handler(app):
     with app.test_client() as client:
 
         @app.route("/sendgrid-error")
@@ -246,7 +246,7 @@ def test_registration_sendgrid_error(app):
         assert "Ha habido un error al enviar el correo" in response.json["err"]
 
 
-def test_generic_error(app):
+def test_generic_error_flask_handler(app):
     with app.test_client() as client:
 
         @app.route("/generic-error")

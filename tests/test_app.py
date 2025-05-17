@@ -10,7 +10,7 @@ def test_app_creation(app):
     assert isinstance(app, Flask)
 
 
-def test_blueprints_registration(app, mocker):
+def test_blueprints_registration(app):
     expected_blueprints = [
         "users",
         "products",

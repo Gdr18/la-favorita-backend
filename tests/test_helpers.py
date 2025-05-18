@@ -30,15 +30,6 @@ def auth_header(app):
         return {"Authorization": f"Bearer {access_token}"}
 
 
-@pytest.fixture
-def auth_header_refresh(app):
-    with app.app_context():
-        refresh_token = create_refresh_token(
-            identity="507f1f77bcf86cd799439011", additional_claims={"role": 1}
-        )
-        return {"Authorization": f"Bearer {refresh_token}"}
-
-
 def assert_insert_document_template(mock_db, method):
     mock_db.insert_one.return_value.inserted_id = ID
     result = method()

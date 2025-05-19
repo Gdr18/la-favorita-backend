@@ -18,7 +18,9 @@ def add_order() -> tuple[Response, int]:
     order_data = request.get_json()
     order_object = OrderModel(**order_data)
     inserted_order = order_object.insert_order()
-    return success_json_response(inserted_order.inserted_id, orders_resource, "insertado", 201)
+    return success_json_response(
+        inserted_order.inserted_id, orders_resource, "insertado", 201
+    )
 
 
 @orders_route.route("/")
@@ -37,8 +39,9 @@ def get_orders() -> tuple[Response, int]:
 @orders_route.route("/users/<user_id>")
 @jwt_required()
 def get_user_orders(user_id):
-    token_id = get_jwt().get("sub")
-    token_role = get_jwt().get("role")
+    token_data = get_jwt()
+    token_id = token_data.get("sub")
+    token_role = token_data.get("role")
     if not any([token_id == user_id, token_role <= 1]):
         raise ValueCustomError("not_authorized")
     page = request.args.get("page", 1)
@@ -52,8 +55,9 @@ def get_user_orders(user_id):
 @jwt_required()
 def update_order(order_id):
     session = client.start_session()
-    token_id = get_jwt().get("sub")
-    token_role = get_jwt().get("role")
+    token_data = get_jwt()
+    token_id = token_data.get("sub")
+    token_role = token_data.get("role")
     order = OrderModel.get_order(order_id)
     if not order:
         raise ValueCustomError("not_found", orders_resource)
@@ -69,7 +73,9 @@ def update_order(order_id):
         session.start_transaction()
         updated_order = order_object.update_order(order_id, session=session)
         if order_object.state == "ready":
-            ProductModel.update_product_stock_by_name(order_object.items, session=session)
+            ProductModel.update_product_stock_by_name(
+                order_object.items, session=session
+            )
         session.commit_transaction()
         return db_json_response(updated_order)
     except Exception as e:
@@ -82,8 +88,9 @@ def update_order(order_id):
 @orders_route.route("/<order_id>", methods=["GET", "DELETE"])
 @jwt_required()
 def handle_order(order_id):
-    token_id = get_jwt().get("sub")
-    token_role = get_jwt().get("role")
+    token_data = get_jwt()
+    token_id = token_data.get("sub")
+    token_role = token_data.get("role")
     if request.method == "GET":
         order = OrderModel.get_order(order_id)
         if not order:

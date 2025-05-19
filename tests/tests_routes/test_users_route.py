@@ -13,19 +13,32 @@ ID = "507f1f77bcf86cd799439011"
 
 
 @pytest.fixture
-def mock_jwt(mocker):
+def mock_get_jwt(mocker):
     return mocker.patch("src.routes.users_route.get_jwt")
 
 
-@pytest.mark.parametrize("url, method", [
-    ("/users/", "post"),
-    ("/users/", "get"),
-    ("/users/507f1f77bcf86cd799439012", "get"),
-    ("/users/507f1f77bcf86cd799439012", "delete"),
-    ("/users/507f1f77bcf86cd799439012", "put"),
-])
-def test_token_not_authorized_error(mock_jwt, client, auth_header, url, method):
-    mock_jwt.return_value = {"role": 3, "sub": ID}
+@pytest.fixture
+def mock_get_user(mocker):
+    return mocker.patch.object(UserModel, "get_user_by_user_id_without_id")
+
+
+@pytest.fixture
+def mock_delete_user(mocker):
+    return mocker.patch.object(UserModel, "delete_user")
+
+
+@pytest.mark.parametrize(
+    "url, method",
+    [
+        ("/users/", "post"),
+        ("/users/", "get"),
+        ("/users/507f1f77bcf86cd799439012", "get"),
+        ("/users/507f1f77bcf86cd799439012", "delete"),
+        ("/users/507f1f77bcf86cd799439012", "put"),
+    ],
+)
+def test_token_not_authorized_error(mock_get_jwt, client, auth_header, url, method):
+    mock_get_jwt.return_value = {"role": 3, "sub": ID}
 
     if method == "post":
         response = client.post(url, json=VALID_USER_DATA, headers=auth_header)
@@ -38,20 +51,33 @@ def test_token_not_authorized_error(mock_jwt, client, auth_header, url, method):
 
     assert response.status_code == 401
     assert response.json["err"] == "El token no está autorizado a acceder a esta ruta"
+    mock_get_jwt.assert_called_once()
 
 
-@pytest.mark.parametrize("url, method", [
-    ("/users/507f1f77bcf86cd799439011", "get"),
-    ("/users/507f1f77bcf86cd799439011", "delete"),
-    ("/users/507f1f77bcf86cd799439011", "put"),
-])
-def test_user_not_found_error(mocker, mock_jwt, client, auth_header, url, method):
-    mock_jwt.return_value = {"role": 0, "sub": ID}
+@pytest.mark.parametrize(
+    "url, method",
+    [
+        ("/users/507f1f77bcf86cd799439011", "get"),
+        ("/users/507f1f77bcf86cd799439011", "delete"),
+        ("/users/507f1f77bcf86cd799439011", "put"),
+    ],
+)
+def test_user_not_found_error(
+    mocker,
+    mock_get_jwt,
+    mock_get_user,
+    mock_delete_user,
+    client,
+    auth_header,
+    url,
+    method,
+):
+    mock_get_jwt.return_value = {"role": 0, "sub": ID}
 
     if method in ["get", "put"]:
-        mocker.patch.object(UserModel, "get_user_by_user_id_without_id", return_value=None)
+        mock_get_user.return_value = None
     else:
-        mocker.patch.object(UserModel, "delete_user", return_value=mocker.MagicMock(deleted_count=0))
+        mock_delete_user.return_value = mocker.MagicMock(deleted_count=0)
 
     if method == "get":
         response = client.get(url, headers=auth_header)
@@ -62,68 +88,117 @@ def test_user_not_found_error(mocker, mock_jwt, client, auth_header, url, method
 
     assert response.status_code == 404
     assert response.json["err"] == f"Usuario no encontrado"
+    mock_get_jwt.assert_called_once()
+    (
+        mock_get_user.assert_called_once()
+        if method != "delete"
+        else mock_delete_user.assert_called_once()
+    )
 
 
 @pytest.mark.parametrize("field", [{"email": "invalid_email"}, {"role": 2}])
-def test_not_authorized_to_set_error(mocker, client, auth_header, field):
-    mocker.patch.object(UserModel, "get_user_by_user_id_without_id", return_value=VALID_USER_DATA)
+def test_not_authorized_to_set_error(mock_get_user, client, auth_header, field):
+    mock_get_user.return_value = VALID_USER_DATA
 
     response = client.put(f"/users/{ID}", json=field, headers=auth_header)
 
     assert response.status_code == 401
-    assert response.json["err"] == f"El token no está autorizado a establecer '{list(field.keys())[0]}'"
+    assert (
+        response.json["err"]
+        == f"El token no está autorizado a establecer '{list(field.keys())[0]}'"
+    )
+    mock_get_user.assert_called_once()
 
 
-def test_add_user_success(mocker, client, mock_jwt, auth_header):
-    mock_jwt.return_value = {"role": 0}
-    mocker.patch.object(
+def test_add_user_success(mocker, client, mock_get_jwt, auth_header):
+    mock_get_jwt.return_value = {"role": 0}
+    mock_db = mocker.patch.object(
         UserModel, "insert_user", return_value=mocker.MagicMock(inserted_id=ID)
     )
 
     response = client.post("/users/", json=VALID_USER_DATA, headers=auth_header)
 
     assert response.status_code == 201
-    assert response.json["msg"] == f"Usuario '{ID}' ha sido añadido de forma satisfactoria"
+    assert (
+        response.json["msg"] == f"Usuario '{ID}' ha sido añadido de forma satisfactoria"
+    )
+    mock_get_jwt.assert_called_once()
+    mock_db.assert_called_once()
 
 
-def test_get_users_success(mocker, client, auth_header, mock_jwt):
-    mock_jwt.return_value = {"role": 0}
-    mocker.patch.object(UserModel, "get_users", return_value=[VALID_USER_DATA])
+def test_get_users_success(mocker, client, auth_header, mock_get_jwt):
+    mock_get_jwt.return_value = {"role": 0}
+    mock_db = mocker.patch.object(
+        UserModel, "get_users", return_value=[VALID_USER_DATA]
+    )
 
     response = client.get("/users/", headers=auth_header)
 
     assert response.status_code == 200
     assert json.loads(response.data.decode()) == [VALID_USER_DATA]
+    mock_get_jwt.assert_called_once()
+    mock_db.assert_called_once()
 
 
-def test_get_user_success(mocker, client, auth_header, mock_jwt):
-    mock_jwt.return_value = {"role": 0, "sub": ID}
-    mocker.patch.object(UserModel, "get_user_by_user_id_without_id", return_value=VALID_USER_DATA)
+def test_get_user_success(mock_get_user, client, auth_header, mock_get_jwt):
+    mock_get_jwt.return_value = {"role": 0, "sub": ID}
+    mock_get_user.return_value = VALID_USER_DATA
 
     response = client.get(f"/users/{ID}", headers=auth_header)
 
     assert response.status_code == 200
     assert json.loads(response.data.decode()) == VALID_USER_DATA
+    mock_get_jwt.assert_called_once()
+    mock_get_user.assert_called_once()
 
 
-def test_update_user_success(mocker, client, auth_header, mock_jwt):
-    mock_jwt.return_value = {"role": 0, "sub": ID, "jti": "bb53e637-8627-457c-840f-6cae52a12e8b"}
-    mocker.patch.object(UserModel, "get_user_by_user_id_without_id", return_value=VALID_USER_DATA)
-    mocker.patch.object(UserModel, "update_user", return_value={**VALID_USER_DATA, "name": "Updated User"})
+def test_update_user_success(mocker, mock_get_user, client, auth_header, mock_get_jwt):
+    mock_get_jwt.return_value = {
+        "role": 0,
+        "sub": ID,
+        "jti": "bb53e637-8627-457c-840f-6cae52a12e8b",
+    }
+    mock_get_user.return_value = VALID_USER_DATA
+    mock_update_user = mocker.patch.object(
+        UserModel,
+        "update_user",
+        return_value={**VALID_USER_DATA, "name": "Updated User"},
+    )
 
-    response = client.put(f"/users/{ID}", json={"name": "Updated User"}, headers=auth_header)
+    response = client.put(
+        f"/users/{ID}", json={"name": "Updated User"}, headers=auth_header
+    )
 
     assert response.status_code == 200
-    assert json.loads(response.data.decode()) == {**VALID_USER_DATA, "name": "Updated User"}
+    assert json.loads(response.data.decode()) == {
+        **VALID_USER_DATA,
+        "name": "Updated User",
+    }
+    mock_get_jwt.assert_called_once()
+    mock_get_user.assert_called_once()
+    mock_update_user.assert_called_once()
 
 
-def test_delete_user_success(mocker, client, auth_header, mock_jwt):
-    mock_jwt.return_value = {"role": 0, "sub": ID}
-    mocker.patch.object(UserModel, "delete_user", return_value=mocker.MagicMock(deleted_count=1))
-    mocker.patch("src.routes.users_route.revoke_access_token")
-    mocker.patch("src.routes.users_route.delete_refresh_token")
+def test_delete_user_success(
+    mocker, mock_delete_user, client, auth_header, mock_get_jwt
+):
+    mock_get_jwt.return_value = {"role": 0, "sub": ID}
+    mock_delete_user.return_value = mocker.MagicMock(deleted_count=1)
+    mock_revoke_access_token = mocker.patch(
+        "src.routes.users_route.revoke_access_token"
+    )
+    mock_delete_refresh_token = mocker.patch(
+        "src.routes.users_route.delete_refresh_token"
+    )
 
     response = client.delete(f"/users/{ID}", headers=auth_header)
 
     assert response.status_code == 200
-    assert response.json["msg"] == f"Usuario '{ID}' ha sido eliminado de forma satisfactoria"
+    assert (
+        response.json["msg"]
+        == f"Usuario '{ID}' ha sido eliminado de forma satisfactoria"
+    )
+    mock_get_jwt.assert_called_once()
+    mock_delete_user.assert_called_once()
+    mock_revoke_access_token.assert_called_once()
+    mock_delete_refresh_token.assert_called_once()

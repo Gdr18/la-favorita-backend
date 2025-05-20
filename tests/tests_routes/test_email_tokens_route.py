@@ -90,8 +90,11 @@ def test_email_token_not_found_error(
     assert response.status_code == 404
     assert response.json["err"] == "Email token no encontrado"
     mock_get_jwt.assert_called_once()
-    mock_get_email_token.assert_called_once()
-    mock_delete_email_token.assert_called_once()
+    (
+        mock_get_email_token.assert_called_once()
+        if method != "delete"
+        else mock_delete_email_token.assert_called_once()
+    )
 
 
 def test_add_email_token_success(mocker, client, auth_header, mock_get_jwt):

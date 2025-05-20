@@ -48,17 +48,21 @@ def mock_delete_order(mocker):
 
 
 @pytest.mark.parametrize(
-    "url, method",
+    "url, method, mock",
     [
-        ("/orders/", "get"),
-        ("/orders/users/507f1f77bcf86cd799439011", "get"),
-        ("/orders/507f1f77bcf86cd799439011", "put"),
-        ("/orders/507f1f77bcf86cd799439011", "get"),
-        ("/orders/507f1f77bcf86cd799439011", "delete"),
+        ("/orders/", "get", False),
+        ("/orders/users/507f1f77bcf86cd799439011", "get", False),
+        ("/orders/507f1f77bcf86cd799439011", "put", True),
+        ("/orders/507f1f77bcf86cd799439011", "get", True),
+        ("/orders/507f1f77bcf86cd799439011", "delete", False),
     ],
 )
-def test_not_authorized_error(mock_get_jwt, client, auth_header, url, method):
+def test_not_authorized_error(
+    mock_get_jwt, mock_get_order, client, auth_header, url, method, mock
+):
     mock_get_jwt.return_value = {"role": 3, "sub": "507f1f77bcf86cd799439012"}
+    if mock:
+        mock_get_order.return_value = VALID_ORDER_DATA
 
     if method == "get":
         response = client.get(url, headers=auth_header)
@@ -70,6 +74,7 @@ def test_not_authorized_error(mock_get_jwt, client, auth_header, url, method):
     assert response.status_code == 401
     assert response.json["err"] == "El token no está autorizado a acceder a esta ruta"
     mock_get_jwt.assert_called_once()
+    mock_get_order.assert_called_once() if mock else None
 
 
 @pytest.mark.parametrize(

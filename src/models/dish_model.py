@@ -1,12 +1,12 @@
-from pydantic import BaseModel, Field, model_validator, ValidationError
-from src.services.db_services import db
-from typing import List, Literal, Optional
+from pydantic import BaseModel, Field, model_validator
+from typing import List, Literal, Optional, Dict
 from pymongo.results import InsertOneResult, DeleteResult, UpdateResult
 from pymongo import ReturnDocument
 from bson import ObjectId
 from datetime import datetime
 
 from src.utils.models_helpers import Ingredient
+from src.services.db_services import db
 
 
 # Campos únicos: name. Está configurado en MongoDB Atlas.
@@ -14,11 +14,11 @@ from src.utils.models_helpers import Ingredient
 class DishModel(BaseModel, extra="forbid"):
     name: str = Field(..., min_length=1, max_length=50)
     category: Literal["starter", "main", "dessert"] = Field(...)
-    description: str = Field(...)
-    ingredients: List[Ingredient] = Field(...)
-    custom: Optional[List[dict]] = None
+    description: str = Field(..., min_length=1, max_length=100)
+    ingredients: List[Ingredient] = Field(..., min_length=1)
+    custom: Optional[Dict] = None
     price: float = Field(..., gt=0)
-    available: bool = Field(...)
+    available: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.now)
 
     @model_validator(mode="after")
@@ -29,7 +29,7 @@ class DishModel(BaseModel, extra="forbid"):
         )
         difference_between = set(ingredients_names).difference(set([value["name"] for value in checked_ingredients]))
         if difference_between:
-            raise ValidationError(f"El ingrediente '{difference_between}' no existe.")
+            raise ValueError(f"""El ingrediente {', '.join([f"'{ingredient}'" for ingredient in list(difference_between)])} no existe.""")
 
         for product in checked_ingredients:
             for ingredient in self.ingredients:

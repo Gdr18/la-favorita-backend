@@ -1,6 +1,6 @@
 import re
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 from bson import ObjectId
 from email_validator import validate_email, EmailNotValidError
@@ -19,7 +19,7 @@ class UserModel(BaseModel, extra="forbid"):
     name: str = Field(..., min_length=1, max_length=50)
     email: EmailStr = Field(..., min_length=5, max_length=100)
     password: Optional[str] = Field(default=None, min_length=8, max_length=60)
-    auth_provider: str = Field(default="email")
+    auth_provider: Literal["email", "google"] = Field(default="email")
     role: int = Field(default=3, ge=0, le=3)
     phone: Optional[str] = Field(None, pattern=r"^(?:\+34)?\d{9}$")
     addresses: Optional[List[Address]] = None
@@ -36,10 +36,9 @@ class UserModel(BaseModel, extra="forbid"):
             self.password = self.validate_password(self.password)
         if self.confirmed:
             self.expires_at = None
-
         return self
 
-    @field_validator("email", mode="before")
+    @field_validator("email", mode="after")
     @classmethod
     def validate_email(cls, v) -> EmailStr:
         try:

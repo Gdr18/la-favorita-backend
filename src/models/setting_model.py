@@ -15,10 +15,10 @@ class SettingModel(BaseModel, extra="forbid"):
     @field_validator("values", mode="after")
     @classmethod
     def __validate_values(cls, v):
-        if (len(item) > 0 for item in v):
+        if all(len(item) > 0 for item in v):
             return v
         else:
-            raise ValueError("La lista de strings del campo 'values' debe tener al menos un caracter en cada string.")
+            raise ValueError("Los elementos de la lista 'values' debe tener al menos un caracter en cada string.")
 
     # Solicitudes a la colección settings
     def insert_setting(self) -> InsertOneResult:

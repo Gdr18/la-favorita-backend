@@ -12,14 +12,14 @@ dishes_route = Blueprint("dishes", __name__)
 
 @dishes_route.route("/", methods=["POST"])
 @jwt_required()
-def insert_dish():
+def add_dish():
     token_role = get_jwt().get("role")
     if token_role != 1:
         raise ValueCustomError("not_authorized")
     dish_data = request.get_json()
     dish_object = DishModel(**dish_data)
     new_dish = dish_object.insert_dish()
-    return success_json_response(new_dish.inserted_id, dishes_resource, "añadido")
+    return success_json_response(new_dish.inserted_id, dishes_resource, "añadido", 201)
 
 
 @dishes_route.route("/")

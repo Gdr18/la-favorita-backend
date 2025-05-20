@@ -35,14 +35,22 @@ class ValueCustomError(Exception):
 
     @staticmethod
     def json_response_too_many_requests() -> tuple[Response, int]:
-        return jsonify(err=f"Se han reenviado demasiados emails de confirmación. Inténtalo mañana."), 429
+        return (
+            jsonify(
+                err=f"Se han reenviado demasiados emails de confirmación. Inténtalo mañana."
+            ),
+            429,
+        )
 
     @staticmethod
     def json_response_not_authorized() -> tuple[Response, int]:
         return jsonify(err=f"El token no está autorizado a acceder a esta ruta"), 401
 
     def json_response_not_authorized_to_set(self) -> tuple[Response, int]:
-        return jsonify(err=f"El token no está autorizado a establecer '{self.resource}'"), 401
+        return (
+            jsonify(err=f"El token no está autorizado a establecer '{self.resource}'"),
+            401,
+        )
 
 
 # Función para manejar errores de campos no permitidos
@@ -56,7 +64,9 @@ def handle_extra_inputs_forbidden_error(errors: list[dict]) -> tuple[Response, i
 
 # Función para manejar errores de campos requeridos
 def handle_field_required_error(errors: list[dict]) -> tuple[Response, int]:
-    formatting_fields_required = ", ".join([f"""'{error['loc'][0]}'""" for error in errors])
+    formatting_fields_required = ", ".join(
+        [f"""'{error['loc'][0]}'""" for error in errors]
+    )
     response = jsonify(
         err=f"{f'Faltan {len(errors)} campos requeridos' if len(errors) > 1 else f'Falta {len(errors)} campo requerido'}: {formatting_fields_required}."
     )
@@ -97,7 +107,7 @@ def handle_literal_value_error(errors: list[dict]) -> tuple[Response, int]:
 
 
 # Función para manejar errores de valores no permitidos
-def handle_custom_value_error(errors: list[dict]) -> tuple[Response, int]:
+def handle_model_custom_error(errors: list[dict]) -> tuple[Response, int]:
     msg = [error["msg"][error["msg"].find(",") + 2 :] for error in errors]
     return jsonify({"err": " ".join(msg)}), 400
 
@@ -108,9 +118,9 @@ def handle_length_value_error(errors: list[dict]) -> tuple[Response, int]:
     for error in errors:
         response = ""
         if "too_short" in error["type"]:
-            response = f"La longitud del campo '{error['loc'][0]}' es demasiado corta. Debe tener al menos {error['ctx']['min_length']}."
+            response = f"La longitud del campo '{error['loc'][0]}' es demasiado corta. Debe tener al menos {error['ctx']['min_length']} caracteres."
         elif "too_long" in error["type"]:
-            response = f"La longitud del campo '{error['loc'][0]}' es demasiado larga. Debe tener como máximo {error['ctx']['max_length']}."
+            response = f"La longitud del campo '{error['loc'][0]}' es demasiado larga. Debe tener como máximo {error['ctx']['max_length']} caracteres."
         fields.append(response)
     return jsonify(err=" ".join(fields)), 400
 
@@ -127,7 +137,12 @@ def handle_pattern_value_error(errors: list[dict]) -> tuple[Response, int]:
 # Función para manejar errores de MongoDB
 def handle_mongodb_exception(error: PyMongoError) -> tuple[Response, int]:
     if isinstance(error, DuplicateKeyError):
-        return jsonify(err=f"Error de clave duplicada en MongoDB: {error.details['keyValue']}"), 409
+        return (
+            jsonify(
+                err=f"Error de clave duplicada en MongoDB: '{error.details['keyValue']}'"
+            ),
+            409,
+        )
     elif isinstance(error, ConnectionFailure):
         return jsonify(err=f"Error de conexión con MongoDB: {error}"), 500
     else:
@@ -149,7 +164,7 @@ def register_global_exception_handlers(app: Flask) -> None:
             "too_long": handle_length_value_error,
             "too_short": handle_length_value_error,
             "extra_forbidden": handle_extra_inputs_forbidden_error,
-            "value_error": handle_custom_value_error,
+            "value_error": handle_model_custom_error,
             "missing": handle_field_required_error,
             "string_pattern_mismatch": handle_pattern_value_error,
         }
@@ -157,7 +172,11 @@ def register_global_exception_handlers(app: Flask) -> None:
         for e in errors_list:
             for key, handler in error_handlers.items():
                 if e["type"] == key or key in e["type"]:
-                    relevant_errors = [err for err in errors_list if err["type"] == key or key in err["type"]]
+                    relevant_errors = [
+                        err
+                        for err in errors_list
+                        if err["type"] == key or key in err["type"]
+                    ]
                     return handler(relevant_errors)
 
         return jsonify(err=[str(e) for e in errors_list]), 400
@@ -168,9 +187,9 @@ def register_global_exception_handlers(app: Flask) -> None:
 
     @app.errorhandler(SendGridException)
     def handle_send_email_error(error: SendGridException) -> tuple[Response, int]:
-        return jsonify(err=f"Ha habido un error al enviar el correo de confirmación: {error}"), (
-            error.status_code if hasattr(error, "status_code") else 500
-        )
+        return jsonify(
+            err=f"Ha habido un error al enviar el correo de confirmación: {error}"
+        ), (error.status_code if hasattr(error, "status_code") else 500)
 
     @app.errorhandler(Exception)
     def handle_unexpected_error(error: Exception) -> tuple[Response, int]:

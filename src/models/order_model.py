@@ -12,7 +12,7 @@ from src.utils.models_helpers import Address, ItemOrder
 # Índice: user_id. Está configurado en MongoDB Atlas.
 class OrderModel(BaseModel, extra="forbid"):
     user_id: str = Field(..., pattern=r"^[a-f0-9]{24}$")
-    items: List[ItemOrder] = Field(...)
+    items: List[ItemOrder] = Field(..., min_length=1)
     type_order: Literal["delivery", "collect", "take_away"] = Field(...)
     address: Optional[Address] = None
     payment: Literal["cash", "card", "paypal"] = Field(...)
@@ -20,10 +20,10 @@ class OrderModel(BaseModel, extra="forbid"):
     state: Literal["accepted", "cooking", "canceled", "ready", "sent", "delivered"] = Field(default="accepted")
     created_at: datetime = Field(default_factory=datetime.now)
 
-    @model_validator(mode="before")
+    @model_validator(mode="after")
     def validate_model(self) -> "OrderModel":
         if self.type_order == "delivery" and self.address is None:
-            raise (
+            raise ValueError(
                 "Cuando el campo 'type_order' tiene el valor 'delivery' el campo 'address' debe tener un valor de tipo diccionario"
             )
         return self

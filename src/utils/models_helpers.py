@@ -1,11 +1,11 @@
 from typing_extensions import TypedDict
-from typing import List, Optional
+from typing import List, NotRequired
 
 
 class Ingredient(TypedDict):
     name: str
-    allergens: Optional[List[str]]
-    waste: int
+    allergens: NotRequired[List[str]]
+    waste: float
 
 
 class ItemOrder(TypedDict):
@@ -22,7 +22,7 @@ class ItemBasket(TypedDict):
 
 
 class Address(TypedDict):
-    name: Optional[str]
+    name: NotRequired[str]
     line_one: str
-    line_two: Optional[str]
+    line_two: NotRequired[str]
     postal_code: str

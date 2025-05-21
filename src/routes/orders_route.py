@@ -71,11 +71,9 @@ def update_order(order_id):
     order_object = OrderModel(**order_mixed_data)
     try:
         session.start_transaction()
-        updated_order = order_object.update_order(order_id, session=session)
+        updated_order = order_object.update_order(order_id, session)
         if order_object.state == "ready":
-            ProductModel.update_product_stock_by_name(
-                order_object.items, session=session
-            )
+            ProductModel.update_product_stock_by_name(order_object.items, session)
         session.commit_transaction()
         return db_json_response(updated_order)
     except Exception as e:

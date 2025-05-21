@@ -2,7 +2,7 @@ from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt
 
 from src.models.user_model import UserModel
-from src.services.security_service import revoke_access_token, delete_refresh_token
+from src.services.security_service import delete_active_token, delete_refresh_token
 from src.utils.exception_handlers import ValueCustomError
 from src.utils.json_responses import success_json_response, db_json_response
 
@@ -57,7 +57,13 @@ def handle_user(user_id: str) -> tuple[Response, int]:
         user = UserModel.get_user_by_user_id_without_id(user_id)
         if user:
             data = request.get_json()
-            if all([data.get("role"), data.get("role") != user.get("role"), token_role != 1]):
+            if all(
+                [
+                    data.get("role"),
+                    data.get("role") != user.get("role"),
+                    token_role != 1,
+                ]
+            ):
                 raise ValueCustomError("not_authorized_to_set", "role")
             if all([data.get("email"), data.get("email") != user.get("email")]):
                 raise ValueCustomError("not_authorized_to_set", "email")
@@ -71,7 +77,7 @@ def handle_user(user_id: str) -> tuple[Response, int]:
     if request.method == "DELETE":
         deleted_user = UserModel.delete_user(user_id)
         if deleted_user.deleted_count > 0:
-            revoke_access_token(token)
+            delete_active_token(token)
             delete_refresh_token(user_id)
             return success_json_response(token_user_id, users_resource, "eliminado")
         else:

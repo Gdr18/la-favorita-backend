@@ -1,5 +1,6 @@
 from flask import Blueprint, request, url_for, jsonify, Response
 from flask_jwt_extended import jwt_required, get_jwt, decode_token
+from pymongo.errors import DuplicateKeyError
 
 from src.models.token_model import TokenModel
 from src.models.user_model import UserModel
@@ -7,7 +8,7 @@ from src.services.email_service import send_email
 from src.services.security_service import (
     generate_access_token,
     generate_refresh_token,
-    revoke_access_token,
+    delete_active_token,
     delete_refresh_token,
     google,
     verify_password,
@@ -32,7 +33,9 @@ def register() -> tuple[Response, int]:
             new_user = user_object.insert_user(session=session)
             send_email({**user_object.model_dump(), "_id": new_user.inserted_id})
             session.commit_transaction()
-            return success_json_response(new_user.inserted_id, "usuario", "añadido", 201)
+            return success_json_response(
+                new_user.inserted_id, "usuario", "añadido", 201
+            )
         except Exception as e:
             session.abort_transaction()
             raise e
@@ -62,6 +65,7 @@ def change_email() -> tuple[Response, int]:
 
 @auth_route.route("/login", methods=["POST"])
 def login() -> tuple[Response, int]:
+    session = client.start_session()
     user_data = request.get_json()
     user_requested = UserModel.get_user_by_email(user_data.get("email"))
     if not user_requested:
@@ -70,24 +74,32 @@ def login() -> tuple[Response, int]:
         raise ValueCustomError("not_match")
     if not user_requested.get("confirmed"):
         raise ValueCustomError("not_confirmed")
-    access_token = generate_access_token(user_requested)
-    refresh_token = generate_refresh_token(user_requested)
-    return (
-        jsonify(
-            msg=f"El usuario '{user_requested.get('_id')}' ha iniciado sesión de forma manual",
-            access_token=access_token,
-            refresh_token=refresh_token,
-        ),
-        200,
-    )
+    try:
+        session.start_transaction()
+        access_token = generate_access_token(user_requested, session)
+        refresh_token = generate_refresh_token(user_requested, session)
+        session.commit_transaction()
+        return (
+            jsonify(
+                msg=f"El usuario '{user_requested.get('_id')}' ha iniciado sesión de forma manual",
+                access_token=access_token,
+                refresh_token=refresh_token,
+            ),
+            200,
+        )
+    except Exception as e:
+        session.abort_transaction()
+        raise e
+    finally:
+        session.end_session()
 
 
 @auth_route.route("/logout", methods=["POST"])
 @jwt_required()
 def logout() -> tuple[Response, int]:
     token = get_jwt()
-    revoke_access_token(token)
-    delete_refresh_token(token["sub"])
+    delete_active_token(token["jti"])
+    delete_refresh_token(token["jti"])
     return success_json_response(token["sub"], "logout del usuario", "realizado")
 
 
@@ -132,7 +144,10 @@ def refresh_users_token():
     if check_refresh_token:
         user_data = UserModel.get_user_by_user_id(user_id)
         access_token = generate_access_token(user_data)
-        return jsonify(access_token=access_token, msg="El token de acceso se ha generado"), 200
+        return (
+            jsonify(access_token=access_token, msg="El token de acceso se ha generado"),
+            200,
+        )
     else:
         raise ValueCustomError("not_found", "refresh token")
 
@@ -158,7 +173,9 @@ def resend_email(user_id: str) -> tuple[Response, int]:
         user_data = UserModel.get_user_by_user_id(user_id)
         if user_data:
             send_email(user_data)
-            return success_json_response(user_id, "email de confirmación del usuario", "reenviado")
+            return success_json_response(
+                user_id, "email de confirmación del usuario", "reenviado"
+            )
         else:
             raise ValueCustomError("not_found", "usuario")
     else:

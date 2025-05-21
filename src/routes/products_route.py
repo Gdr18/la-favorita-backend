@@ -23,7 +23,9 @@ def add_product() -> tuple[Response, int]:
         product_data = request.get_json()
         product_object = ProductModel(**product_data)
         new_product = product_object.insert_product()
-        return success_json_response(new_product.inserted_id, products_resource, "añadido", 201)
+        return success_json_response(
+            new_product.inserted_id, products_resource, "añadido", 201
+        )
 
 
 @products_route.route("/", methods=["GET"])
@@ -55,12 +57,15 @@ def update_product(product_id) -> tuple[Response, int]:
     product_object = ProductModel(**combined_data)
     try:
         session.start_transaction()
-        updated_product = product_object.update_product(product_id, session=session)
+        updated_product = product_object.update_product(product_id, session)
         updated_product_stock = updated_product.get("stock")
         product_stock = product.get("stock")
-        if product_stock != updated_product_stock and 0 in (updated_product_stock, product_stock):
+        if product_stock != updated_product_stock and 0 in (
+            updated_product_stock,
+            product_stock,
+        ):
             DishModel.update_dishes_availability(
-                updated_product.get("name"), updated_product_stock != 0, session=session
+                updated_product.get("name"), updated_product_stock != 0, session
             )
         session.commit_transaction()
         return db_json_response(updated_product)

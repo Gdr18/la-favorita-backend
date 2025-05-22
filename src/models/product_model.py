@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field, field_validator, ValidationInfo
 from pymongo import ReturnDocument
 from pymongo.results import InsertOneResult, DeleteResult
 
-from src.services.db_services import db
+from src.services.db_service import db
 
 
 # Funciones para obtener y actualizar los valores permitidos para categorías y alérgenos de productos
@@ -40,12 +40,16 @@ class ProductModel(BaseModel, extra="forbid"):
             if v is None:
                 return v
         checked_values = cls.checking_in_list(
-            field, v, _allowed_allergens if field == "allergens" else _allowed_categories
+            field,
+            v,
+            _allowed_allergens if field == "allergens" else _allowed_categories,
         )
         return checked_values
 
     @staticmethod
-    def checking_in_list(name_field: str, value: list[str], allowed_values: list[str]) -> list[str]:
+    def checking_in_list(
+        name_field: str, value: list[str], allowed_values: list[str]
+    ) -> list[str]:
         invalid_values = [item for item in value if item not in allowed_values]
         if invalid_values:
             raise ValueError(

@@ -20,7 +20,9 @@ def add_refresh_token() -> tuple[Response, int]:
         data = request.get_json()
         refresh_token = TokenModel(**data)
         new_refresh_token = refresh_token.insert_refresh_token()
-        return success_json_response(new_refresh_token.inserted_id, refresh_tokens_resource, "añadido", 201)
+        return success_json_response(
+            new_refresh_token.inserted_id, refresh_tokens_resource, "añadido", 201
+        )
 
 
 @refresh_tokens_route.route("/", methods=["GET"])
@@ -44,25 +46,31 @@ def handle_refresh_token(refresh_token_id: str) -> tuple[Response, int]:
     if not token_role == 0:
         raise ValueCustomError("not_authorized")
     if request.method == "GET":
-        refresh_token = TokenModel.get_refresh_token_by_token_id(refresh_token_id)
+        refresh_token = TokenModel.get_refresh_token_by_user_id(refresh_token_id)
         if refresh_token:
             return db_json_response(refresh_token)
         raise ValueCustomError("not_found", refresh_tokens_resource)
 
     if request.method == "PUT":
-        refresh_token = TokenModel.get_refresh_token_by_token_id(refresh_token_id)
+        refresh_token = TokenModel.get_refresh_token_by_user_id(refresh_token_id)
         if refresh_token:
             data = request.get_json()
             mixed_data = {**refresh_token, **data}
             refresh_token_object = TokenModel(**mixed_data)
-            refresh_token_updated = refresh_token_object.update_refresh_token(refresh_token_id)
+            refresh_token_updated = refresh_token_object.update_refresh_token(
+                refresh_token_id
+            )
             return db_json_response(refresh_token_updated)
         else:
             raise ValueCustomError("not_found", refresh_tokens_resource)
 
     if request.method == "DELETE":
-        refresh_token_deleted = TokenModel.delete_refresh_token_by_token_id(refresh_token_id)
+        refresh_token_deleted = TokenModel.delete_refresh_token_by_token_id(
+            refresh_token_id
+        )
         if refresh_token_deleted.deleted_count > 0:
-            return success_json_response(refresh_token_id, refresh_tokens_resource, "eliminado")
+            return success_json_response(
+                refresh_token_id, refresh_tokens_resource, "eliminado"
+            )
         else:
             raise ValueCustomError("not_found", refresh_tokens_resource)

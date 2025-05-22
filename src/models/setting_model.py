@@ -4,7 +4,7 @@ from bson import ObjectId
 from pydantic import BaseModel, Field, field_validator
 from pymongo.results import InsertOneResult, DeleteResult
 
-from src.services.db_services import db
+from src.services.db_service import db
 
 
 # Campos únicos: name. Está configurado en MongoDB Atlas.
@@ -18,7 +18,9 @@ class SettingModel(BaseModel, extra="forbid"):
         if all(len(item) > 0 for item in v):
             return v
         else:
-            raise ValueError("Los elementos de la lista 'values' debe tener al menos un caracter en cada string.")
+            raise ValueError(
+                "Los elementos de la lista 'values' debe tener al menos un caracter en cada string."
+            )
 
     # Solicitudes a la colección settings
     def insert_setting(self) -> InsertOneResult:
@@ -37,7 +39,9 @@ class SettingModel(BaseModel, extra="forbid"):
 
     def update_setting(self, setting_id: str) -> dict:
         updated_setting = db.settings.find_one_and_update(
-            {"_id": ObjectId(setting_id)}, {"$set": self.model_dump()}, return_document=True
+            {"_id": ObjectId(setting_id)},
+            {"$set": self.model_dump()},
+            return_document=True,
         )
         return updated_setting
 

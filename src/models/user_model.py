@@ -4,11 +4,18 @@ from typing import List, Optional, Literal
 
 from bson import ObjectId
 from email_validator import validate_email, EmailNotValidError
-from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationInfo, model_validator
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    Field,
+    field_validator,
+    ValidationInfo,
+    model_validator,
+)
 from pymongo import ReturnDocument
 from pymongo.results import InsertOneResult, DeleteResult
 
-from src.services.db_services import db
+from src.services.db_service import db
 from src.services.security_service import bcrypt
 from src.utils.models_helpers import Address, ItemBasket
 
@@ -26,7 +33,9 @@ class UserModel(BaseModel, extra="forbid"):
     basket: Optional[List[ItemBasket]] = None
     confirmed: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.now)
-    expires_at: Optional[datetime] = Field(default_factory=lambda: datetime.utcnow() + timedelta(days=7))
+    expires_at: Optional[datetime] = Field(
+        default_factory=lambda: datetime.utcnow() + timedelta(days=7)
+    )
 
     @model_validator(mode="after")
     def validate_model(self) -> "UserModel":
@@ -52,7 +61,9 @@ class UserModel(BaseModel, extra="forbid"):
         if password is None:
             raise ValueError("El campo 'password' es obligatorio.")
         bcrypt_pattern = re.compile(r"^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$")
-        password_pattern = re.compile(r"^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*_-]).{8,}$")
+        password_pattern = re.compile(
+            r"^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*_-]).{8,}$"
+        )
         if bcrypt_pattern.match(password):
             return password
         if re.match(password_pattern, password):
@@ -71,7 +82,9 @@ class UserModel(BaseModel, extra="forbid"):
         if isinstance(v, list) and all(isinstance(i, dict) for i in v):
             return v
         else:
-            raise ValueError(f"El campo '{field.field_name}' debe ser una lista de diccionarios o None.")
+            raise ValueError(
+                f"El campo '{field.field_name}' debe ser una lista de diccionarios o None."
+            )
 
     # Solicitudes a la colección users
     def insert_user(self, session=None) -> InsertOneResult:
@@ -80,7 +93,10 @@ class UserModel(BaseModel, extra="forbid"):
 
     def insert_or_update_user_by_email(self) -> dict:
         user = db.users.find_one_and_update(
-            {"email": self.email}, {"$set": self.model_dump()}, upsert=True, return_document=ReturnDocument.AFTER
+            {"email": self.email},
+            {"$set": self.model_dump()},
+            upsert=True,
+            return_document=ReturnDocument.AFTER,
         )
         return user
 
@@ -106,7 +122,9 @@ class UserModel(BaseModel, extra="forbid"):
 
     def update_user(self, user_id: str) -> dict:
         updated_user = db.users.find_one_and_update(
-            {"_id": ObjectId(user_id)}, {"$set": self.model_dump()}, return_document=ReturnDocument.AFTER
+            {"_id": ObjectId(user_id)},
+            {"$set": self.model_dump()},
+            return_document=ReturnDocument.AFTER,
         )
         return updated_user
 

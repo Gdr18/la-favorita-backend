@@ -13,7 +13,7 @@ from src.services.security_service import (
     get_expiration_time_refresh_token,
     delete_active_token,
     delete_refresh_token,
-    check_if_token_revoked_callback,
+    check_if_token_active_callback,
     revoked_token_callback,
     expired_token_callback,
     unauthorized_callback,
@@ -63,10 +63,11 @@ def test_verify_google_identity(mocker, app):
 
 
 @pytest.mark.parametrize(
-    "function_creation_token, function_name, jwt_decoded",
+    "function_creation_token, method_db, function_name, jwt_decoded",
     [
         (
             "create_access_token",
+            "update_or_insert_active_token_by_user_id",
             generate_access_token,
             {
                 "identity": ID,
@@ -76,38 +77,38 @@ def test_verify_google_identity(mocker, app):
         ),
         (
             "create_refresh_token",
+            "update_or_insert_refresh_token_by_user_id",
             generate_refresh_token,
             {"identity": ID, "expires_delta": timedelta(hours=3)},
         ),
         (
             "create_access_token",
+            "insert_email_token",
             generate_email_token,
             {"identity": ID, "expires_delta": timedelta(days=1)},
         ),
     ],
 )
-def test_generation_tokens(mocker, function_creation_token, function_name, jwt_decoded):
+def test_generation_tokens(
+    mocker, function_creation_token, method_db, function_name, jwt_decoded
+):
+    mock_session = mocker.patch("src.services.db_service.client.start_session")
     mock_creation_token = mocker.patch(
         f"src.services.security_service.{function_creation_token}", return_value=JWT
     )
-    if function_name is not generate_access_token:
-        mock_decode_token = mocker.patch(
-            "src.services.security_service.decode_token", return_value=VALID_JWT
-        )
-        mock_call_db = mocker.patch.object(
-            TokenModel,
-            (
-                "insert_refresh_token"
-                if function_name is generate_refresh_token
-                else "insert_email_token"
-            ),
-        )
-    result = function_name(VALID_USER_DATA)
+    mock_decode_token = mocker.patch(
+        "src.services.security_service.decode_token", return_value=VALID_JWT
+    )
+    mock_call_db = mocker.patch.object(TokenModel, method_db)
+    result = (
+        function_name(VALID_USER_DATA)
+        if method_db == "insert_email_token"
+        else function_name(VALID_USER_DATA, mock_session)
+    )
     assert result == JWT
     mock_creation_token.assert_called_once_with(**jwt_decoded)
-    if function_name is not generate_access_token:
-        mock_decode_token.assert_called_once_with(JWT)
-        mock_call_db.assert_called_once()
+    mock_call_db.assert_called_once()
+    mock_decode_token.assert_called_once_with(JWT)
 
 
 @pytest.mark.parametrize(
@@ -127,36 +128,33 @@ def test_expiration_time_token_functions(function_name, role, time):
 
 
 @pytest.mark.parametrize(
-    "function_name, args, class_method, expected_result",
+    "function_name, class_method",
     [
         (
             delete_active_token,
-            (VALID_JWT,),
-            "insert_revoked_token",
-            {"inserted_id": ID},
+            "delete_active_token_by_user_id",
         ),
         (
             delete_refresh_token,
-            (ID,),
             "delete_refresh_token_by_user_id",
-            {"deleted_count": 1},
-        ),
-        (
-            check_if_token_revoked_callback,
-            (None, VALID_JWT),
-            "get_revoked_token_by_jti",
-            True,
         ),
     ],
 )
-def test_token_operations_functions(
-    mocker, function_name, args, class_method, expected_result
-):
+def test_revoke_tokens_functions(mocker, function_name, class_method):
     mock_db_call = mocker.patch.object(
-        TokenModel, class_method, return_value=expected_result
+        TokenModel, class_method, return_value={"deleted_count": 1}
     )
-    result = function_name(*args)
-    assert result == expected_result
+    result = function_name(ID)
+    assert result == {"deleted_count": 1}
+    mock_db_call.assert_called_once()
+
+
+def test_check_if_token_active_callback(mocker, app):
+    mock_db_call = mocker.patch.object(
+        TokenModel, "get_active_token_by_user_id", return_value=None
+    )
+    result = check_if_token_active_callback(None, VALID_JWT)
+    assert result is True
     mock_db_call.assert_called_once()
 
 

@@ -2,7 +2,7 @@ import pytest
 from pymongo.errors import ConnectionFailure
 from pymongo.database import Database
 
-from src.services.db_services import db_connection
+from src.services.db_service import db_connection
 from tests.test_helpers import app
 
 

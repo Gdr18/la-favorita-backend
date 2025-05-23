@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 from pymongo import ReturnDocument
 from pymongo.results import InsertOneResult, DeleteResult
 
-from src.services.db_services import db
+from src.services.db_service import db
 
 
 # Campos únicos: "jti" y "user_id", configurado en MongoDB Atlas.
@@ -60,10 +60,9 @@ class TokenModel(BaseModel, extra="forbid"):
         )
         return refresh_token
 
-    # TODO: Quizá la función no haga falta
     @staticmethod
     def get_refresh_token_by_user_id(user_id: str) -> dict:
-        refresh_token = db.refresh_tokens.find_one({"user_id": user_id})
+        refresh_token = db.refresh_tokens.find_one({"user_id": user_id}, {"_id": 0})
         return refresh_token
 
     def update_refresh_token(self, token_id: str) -> dict:
@@ -114,13 +113,8 @@ class TokenModel(BaseModel, extra="forbid"):
         return list(email_tokens)
 
     @staticmethod
-    def get_email_token_by_token_id(token_id: str) -> dict:
+    def get_email_token(token_id: str) -> dict:
         email_token = db.email_tokens.find_one({"_id": ObjectId(token_id)}, {"_id": 0})
-        return email_token
-
-    @staticmethod
-    def get_email_token_by_user_id(user_id: str) -> dict:
-        email_token = db.email_tokens.find_one({"user_id": user_id})
         return email_token
 
     def update_email_token(self, token_id: str) -> dict:
@@ -154,8 +148,8 @@ class TokenModel(BaseModel, extra="forbid"):
         return active_token
 
     @staticmethod
-    def get_active_token_by_jti(jti: str) -> dict:
-        active_token = db.active_tokens.find_one({"jti": jti})
+    def get_active_token_by_user_id(user_id: str) -> dict:
+        active_token = db.active_tokens.find_one({"user_id": user_id})
         return active_token
 
     def update_active_token(self, token_id: str) -> dict:
@@ -184,6 +178,6 @@ class TokenModel(BaseModel, extra="forbid"):
         return active_token_deleted
 
     @staticmethod
-    def delete_active_token_by_jti(jti: str) -> DeleteResult:
-        active_token_deleted = db.active_tokens.delete_one({"jti": jti})
+    def delete_active_token_by_user_id(user_id: str) -> DeleteResult:
+        active_token_deleted = db.active_tokens.delete_one({"user_id": user_id})
         return active_token_deleted

@@ -185,7 +185,7 @@ def test_delete_user_success(
     mock_get_jwt.return_value = {"role": 0, "sub": ID}
     mock_delete_user.return_value = mocker.MagicMock(deleted_count=1)
     mock_revoke_access_token = mocker.patch(
-        "src.routes.users_route.revoke_access_token"
+        "src.routes.users_route.delete_active_token"
     )
     mock_delete_refresh_token = mocker.patch(
         "src.routes.users_route.delete_refresh_token"

@@ -76,14 +76,14 @@ CATEGORIES = [
 @pytest.fixture
 def mock_db_settings(mocker):
     mock_db = mocker.MagicMock()
-    mocker.patch("src.services.db_services.db.settings", new=mock_db)
+    mocker.patch("src.services.db_service.db.settings", new=mock_db)
     return mock_db
 
 
 @pytest.fixture
 def mock_db_products(mocker):
     mock_db = mocker.MagicMock()
-    mocker.patch("src.services.db_services.db.products", new=mock_db)
+    mocker.patch("src.services.db_service.db.products", new=mock_db)
     return mock_db
 
 

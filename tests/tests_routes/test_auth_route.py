@@ -296,7 +296,7 @@ def test_change_email_without_password_error(
     assert response.status_code == 500
     assert (
         response.json["err"]
-        == "Ha ocurrido un error inesperado. Se necesita contraseña para cambiar el email"
+        == "Ha ocurrido un error inesperado: Se necesita contraseña para cambiar el email"
     )
     mock_db_get_user_by_user_id_without_id.assert_called_once()
 
@@ -360,9 +360,34 @@ def test_login_user_not_confirmed_error(
     mock_verify_password.assert_called_once()
 
 
+def test_login_db_error(
+    mocker, client, mock_db_get_user_by_email, mock_verify_password
+):
+    mock_db_get_user_by_email.return_value = {**VALID_USER_DATA, "confirmed": True}
+    mock_verify_password.return_value = True
+    mock_generate_access_token = mocker.patch(
+        "src.routes.auth_route.generate_access_token",
+        side_effect=PyMongoError("Database error"),
+    )
+
+    response = client.post(
+        "/auth/login",
+        json={
+            "email": VALID_USER_DATA["email"],
+            "password": VALID_USER_DATA["password"],
+        },
+    )
+
+    assert response.status_code == 500
+    assert response.json["err"] == "Ha ocurrido un error en MongoDB: Database error"
+    mock_db_get_user_by_email.assert_called_once()
+    mock_verify_password.assert_called_once()
+    mock_generate_access_token.assert_called_once()
+
+
 def test_logout_success(client, auth_header, mock_get_jwt, mocker):
-    mock_get_jwt.return_value = {"role": 3, "sub": ID}
-    mock_revoke_access_token = mocker.patch("src.routes.auth_route.revoke_access_token")
+    mock_get_jwt.return_value = {"sub": ID}
+    mock_delete_active_token = mocker.patch("src.routes.auth_route.delete_active_token")
     mock_delete_refresh_token = mocker.patch(
         "src.routes.auth_route.delete_refresh_token"
     )
@@ -374,7 +399,7 @@ def test_logout_success(client, auth_header, mock_get_jwt, mocker):
         response.json["msg"]
         == f"Logout del usuario '{ID}' ha sido realizado de forma satisfactoria"
     )
-    mock_revoke_access_token.assert_called_once()
+    mock_delete_active_token.assert_called_once()
     mock_delete_refresh_token.assert_called_once()
 
 
@@ -431,7 +456,7 @@ def test_refresh_token_success(
     mock_db_get_user_by_user_id,
     mock_db_get_refresh_token_by_user_id,
 ):
-    mock_get_jwt.return_value({"role": 3, "sub": ID})
+    mock_get_jwt.return_value({"sub": ID})
     mock_db_get_refresh_token_by_user_id.return_value = VALID_TOKEN_DATA
     mock_db_get_user_by_user_id.return_value = VALID_USER_DATA
     mock_generate_access_token.return_value = "access_token"
@@ -495,7 +520,7 @@ def test_confirm_email_invalid_token_error(client, mocker, mock_decode_token):
     response = client.get("/auth/confirm-email/test_token")
 
     assert response.status_code == 500
-    assert response.json["err"] == "Ha ocurrido un error inesperado. Invalid token"
+    assert response.json["err"] == "Ha ocurrido un error inesperado: Invalid token"
     mock_decode_token.assert_called_once()
 
 

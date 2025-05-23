@@ -20,7 +20,9 @@ def add_email_token() -> tuple[Response, int]:
         data = request.get_json()
         email_token = TokenModel(**data)
         new_email_token = email_token.insert_email_token()
-        return success_json_response(new_email_token.inserted_id, email_tokens_resource, "añadido", 201)
+        return success_json_response(
+            new_email_token.inserted_id, email_tokens_resource, "añadido", 201
+        )
 
 
 @email_tokens_route.route("/", methods=["GET"])
@@ -45,14 +47,14 @@ def handle_email_token(email_token_id: str) -> tuple[Response, int]:
         raise ValueCustomError("not_authorized")
 
     if request.method == "GET":
-        email_token = TokenModel.get_email_token_by_token_id(email_token_id)
+        email_token = TokenModel.get_email_token(email_token_id)
         if email_token:
             return db_json_response(email_token)
         else:
             raise ValueCustomError("not_found", email_tokens_resource)
 
     if request.method == "PUT":
-        email_token = TokenModel.get_email_token_by_token_id(email_token_id)
+        email_token = TokenModel.get_email_token(email_token_id)
         if email_token:
             data = request.get_json()
             mixed_data = {**email_token, **data}
@@ -65,6 +67,8 @@ def handle_email_token(email_token_id: str) -> tuple[Response, int]:
     if request.method == "DELETE":
         email_token_deleted = TokenModel.delete_email_token(email_token_id)
         if email_token_deleted.deleted_count > 0:
-            return success_json_response(email_token_id, email_tokens_resource, "eliminado")
+            return success_json_response(
+                email_token_id, email_tokens_resource, "eliminado"
+            )
         else:
             raise ValueCustomError("not_found", email_tokens_resource)

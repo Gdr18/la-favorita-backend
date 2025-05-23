@@ -5,7 +5,7 @@ from pymongo import ReturnDocument
 from bson import ObjectId
 from datetime import datetime
 
-from src.services.db_services import db
+from src.services.db_service import db
 from src.utils.models_helpers import Address, ItemOrder
 
 
@@ -17,7 +17,9 @@ class OrderModel(BaseModel, extra="forbid"):
     address: Optional[Address] = None
     payment: Literal["cash", "card", "paypal"] = Field(...)
     total_price: float = Field(..., ge=0)
-    state: Literal["accepted", "cooking", "canceled", "ready", "sent", "delivered"] = Field(default="accepted")
+    state: Literal["accepted", "cooking", "canceled", "ready", "sent", "delivered"] = (
+        Field(default="accepted")
+    )
     created_at: datetime = Field(default_factory=datetime.now)
 
     @model_validator(mode="after")
@@ -33,8 +35,8 @@ class OrderModel(BaseModel, extra="forbid"):
         allowed_transitions = {
             "accepted": ("cooking", "canceled"),
             "cooking": ("canceled", "ready"),
-            "ready": ("sent",),
-            "sent": ("delivered",),
+            "ready": ("sent", "canceled"),
+            "sent": ("delivered", "canceled"),
         }
 
         if new_state not in allowed_transitions.get(old_state):

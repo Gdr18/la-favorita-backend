@@ -20,7 +20,7 @@ def mock_get_jwt(mocker):
 
 @pytest.fixture
 def mock_get_email_token(mocker):
-    return mocker.patch.object(TokenModel, "get_email_token_by_token_id")
+    return mocker.patch.object(TokenModel, "get_email_token")
 
 
 @pytest.fixture

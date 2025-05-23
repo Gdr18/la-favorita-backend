@@ -6,7 +6,7 @@ from bson import ObjectId
 from datetime import datetime
 
 from src.utils.models_helpers import Ingredient
-from src.services.db_services import db
+from src.services.db_service import db
 
 
 # Campos únicos: name. Está configurado en MongoDB Atlas.
@@ -25,11 +25,18 @@ class DishModel(BaseModel, extra="forbid"):
     def validate_model(self) -> "DishModel":
         ingredients_names = [ingredient["name"] for ingredient in self.ingredients]
         checked_ingredients = list(
-            db.products.find({"name": {"$in": ingredients_names}}, {"name": 1, "_id": 0, "allergens": 1})
+            db.products.find(
+                {"name": {"$in": ingredients_names}},
+                {"name": 1, "_id": 0, "allergens": 1},
+            )
         )
-        difference_between = set(ingredients_names).difference(set([value["name"] for value in checked_ingredients]))
+        difference_between = set(ingredients_names).difference(
+            set([value["name"] for value in checked_ingredients])
+        )
         if difference_between:
-            raise ValueError(f"""El ingrediente {', '.join([f"'{ingredient}'" for ingredient in list(difference_between)])} no existe.""")
+            raise ValueError(
+                f"""El ingrediente {', '.join([f"'{ingredient}'" for ingredient in list(difference_between)])} no existe."""
+            )
 
         for product in checked_ingredients:
             for ingredient in self.ingredients:
@@ -61,14 +68,20 @@ class DishModel(BaseModel, extra="forbid"):
 
     def update_dish(self, dish_id: str) -> dict:
         updated_dish = db.dishes.find_one_and_update(
-            {"_id": ObjectId(dish_id)}, {"$set": self.model_dump()}, return_document=ReturnDocument.AFTER
+            {"_id": ObjectId(dish_id)},
+            {"$set": self.model_dump()},
+            return_document=ReturnDocument.AFTER,
         )
         return updated_dish
 
     @staticmethod
-    def update_dishes_availability(ingredient: str, value: bool, session=None) -> UpdateResult:
+    def update_dishes_availability(
+        ingredient: str, value: bool, session=None
+    ) -> UpdateResult:
         updated_dishes = db.dishes.update_many(
-            {"ingredients": {"$elemMatch": {"name": ingredient}}}, {"$set": {"available": value}}, session=session
+            {"ingredients": {"$elemMatch": {"name": ingredient}}},
+            {"$set": {"available": value}},
+            session=session,
         )
         return updated_dishes
 

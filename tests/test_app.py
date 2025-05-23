@@ -16,7 +16,7 @@ def test_blueprints_registration(app):
         "products",
         "settings",
         "auth",
-        "revoked_tokens",
+        "active_tokens",
         "refresh_tokens",
         "email_tokens",
         "orders",

@@ -144,9 +144,9 @@ def handle_mongodb_exception(error: PyMongoError) -> tuple[Response, int]:
             409,
         )
     elif isinstance(error, ConnectionFailure):
-        return jsonify(err=f"Error de conexión con MongoDB: {error}"), 500
+        return jsonify(err=f"Error de conexión con MongoDB: {str(error)}"), 500
     else:
-        return jsonify(err=f"Ha ocurrido un error en MongoDB: {error}"), 500
+        return jsonify(err=f"Ha ocurrido un error en MongoDB: {str(error)}"), 500
 
 
 # Función para registrar los gestores de excepciones globales
@@ -179,7 +179,7 @@ def register_global_exception_handlers(app: Flask) -> None:
                     ]
                     return handler(relevant_errors)
 
-        return jsonify(err=[str(e) for e in errors_list]), 400
+        return jsonify(err=". ".join([f"Error: {str(e)}" for e in errors_list])), 400
 
     @app.errorhandler(ValueCustomError)
     def handle_custom_error(error: ValueCustomError) -> tuple[Response, int]:
@@ -188,9 +188,9 @@ def register_global_exception_handlers(app: Flask) -> None:
     @app.errorhandler(SendGridException)
     def handle_send_email_error(error: SendGridException) -> tuple[Response, int]:
         return jsonify(
-            err=f"Ha habido un error al enviar el correo de confirmación: {error}"
+            err=f"Ha habido un error al enviar el correo de confirmación: {str(error)}"
         ), (error.status_code if hasattr(error, "status_code") else 500)
 
     @app.errorhandler(Exception)
     def handle_unexpected_error(error: Exception) -> tuple[Response, int]:
-        return jsonify(err=f"Ha ocurrido un error inesperado. {str(error)}"), 500
+        return jsonify(err=f"Ha ocurrido un error inesperado: {str(error)}"), 500

@@ -15,7 +15,7 @@ from src.services.security_service import (
 )
 from src.utils.exception_handlers import ValueCustomError
 from src.utils.json_responses import success_json_response
-from src.services.db_services import client
+from src.services.db_service import client
 
 auth_route = Blueprint("auth", __name__)
 
@@ -97,10 +97,10 @@ def login() -> tuple[Response, int]:
 @auth_route.route("/logout", methods=["POST"])
 @jwt_required()
 def logout() -> tuple[Response, int]:
-    token = get_jwt()
-    delete_active_token(token["jti"])
-    delete_refresh_token(token["jti"])
-    return success_json_response(token["sub"], "logout del usuario", "realizado")
+    user_id = get_jwt().get("sub")
+    delete_active_token(user_id)
+    delete_refresh_token(user_id)
+    return success_json_response(user_id, "logout del usuario", "realizado")
 
 
 @auth_route.route("/login/google")

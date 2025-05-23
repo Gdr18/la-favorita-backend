@@ -6,7 +6,7 @@ from src.models.order_model import OrderModel
 from src.models.product_model import ProductModel
 from src.utils.json_responses import success_json_response, db_json_response
 from src.utils.exception_handlers import ValueCustomError
-from src.services.db_services import client
+from src.services.db_service import client
 
 orders_resource = "orden"
 orders_route = Blueprint("orders", __name__)
@@ -72,7 +72,7 @@ def update_order(order_id):
     try:
         session.start_transaction()
         updated_order = order_object.update_order(order_id, session)
-        if order_object.state == "ready":
+        if order_object.state == "ready" and order["state"] != "ready":
             ProductModel.update_product_stock_by_name(order_object.items, session)
         session.commit_transaction()
         return db_json_response(updated_order)

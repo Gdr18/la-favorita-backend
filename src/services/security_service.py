@@ -119,13 +119,13 @@ def get_expiration_time_refresh_token(role: int) -> timedelta:
         return timedelta(days=30)
 
 
-def delete_active_token(jti: str) -> InsertOneResult:
-    deleted_active_token = TokenModel.delete_active_token_by_jti(jti)
+def delete_active_token(user_id: str) -> DeleteResult:
+    deleted_active_token = TokenModel.delete_active_token_by_user_id(user_id)
     return deleted_active_token
 
 
-def delete_refresh_token(jti: str) -> DeleteResult:
-    deleted_refresh_token = TokenModel.delete_refresh_token_by_jti(jti)
+def delete_refresh_token(user_id: str) -> DeleteResult:
+    deleted_refresh_token = TokenModel.delete_refresh_token_by_user_id(user_id)
     return deleted_refresh_token
 
 
@@ -133,7 +133,7 @@ def delete_refresh_token(jti: str) -> DeleteResult:
 def check_if_token_active_callback(
     jwt_header: dict, jwt_payload: dict
 ) -> Union[bool, None]:
-    check_token = TokenModel.get_active_token_by_jti(jwt_payload["jti"])
+    check_token = TokenModel.get_active_token_by_user_id(jwt_payload["sub"])
     return True if not check_token else None
 
 

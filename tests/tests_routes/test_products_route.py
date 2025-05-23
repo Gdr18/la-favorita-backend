@@ -183,9 +183,7 @@ def test_update_product_exception(
     mock_update_product.assert_called_once()
 
 
-def test_get_product_success(
-    mocker, client, auth_header, mock_get_jwt, mock_get_product
-):
+def test_get_product_success(client, auth_header, mock_get_jwt, mock_get_product):
     mock_get_jwt.return_value = {"role": 1}
     mock_get_product.return_value = VALID_PRODUCT_DATA
 

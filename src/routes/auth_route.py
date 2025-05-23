@@ -178,7 +178,7 @@ def confirm_email(token: str) -> tuple[Response, int]:
 
 
 @auth_route.route("/resend-email", methods=["POST"])
-def resend_email(user_id: str) -> tuple[Response, int]:
+def resend_email() -> tuple[Response, int]:
     email = request.get_json().get("email")
     user_data = UserModel.get_user_by_email(email)
     if user_data:
@@ -186,7 +186,7 @@ def resend_email(user_id: str) -> tuple[Response, int]:
         if len(user_token) < 5:
             send_email(user_data)
             return success_json_response(
-                user_id, "email de confirmación del usuario", "reenviado"
+                user_data["_id"], "email de confirmación del usuario", "reenviado"
             )
         else:
             raise ValueCustomError("too_many_requests")

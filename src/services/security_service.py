@@ -40,7 +40,7 @@ def verify_google_identity(
     return token_info["email"] == user_email
 
 
-def generate_access_token(user_data: dict, session) -> str:
+def generate_access_token(user_data: dict, session=None) -> str:
     user_role = user_data.get("role")
     user_identity = user_data.get("_id")
     token_info = {

@@ -66,7 +66,9 @@ def handle_active_token(active_token_id: str) -> tuple[Response, int]:
             raise ValueCustomError("not_found", active_tokens_resource)
 
     if request.method == "DELETE":
-        active_token_deleted = TokenModel.delete_active_token(active_token_id)
+        active_token_deleted = TokenModel.delete_active_token_by_token_id(
+            active_token_id
+        )
         if active_token_deleted.deleted_count > 0:
             return success_json_response(
                 active_token_id, active_tokens_resource, "eliminado"

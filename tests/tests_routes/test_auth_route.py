@@ -514,7 +514,7 @@ def test_confirm_email_success(
     mock_db_update_user.assert_called_once()
 
 
-def test_confirm_email_invalid_token_error(client, mocker, mock_decode_token):
+def test_confirm_email_invalid_token_error(client, mock_decode_token):
     mock_decode_token.side_effect = Exception("Invalid token")
 
     response = client.get("/auth/confirm-email/test_token")

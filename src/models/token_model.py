@@ -173,7 +173,7 @@ class TokenModel(BaseModel, extra="forbid"):
         return active_token_updated
 
     @staticmethod
-    def delete_active_token(token_id: str) -> DeleteResult:
+    def delete_active_token_by_token_id(token_id: str) -> DeleteResult:
         active_token_deleted = db.active_tokens.delete_one({"_id": ObjectId(token_id)})
         return active_token_deleted
 

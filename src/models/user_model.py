@@ -21,7 +21,8 @@ from src.utils.models_helpers import Address, ItemBasket
 
 
 # Campos únicos: email. Está configurado en MongoDB Atlas.
-# Campos TTL: expires_at. Está configurado en MongoDB Atlas. El documento se eliminará automáticamente cuando expire la fecha.
+# Campos TTL: expires_at. Está configurado en MongoDB Atlas. El documento se eliminará automáticamente cuando expire
+# la fecha. Si el usuario no ha confirmado su email, se eliminará automáticamente a los 7 días.
 class UserModel(BaseModel, extra="forbid"):
     name: str = Field(..., min_length=1, max_length=50)
     email: EmailStr = Field(..., min_length=5, max_length=100)

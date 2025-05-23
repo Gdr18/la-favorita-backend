@@ -19,6 +19,8 @@ class ValueCustomError(Exception):
             self.response = self.json_response_not_match()
         elif self.function == "not_confirmed":
             self.response = self.json_response_not_confirmed()
+        elif self.function == "already_confirmed":
+            self.response = self.json_response_already_confirmed()
         elif self.function == "too_many_requests":
             self.response = self.json_response_too_many_requests()
 
@@ -32,6 +34,10 @@ class ValueCustomError(Exception):
     @staticmethod
     def json_response_not_confirmed() -> tuple[Response, int]:
         return jsonify(err=f"El email no está confirmado"), 401
+
+    @staticmethod
+    def json_response_already_confirmed() -> tuple[Response, int]:
+        return jsonify(err=f"El email ya está confirmado"), 401
 
     @staticmethod
     def json_response_too_many_requests() -> tuple[Response, int]:

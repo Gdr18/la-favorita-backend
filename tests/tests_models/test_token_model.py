@@ -108,12 +108,13 @@ def test_get_all_tokens(mock_db, get_tokens_function, expected_result):
     "get_token_function, expected_result",
     [
         (TokenModel.get_refresh_token_by_user_id, VALID_DATA),
+        (TokenModel.get_active_token_by_user_id, VALID_DATA),
         (TokenModel.get_email_token, VALID_DATA),
         (TokenModel.get_active_token_by_token_id, VALID_DATA),
         (TokenModel.get_refresh_token_by_token_id, VALID_DATA),
     ],
 )
-def test_get_token_by_token_id(mock_db, get_token_function, expected_result):
+def test_get_token(mock_db, get_token_function, expected_result):
     return assert_get_document_by_id_template(
         mock_db, get_token_function, expected_result
     )
@@ -147,7 +148,9 @@ def test_update_token(mock_db, update_token_function, expected_result):
     [
         TokenModel.delete_refresh_token_by_token_id,
         TokenModel.delete_email_token,
-        TokenModel.delete_active_token,
+        TokenModel.delete_active_token_by_token_id,
+        TokenModel.delete_refresh_token_by_user_id,
+        TokenModel.delete_active_token_by_user_id,
     ],
 )
 def test_delete_token(mock_db, delete_token_function):
@@ -168,29 +171,8 @@ def test_update_or_insert_token(mock_db, update_or_insert_token_function):
     mock_db.find_one_and_update.assert_called_once()
 
 
-@pytest.mark.parametrize(
-    "delete_token_by_user_id_function",
-    [
-        TokenModel.delete_refresh_token_by_user_id,
-        TokenModel.delete_active_token_by_user_id,
-    ],
-)
-def test_delete_token_by_user_id(mock_db, delete_token_by_user_id_function):
-    mock_db.delete_one.return_value.deleted_count = 1
-    result = delete_token_by_user_id_function(ID)
-    assert result.deleted_count == 1
-    mock_db.delete_one.assert_called_once()
-
-
 def test_get_email_tokens_by_user_id(mock_db):
     mock_db.find.return_value = [VALID_DATA]
     result = TokenModel.get_email_tokens_by_user_id(ID)
     assert result == [VALID_DATA]
     mock_db.find.assert_called_once()
-
-
-def test_get_active_token_by_user_id(mock_db):
-    mock_db.find_one.return_value = VALID_DATA
-    result = TokenModel.get_active_token_by_user_id(VALID_DATA["user_id"])
-    assert result == VALID_DATA
-    mock_db.find_one.assert_called_once()

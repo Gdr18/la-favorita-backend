@@ -25,7 +25,7 @@ def mock_get_active_token(mocker):
 
 @pytest.fixture
 def mock_delete_active_token(mocker):
-    return mocker.patch.object(TokenModel, "delete_active_token")
+    return mocker.patch.object(TokenModel, "delete_active_token_by_token_id")
 
 
 @pytest.mark.parametrize(

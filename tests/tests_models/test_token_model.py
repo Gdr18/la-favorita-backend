@@ -38,9 +38,9 @@ JTI_PATTERN = re.compile(
 @pytest.fixture
 def mock_db(mocker):
     mock_db = mocker.MagicMock()
-    mocker.patch("src.services.db_services.db.refresh_tokens", new=mock_db)
-    mocker.patch("src.services.db_services.db.active_tokens", new=mock_db)
-    mocker.patch("src.services.db_services.db.email_tokens", new=mock_db)
+    mocker.patch("src.services.db_service.db.refresh_tokens", new=mock_db)
+    mocker.patch("src.services.db_service.db.active_tokens", new=mock_db)
+    mocker.patch("src.services.db_service.db.email_tokens", new=mock_db)
     return mock_db
 
 
@@ -110,6 +110,7 @@ def test_get_all_tokens(mock_db, get_tokens_function, expected_result):
         (TokenModel.get_refresh_token_by_user_id, VALID_DATA),
         (TokenModel.get_email_token, VALID_DATA),
         (TokenModel.get_active_token_by_token_id, VALID_DATA),
+        (TokenModel.get_refresh_token_by_token_id, VALID_DATA),
     ],
 )
 def test_get_token_by_token_id(mock_db, get_token_function, expected_result):

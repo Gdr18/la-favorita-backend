@@ -296,7 +296,7 @@ def test_change_email_without_password_error(
     assert response.status_code == 500
     assert (
         response.json["err"]
-        == "Ha ocurrido un error inesperado. Se necesita contraseña para cambiar el email"
+        == "Ha ocurrido un error inesperado: Se necesita contraseña para cambiar el email"
     )
     mock_db_get_user_by_user_id_without_id.assert_called_once()
 
@@ -520,7 +520,7 @@ def test_confirm_email_invalid_token_error(client, mocker, mock_decode_token):
     response = client.get("/auth/confirm-email/test_token")
 
     assert response.status_code == 500
-    assert response.json["err"] == "Ha ocurrido un error inesperado. Invalid token"
+    assert response.json["err"] == "Ha ocurrido un error inesperado: Invalid token"
     mock_decode_token.assert_called_once()
 
 

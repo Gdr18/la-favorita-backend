@@ -205,7 +205,7 @@ def test_mongodb_error_flask_handler(app):
         assert "Error de conexión" in response.json["err"]
 
 
-def test_validation_error_flask_handler(app):
+def test_captured_validation_error_flask_handler(app):
     with app.test_client() as client:
 
         @app.route("/validation-error")
@@ -220,6 +220,26 @@ def test_validation_error_flask_handler(app):
 
         assert response.status_code == 400
         assert "no cumple con el patrón requerido" in response.json["err"]
+
+
+def test_non_captured_validation_error_flask_handler(app, mocker):
+    with app.test_client() as client:
+        fake_errors = [
+            {"type": "bool_parsing", "msg": "Error desconocido", "loc": ["field"]},
+            {"type": "bool_parsing", "msg": "Error desconocido", "loc": ["field"]},
+        ]
+
+        validation_error = ValidationError.from_exception_data(TokenModel, fake_errors)
+        mocker.patch.object(validation_error, "errors", return_value=fake_errors)
+
+        @app.route("/validation-error")
+        def trigger_validation_error():
+            raise validation_error
+
+        response = client.get("/validation-error")
+
+        assert response.status_code == 400
+        assert "Error desconocido" in response.json["err"]
 
 
 def test_value_custom_error_flask_handler(app):

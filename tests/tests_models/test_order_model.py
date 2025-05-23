@@ -40,7 +40,7 @@ VALID_DATA = {
 @pytest.fixture
 def mock_db(mocker):
     mock_db = mocker.MagicMock()
-    mocker.patch("src.services.db_services.db.orders", new=mock_db)
+    mocker.patch("src.services.db_service.db.orders", new=mock_db)
     return mock_db
 
 

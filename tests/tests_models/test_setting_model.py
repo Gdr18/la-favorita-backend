@@ -17,7 +17,7 @@ VALID_DATA = {"name": "TestSetting", "values": ["value1", "value2"]}
 @pytest.fixture
 def mock_db(mocker):
     mock_db = mocker.MagicMock()
-    mocker.patch("src.services.db_services.db.settings", new=mock_db)
+    mocker.patch("src.services.db_service.db.settings", new=mock_db)
     return mock_db
 
 

@@ -46,13 +46,13 @@ def handle_refresh_token(refresh_token_id: str) -> tuple[Response, int]:
     if not token_role == 0:
         raise ValueCustomError("not_authorized")
     if request.method == "GET":
-        refresh_token = TokenModel.get_refresh_token_by_user_id(refresh_token_id)
+        refresh_token = TokenModel.get_refresh_token_by_token_id(refresh_token_id)
         if refresh_token:
             return db_json_response(refresh_token)
         raise ValueCustomError("not_found", refresh_tokens_resource)
 
     if request.method == "PUT":
-        refresh_token = TokenModel.get_refresh_token_by_user_id(refresh_token_id)
+        refresh_token = TokenModel.get_refresh_token_by_token_id(refresh_token_id)
         if refresh_token:
             data = request.get_json()
             mixed_data = {**refresh_token, **data}

@@ -54,7 +54,7 @@ class TokenModel(BaseModel, extra="forbid"):
         return list(refresh_tokens)
 
     @staticmethod
-    def get_refresh_token(token_id: str) -> dict:
+    def get_refresh_token_by_token_id(token_id: str) -> dict:
         refresh_token = db.refresh_tokens.find_one(
             {"_id": ObjectId(token_id)}, {"_id": 0}
         )

@@ -112,10 +112,32 @@ def mock_db_get_refresh_token_by_user_id(mocker):
     return mocker.patch.object(TokenModel, "get_refresh_token_by_user_id")
 
 
+@pytest.fixture
+def mock_google_access(mocker):
+    return mocker.patch("src.routes.auth_route.google.authorize_access_token")
+
+
+@pytest.fixture
+def mock_google_parse(mocker):
+    return mocker.patch(
+        "src.routes.auth_route.google.parse_id_token",
+        return_value={"name": "test_user", "email": "test_user@google.com"},
+    )
+
+
+@pytest.fixture
+def insert_or_update_call_db(mocker):
+    return mocker.patch.object(
+        UserModel,
+        "insert_or_update_user_by_email",
+        return_value={**VALID_USER_DATA, "_id": ID},
+    )
+
+
 @pytest.mark.parametrize(
     "url, method",
     [
-        ("/auth/resend-email/507f1f77bcf86cd799439011", "post"),
+        ("/auth/resend-email", "post"),
         ("/auth/login", "post"),
         ("/auth/confirm-email/test_token", "get"),
     ],
@@ -130,14 +152,10 @@ def test_user_not_found_error(
     url,
     method,
 ):
-    if "resend-email" in url:
-        mock_db_get_email_tokens
-        mock_db_get_user_by_user_id.return_value = None
-        get_user_call_db = mock_db_get_user_by_user_id
-    elif "login" in url:
+    if "confirm-email" not in url:
         mock_db_get_user_by_email.return_value = None
         get_user_call_db = mock_db_get_user_by_email
-    elif "confirm-email" in url:
+    else:
         mock_decode_token.return_value = {"sub": ID}
         mock_db_get_user_by_user_id_without_id.return_value = None
         get_user_call_db = mock_db_get_user_by_user_id_without_id
@@ -148,9 +166,8 @@ def test_user_not_found_error(
         response = client.get(url)
 
     assert response.status_code == 404
-    assert response.json["err"] == "Usuario no encontrado"
+    assert response.json["err"] == "not_found"
     get_user_call_db.assert_called_once()
-    mock_db_get_email_tokens.assert_called_once() if "resend-email" in url else None
     mock_decode_token.assert_called_once() if "confirm-email" in url else None
 
 
@@ -164,9 +181,7 @@ def test_register_success(mocker, client, mock_send_email, mock_db_insert_user):
     )
 
     assert response.status_code == 201
-    assert (
-        response.json["msg"] == f"Usuario '{ID}' ha sido añadido de forma satisfactoria"
-    )
+    assert response.json["msg"] == f"Usuario añadido de forma satisfactoria"
     mock_db_insert_user.assert_called_once()
     mock_send_email.assert_called_once()
 
@@ -178,7 +193,7 @@ def test_register_with_role_error(client):
     )
 
     assert response.status_code == 401
-    assert response.json["err"] == "El token no está autorizado a establecer 'role'"
+    assert response.json["err"] == "not_auth_set"
 
 
 def test_register_exception_error(client, mock_db_insert_user):
@@ -190,7 +205,7 @@ def test_register_exception_error(client, mock_db_insert_user):
     )
 
     assert response.status_code == 500
-    assert response.json["err"] == "Ha ocurrido un error en MongoDB: Database error"
+    assert response.json["err"] == "db_generic"
     mock_db_insert_user.assert_called_once()
 
 
@@ -229,8 +244,7 @@ def test_change_email_auth_provider_email_success(
 
     assert response.status_code == 200
     assert (
-        response.json["msg"]
-        == f"Email del usuario '{ID}' ha sido cambiado de forma satisfactoria"
+        response.json["msg"] == f"Email del usuario actualizado de forma satisfactoria"
     )
     mock_db_get_user_by_user_id_without_id.assert_called_once()
     mock_db_update_user.assert_called_once()
@@ -270,8 +284,7 @@ def test_change_email_auth_provider_google_success(
 
     assert response.status_code == 200
     assert (
-        response.json["msg"]
-        == "Email del usuario '507f1f77bcf86cd799439011' ha sido cambiado de forma satisfactoria"
+        response.json["msg"] == "Email del usuario actualizado de forma satisfactoria"
     )
     mock_db_get_user_by_user_id_without_id.assert_called_once()
     mock_db_update_user.assert_called_once()
@@ -293,11 +306,8 @@ def test_change_email_without_password_error(
         headers=auth_header,
     )
 
-    assert response.status_code == 500
-    assert (
-        response.json["err"]
-        == "Ha ocurrido un error inesperado: Se necesita contraseña para cambiar el email"
-    )
+    assert response.status_code == 400
+    assert response.json["err"] == "resource_required"
     mock_db_get_user_by_user_id_without_id.assert_called_once()
 
 
@@ -322,7 +332,7 @@ def test_login_success(
 
     assert response.status_code == 200
     assert (
-        response.json["msg"] == f"El usuario '{ID}' ha iniciado sesión de forma manual"
+        response.json["msg"] == f"Usuario inicia sesión manual de forma satisfactoria"
     )
     assert response.json["access_token"] == "access_token"
     assert response.json["refresh_token"] == "refresh_token"
@@ -341,7 +351,7 @@ def test_login_password_not_match_error(
     response = client.post("/auth/login", json=INVALID_USER_DATA)
 
     assert response.status_code == 401
-    assert response.json["err"] == "La contraseña no coincide"
+    assert response.json["err"] == "password_not_match"
     mock_db_get_user_by_email.assert_called_once()
     mock_verify_password.assert_called_once()
 
@@ -355,20 +365,20 @@ def test_login_user_not_confirmed_error(
     response = client.post("/auth/login", json=INVALID_USER_DATA)
 
     assert response.status_code == 401
-    assert response.json["err"] == "El email no está confirmado"
+    assert response.json["err"] == "email_not_confirmed"
     mock_db_get_user_by_email.assert_called_once()
     mock_verify_password.assert_called_once()
 
 
 def test_login_db_error(
-    mocker, client, mock_db_get_user_by_email, mock_verify_password
+    client,
+    mock_db_get_user_by_email,
+    mock_verify_password,
+    mock_generate_access_token,
 ):
     mock_db_get_user_by_email.return_value = {**VALID_USER_DATA, "confirmed": True}
     mock_verify_password.return_value = True
-    mock_generate_access_token = mocker.patch(
-        "src.routes.auth_route.generate_access_token",
-        side_effect=PyMongoError("Database error"),
-    )
+    mock_generate_access_token.side_effect = PyMongoError("Database error")
 
     response = client.post(
         "/auth/login",
@@ -379,7 +389,7 @@ def test_login_db_error(
     )
 
     assert response.status_code == 500
-    assert response.json["err"] == "Ha ocurrido un error en MongoDB: Database error"
+    assert response.json["err"] == "db_generic"
     mock_db_get_user_by_email.assert_called_once()
     mock_verify_password.assert_called_once()
     mock_generate_access_token.assert_called_once()
@@ -395,10 +405,7 @@ def test_logout_success(client, auth_header, mock_get_jwt, mocker):
     response = client.post("/auth/logout", headers=auth_header)
 
     assert response.status_code == 200
-    assert (
-        response.json["msg"]
-        == f"Logout del usuario '{ID}' ha sido realizado de forma satisfactoria"
-    )
+    assert response.json["msg"] == "Logout del usuario realizado de forma satisfactoria"
     mock_delete_active_token.assert_called_once()
     mock_delete_refresh_token.assert_called_once()
 
@@ -417,20 +424,16 @@ def test_login_google_success(client, mocker):
 
 
 def test_callback_google_success(
-    client, mocker, mock_generate_access_token, mock_generate_refresh_token
+    client,
+    mock_google_access,
+    mock_google_parse,
+    insert_or_update_call_db,
+    mock_generate_access_token,
+    mock_generate_refresh_token,
 ):
-    mock_google_access = mocker.patch(
-        "src.routes.auth_route.google.authorize_access_token"
-    )
-    mock_google_parse = mocker.patch(
-        "src.routes.auth_route.google.parse_id_token",
-        return_value={"name": "test_user", "email": "test_user@google.com"},
-    )
-    insert_or_update_call_db = mocker.patch.object(
-        UserModel,
-        "insert_or_update_user_by_email",
-        return_value={**VALID_USER_DATA, "_id": ID},
-    )
+    mock_google_access
+    mock_google_parse
+    insert_or_update_call_db
 
     mock_generate_access_token.return_value = "access_token"
     mock_generate_refresh_token.return_value = "refresh_token"
@@ -438,13 +441,39 @@ def test_callback_google_success(
     response = client.get("/auth/callback/google")
 
     assert response.status_code == 200
-    assert response.json["msg"] == f"El usuario '{ID}' ha iniciado sesión con Google"
+    assert (
+        response.json["msg"]
+        == "Usuario inicia sesión con Google de forma satisfactoria"
+    )
     assert response.json["access_token"] == "access_token"
     assert response.json["refresh_token"] == "refresh_token"
     mock_google_access.assert_called_once()
     mock_google_parse.assert_called_once()
     insert_or_update_call_db.assert_called_once()
     mock_generate_refresh_token.assert_called_once()
+    mock_generate_access_token.assert_called_once()
+
+
+def test_callback_google_db_error(
+    client,
+    mock_get_jwt,
+    mock_google_parse,
+    mock_google_access,
+    insert_or_update_call_db,
+    mock_generate_access_token,
+):
+    mock_google_access
+    mock_google_parse
+    insert_or_update_call_db
+    mock_generate_access_token.side_effect = PyMongoError("Database error")
+
+    response = client.get("/auth/callback/google")
+
+    assert response.status_code == 500
+    assert response.json["err"] == "db_generic"
+    mock_google_access.assert_called_once()
+    mock_google_parse.assert_called_once()
+    insert_or_update_call_db.assert_called_once()
     mock_generate_access_token.assert_called_once()
 
 
@@ -480,7 +509,7 @@ def test_refresh_token_error(
     response = client.get("/auth/refresh-token", headers=auth_header_refresh)
 
     assert response.status_code == 404
-    assert response.json["err"] == "Refresh token no encontrado"
+    assert response.json["err"] == "not_found"
     mock_db_get_refresh_token_by_user_id.assert_called_once()
 
 
@@ -505,10 +534,7 @@ def test_confirm_email_success(
     response = client.get("/auth/confirm-email/test_token")
 
     assert response.status_code == 200
-    assert (
-        response.json["msg"]
-        == f"""Usuario '{ID}' ha sido confirmado de forma satisfactoria"""
-    )
+    assert response.json["msg"] == "Usuario confirmado de forma satisfactoria"
     mock_decode_token.assert_called_once()
     mock_db_get_user_by_user_id_without_id.assert_called_once()
     mock_db_update_user.assert_called_once()
@@ -520,37 +546,58 @@ def test_confirm_email_invalid_token_error(client, mock_decode_token):
     response = client.get("/auth/confirm-email/test_token")
 
     assert response.status_code == 500
-    assert response.json["err"] == "Ha ocurrido un error inesperado: Invalid token"
+    assert response.json["err"] == "unexpected"
     mock_decode_token.assert_called_once()
 
 
-def test_resend_email_success(
-    client, mock_db_get_user_by_user_id, mock_send_email, mock_db_get_email_tokens
+def test_confirm_email_already_confirmed_error(
+    client, mock_db_get_user_by_user_id_without_id, mock_decode_token
 ):
+    mock_decode_token.return_value = {"sub": ID}
+    mock_db_get_user_by_user_id_without_id.return_value = {
+        **VALID_USER_DATA,
+        "auth_provider": "email",
+        "confirmed": True,
+    }
+
+    response = client.get("/auth/confirm-email/test_token")
+
+    assert response.status_code == 401
+    assert response.json["err"] == "email_already_confirmed"
+    mock_decode_token.assert_called_once()
+    mock_db_get_user_by_user_id_without_id.assert_called_once()
+
+
+def test_resend_email_success(
+    client, mock_db_get_user_by_email, mock_send_email, mock_db_get_email_tokens
+):
+    mock_db_get_user_by_email.return_value = {**VALID_USER_DATA, "_id": ID}
     mock_db_get_email_tokens
-    mock_db_get_user_by_user_id.return_value = VALID_USER_DATA
     mock_send_email
 
-    response = client.post(f"/auth/resend-email/{ID}")
+    response = client.post(
+        f"/auth/resend-email", json={"email": VALID_USER_DATA["email"]}
+    )
 
     assert response.status_code == 200
     assert (
-        response.json["msg"]
-        == f"Email de confirmación del usuario '{ID}' ha sido reenviado de forma satisfactoria"
+        response.json["msg"] == "Email de confirmación reenviado de forma satisfactoria"
     )
     mock_db_get_email_tokens.assert_called_once()
-    mock_db_get_user_by_user_id.assert_called_once()
+    mock_db_get_user_by_email.assert_called_once()
     mock_send_email.assert_called_once()
 
 
-def test_resend_email_too_many_requests_error(client, mock_db_get_email_tokens):
+def test_resend_email_too_many_requests_error(
+    client, mock_db_get_email_tokens, mock_db_get_user_by_email
+):
+    mock_db_get_user_by_email.return_value = {**VALID_USER_DATA, "_id": ID}
     mock_db_get_email_tokens.return_value = mock_db_get_email_tokens.return_value * 5
 
-    response = client.post(f"/auth/resend-email/{ID}")
+    response = client.post(
+        f"/auth/resend-email", json={"email": VALID_USER_DATA["email"]}
+    )
 
     assert response.status_code == 429
-    assert (
-        response.json["err"]
-        == "Se han reenviado demasiados emails de confirmación. Inténtalo mañana."
-    )
+    assert response.json["err"] == "too_many_requests"
     mock_db_get_email_tokens.assert_called_once()

@@ -50,7 +50,7 @@ def test_token_not_authorized_error(mock_get_jwt, client, auth_header, url, meth
         response = client.post(url, json=VALID_DISH_DATA, headers=auth_header)
 
     assert response.status_code == 401
-    assert response.json["err"] == "El token no está autorizado a acceder a esta ruta"
+    assert response.json["err"] == "not_auth"
     mock_get_jwt.assert_called_once()
 
 
@@ -86,7 +86,7 @@ def test_dish_not_found_error(
         response = client.delete(url, headers=auth_header)
 
     assert response.status_code == 404
-    assert response.json["err"] == "Plato no encontrado"
+    assert response.json["err"] == "not_found"
     mock_get_jwt.assert_called_once() if method != "get" else None
     (
         mock_get_dish.assert_called_once()
@@ -104,9 +104,7 @@ def test_add_dish_success(mocker, client, auth_header, mock_get_jwt):
     response = client.post("/dishes/", json=VALID_DISH_DATA, headers=auth_header)
 
     assert response.status_code == 201
-    assert (
-        response.json["msg"] == f"Plato '{ID}' ha sido añadido de forma satisfactoria"
-    )
+    assert response.json["msg"] == f"Plato añadido de forma satisfactoria"
     mock_get_jwt.assert_called_once()
     mock_db.assert_called_once()
 
@@ -177,8 +175,6 @@ def test_delete_dish_success(
     response = client.delete(f"/dishes/{ID}", headers=auth_header)
 
     assert response.status_code == 200
-    assert (
-        response.json["msg"] == f"Plato '{ID}' ha sido eliminado de forma satisfactoria"
-    )
+    assert response.json["msg"] == f"Plato eliminado de forma satisfactoria"
     mock_get_jwt.assert_called_once()
     mock_delete_dish.assert_called_once()

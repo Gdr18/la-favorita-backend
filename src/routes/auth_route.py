@@ -33,9 +33,7 @@ def register() -> tuple[Response, int]:
             new_user = user_object.insert_user(session=session)
             send_email({**user_object.model_dump(), "_id": new_user.inserted_id})
             session.commit_transaction()
-            return success_json_response(
-                new_user.inserted_id, "usuario", "añadido", 201
-            )
+            return success_json_response("usuario", "añadido", 201)
         except Exception as e:
             session.abort_transaction()
             raise e
@@ -54,13 +52,13 @@ def change_email() -> tuple[Response, int]:
         user_requested["auth_provider"] = "email"
         user_requested["confirmed"] = False
         if not user_data.get("password"):
-            raise Exception("Se necesita contraseña para cambiar el email")
+            raise ValueCustomError("resource_required", "password")
         user_requested["password"] = user_data["password"]
     user_requested["email"] = user_data["email"]
     user_object = UserModel(**user_requested)
     updated_user = user_object.update_user(user_id)
     send_email(updated_user)
-    return success_json_response(user_id, "email del usuario", "cambiado")
+    return success_json_response("email del usuario", "actualizado")
 
 
 @auth_route.route("/login", methods=["POST"])
@@ -81,7 +79,7 @@ def login() -> tuple[Response, int]:
         session.commit_transaction()
         return (
             jsonify(
-                msg=f"El usuario '{user_requested.get('_id')}' ha iniciado sesión de forma manual",
+                msg=f"Usuario inicia sesión manual de forma satisfactoria",
                 access_token=access_token,
                 refresh_token=refresh_token,
             ),
@@ -100,7 +98,7 @@ def logout() -> tuple[Response, int]:
     user_id = get_jwt().get("sub")
     delete_active_token(user_id)
     delete_refresh_token(user_id)
-    return success_json_response(user_id, "logout del usuario", "realizado")
+    return success_json_response("logout del usuario", "realizado")
 
 
 @auth_route.route("/login/google")
@@ -131,7 +129,7 @@ def authorize_google() -> tuple[Response, int]:
         return (
             jsonify(
                 {
-                    "msg": f"""El usuario '{user.get("_id")}' ha iniciado sesión con Google""",
+                    "msg": "Usuario inicia sesión con Google de forma satisfactoria",
                     "access_token": access_token,
                     "refresh_token": refresh_token,
                 }
@@ -172,22 +170,20 @@ def confirm_email(token: str) -> tuple[Response, int]:
         user_requested["confirmed"] = True
         user_object = UserModel(**user_requested)
         user_object.update_user(user_id)
-        return success_json_response(user_id, "usuario", "confirmado")
+        return success_json_response("usuario", "confirmado")
     else:
         raise ValueCustomError("not_found", "usuario")
 
 
 @auth_route.route("/resend-email", methods=["POST"])
-def resend_email(user_id: str) -> tuple[Response, int]:
+def resend_email() -> tuple[Response, int]:
     email = request.get_json().get("email")
     user_data = UserModel.get_user_by_email(email)
     if user_data:
         user_token = TokenModel.get_email_tokens_by_user_id(user_data["_id"])
         if len(user_token) < 5:
             send_email(user_data)
-            return success_json_response(
-                user_id, "email de confirmación del usuario", "reenviado"
-            )
+            return success_json_response("email de confirmación", "reenviado")
         else:
             raise ValueCustomError("too_many_requests")
     else:

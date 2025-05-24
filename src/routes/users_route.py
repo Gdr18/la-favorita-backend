@@ -20,7 +20,7 @@ def add_user() -> tuple[Response, int]:
     user_data = request.get_json()
     user_object = UserModel(**user_data)
     new_user = user_object.insert_user()
-    return success_json_response(new_user.inserted_id, users_resource, "añadido", 201)
+    return success_json_response(users_resource, "añadido", 201)
 
 
 @users_route.route("/", methods=["GET"])
@@ -79,6 +79,6 @@ def handle_user(user_id: str) -> tuple[Response, int]:
         if deleted_user.deleted_count > 0:
             delete_active_token(token)
             delete_refresh_token(user_id)
-            return success_json_response(token_user_id, users_resource, "eliminado")
+            return success_json_response(users_resource, "eliminado")
         else:
             raise ValueCustomError("not_found", users_resource)

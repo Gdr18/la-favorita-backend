@@ -23,9 +23,7 @@ def add_product() -> tuple[Response, int]:
         product_data = request.get_json()
         product_object = ProductModel(**product_data)
         new_product = product_object.insert_product()
-        return success_json_response(
-            new_product.inserted_id, products_resource, "añadido", 201
-        )
+        return success_json_response(products_resource, "añadido", 201)
 
 
 @products_route.route("/", methods=["GET"])
@@ -92,6 +90,6 @@ def handle_product(product_id: str) -> tuple[Response, int]:
     if request.method == "DELETE":
         deleted_product = ProductModel.delete_product(product_id)
         if deleted_product.deleted_count > 0:
-            return success_json_response(product_id, products_resource, "eliminado")
+            return success_json_response(products_resource, "eliminado")
         else:
             raise ValueCustomError("not_found", products_resource)

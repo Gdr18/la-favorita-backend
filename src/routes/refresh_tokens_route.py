@@ -5,7 +5,7 @@ from src.models.token_model import TokenModel
 from src.utils.exception_handlers import ValueCustomError
 from src.utils.json_responses import success_json_response, db_json_response
 
-refresh_tokens_resource = "refresh token"
+refresh_tokens_resource = "token de refresco"
 
 refresh_tokens_route = Blueprint("refresh_tokens", __name__)
 
@@ -20,9 +20,7 @@ def add_refresh_token() -> tuple[Response, int]:
         data = request.get_json()
         refresh_token = TokenModel(**data)
         new_refresh_token = refresh_token.insert_refresh_token()
-        return success_json_response(
-            new_refresh_token.inserted_id, refresh_tokens_resource, "añadido", 201
-        )
+        return success_json_response(refresh_tokens_resource, "añadido", 201)
 
 
 @refresh_tokens_route.route("/", methods=["GET"])
@@ -69,8 +67,6 @@ def handle_refresh_token(refresh_token_id: str) -> tuple[Response, int]:
             refresh_token_id
         )
         if refresh_token_deleted.deleted_count > 0:
-            return success_json_response(
-                refresh_token_id, refresh_tokens_resource, "eliminado"
-            )
+            return success_json_response(refresh_tokens_resource, "eliminado")
         else:
             raise ValueCustomError("not_found", refresh_tokens_resource)

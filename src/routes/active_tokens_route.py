@@ -19,10 +19,8 @@ def add_active_token() -> tuple[Response, int]:
     else:
         data = request.get_json()
         active_token = TokenModel(**data)
-        new_active_token = active_token.insert_active_token()
-        return success_json_response(
-            new_active_token.inserted_id, active_tokens_resource, "añadido", 201
-        )
+        active_token.insert_active_token()
+        return success_json_response(active_tokens_resource, "añadido", 201)
 
 
 @active_tokens_route.route("/", methods=["GET"])
@@ -70,8 +68,6 @@ def handle_active_token(active_token_id: str) -> tuple[Response, int]:
             active_token_id
         )
         if active_token_deleted.deleted_count > 0:
-            return success_json_response(
-                active_token_id, active_tokens_resource, "eliminado"
-            )
+            return success_json_response(active_tokens_resource, "eliminado")
         else:
             raise ValueCustomError("not_found", active_tokens_resource)

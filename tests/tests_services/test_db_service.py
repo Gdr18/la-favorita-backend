@@ -30,5 +30,5 @@ def test_db_connection_error(mocker, app):
         result, status_code = db_connection()
 
         assert status_code == 500
-        assert result.json == {"err": f"Error de conexión con MongoDB: {error}"}
+        assert result.json["err"] == "db_connection"
         mock_client.__getitem__.assert_called_once()

@@ -139,14 +139,19 @@ def check_if_token_active_callback(
 
 @jwt.revoked_token_loader
 def revoked_token_callback(jwt_header: dict, jwt_payload: dict) -> tuple[Response, int]:
-    return jsonify(err="El token ha sido revocado"), 401
+    return jsonify(err="revoked_token", msg="El token ha sido revocado"), 401
 
 
 @jwt.expired_token_loader
 def expired_token_callback(jwt_header: dict, wt_payload: dict) -> tuple[Response, int]:
-    return jsonify(err="El token ha expirado"), 401
+    return jsonify(err="expired_token", msg="El token ha expirado"), 401
 
 
 @jwt.unauthorized_loader
 def unauthorized_callback(error_message: str) -> tuple[Response, int]:
-    return jsonify(err="Necesita un token válido para acceder a esta ruta"), 401
+    return (
+        jsonify(
+            err="invalid_token", msg="Necesita un token válido para acceder a esta ruta"
+        ),
+        401,
+    )

@@ -7,13 +7,8 @@ from tests.test_helpers import app
 
 def test_resource_msg(app):
     with app.app_context():
-        response, status_code = success_json_response(
-            "234525", "usuario", "añadido", 201
-        )
-        assert (
-            response.json["msg"]
-            == "Usuario '234525' ha sido añadido de forma satisfactoria"
-        )
+        response, status_code = success_json_response("usuario", "añadido", 201)
+        assert response.json["msg"] == "Usuario añadido de forma satisfactoria"
         assert status_code == 201
 
 

@@ -50,7 +50,7 @@ def test_token_not_authorized_error(mock_get_jwt, client, auth_header, url, meth
         response = client.put(url, json=VALID_USER_DATA, headers=auth_header)
 
     assert response.status_code == 401
-    assert response.json["err"] == "El token no está autorizado a acceder a esta ruta"
+    assert response.json["err"] == "not_auth"
     mock_get_jwt.assert_called_once()
 
 
@@ -87,7 +87,7 @@ def test_user_not_found_error(
         response = client.delete(url, headers=auth_header)
 
     assert response.status_code == 404
-    assert response.json["err"] == f"Usuario no encontrado"
+    assert response.json["err"] == "not_found"
     mock_get_jwt.assert_called_once()
     (
         mock_get_user.assert_called_once()
@@ -103,10 +103,7 @@ def test_not_authorized_to_set_error(mock_get_user, client, auth_header, field):
     response = client.put(f"/users/{ID}", json=field, headers=auth_header)
 
     assert response.status_code == 401
-    assert (
-        response.json["err"]
-        == f"El token no está autorizado a establecer '{list(field.keys())[0]}'"
-    )
+    assert response.json["err"] == "not_auth_set"
     mock_get_user.assert_called_once()
 
 
@@ -119,9 +116,7 @@ def test_add_user_success(mocker, client, mock_get_jwt, auth_header):
     response = client.post("/users/", json=VALID_USER_DATA, headers=auth_header)
 
     assert response.status_code == 201
-    assert (
-        response.json["msg"] == f"Usuario '{ID}' ha sido añadido de forma satisfactoria"
-    )
+    assert response.json["msg"] == f"Usuario añadido de forma satisfactoria"
     mock_get_jwt.assert_called_once()
     mock_db.assert_called_once()
 
@@ -194,10 +189,7 @@ def test_delete_user_success(
     response = client.delete(f"/users/{ID}", headers=auth_header)
 
     assert response.status_code == 200
-    assert (
-        response.json["msg"]
-        == f"Usuario '{ID}' ha sido eliminado de forma satisfactoria"
-    )
+    assert response.json["msg"] == f"Usuario eliminado de forma satisfactoria"
     mock_get_jwt.assert_called_once()
     mock_delete_user.assert_called_once()
     mock_revoke_access_token.assert_called_once()

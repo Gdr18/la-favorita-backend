@@ -174,4 +174,4 @@ def test_auto_response_jwt_functions(app, function_name, args, msg):
     with app.app_context():
         response, status_code = function_name(*args)
         assert status_code == 401
-        assert response.json["err"] == msg
+        assert response.json["msg"] == msg

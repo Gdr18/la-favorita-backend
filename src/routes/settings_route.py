@@ -21,7 +21,7 @@ def add_setting() -> tuple[Response, int]:
         setting_data = request.get_json()
         setting_object = SettingModel(**setting_data)
         new_setting = setting_object.insert_setting()
-        return success_json_response(new_setting.inserted_id, settings_resource, "añadida", 201)
+        return success_json_response(settings_resource, "añadida", 201)
 
 
 @settings_route.route("/", methods=["GET"])
@@ -66,6 +66,6 @@ def handle_setting(setting_id: str) -> tuple[Response, int]:
     if request.method == "DELETE":
         deleted_setting = SettingModel.delete_setting(setting_id)
         if deleted_setting.deleted_count > 0:
-            return success_json_response(setting_id, settings_resource, "eliminada")
+            return success_json_response(settings_resource, "eliminada")
         else:
             raise ValueCustomError("not_found", settings_resource)

@@ -63,7 +63,7 @@ def test_token_not_authorized_error(mock_get_jwt, client, auth_header, url, meth
         response = client.delete(url, headers=auth_header)
 
     assert response.status_code == 401
-    assert response.json["err"] == "El token no está autorizado a acceder a esta ruta"
+    assert response.json["err"] == "not_auth"
     mock_get_jwt.assert_called_once()
 
 
@@ -102,7 +102,7 @@ def test_product_not_found_error(
         response = client.delete(f"/products/{ID}", headers=auth_header)
 
     assert response.status_code == 404
-    assert response.json["err"] == "Producto no encontrado"
+    assert response.json["err"] == "not_found"
     (
         mock_get_product.assert_called_once()
         if method != "delete"
@@ -121,10 +121,7 @@ def test_add_product_success(mocker, client, auth_header, mock_get_jwt):
     response = client.post("/products/", json=VALID_PRODUCT_DATA, headers=auth_header)
 
     assert response.status_code == 201
-    assert (
-        response.json["msg"]
-        == f"Producto '{ID}' ha sido añadido de forma satisfactoria"
-    )
+    assert response.json["msg"] == f"Producto añadido de forma satisfactoria"
     mock_get_jwt.assert_called_once()
     mock_db.assert_called_once()
 
@@ -177,7 +174,7 @@ def test_update_product_exception(
     )
 
     assert response.status_code == 500
-    assert response.json["err"] == "Ha ocurrido un error en MongoDB: Database error"
+    assert response.json["err"] == "db_generic"
     mock_get_jwt.assert_called_once()
     mock_get_product.assert_called_once()
     mock_update_product.assert_called_once()
@@ -204,9 +201,6 @@ def test_delete_product_success(
     response = client.delete(f"/products/{ID}", headers=auth_header)
 
     assert response.status_code == 200
-    assert (
-        response.json["msg"]
-        == f"Producto '{ID}' ha sido eliminado de forma satisfactoria"
-    )
+    assert response.json["msg"] == f"Producto eliminado de forma satisfactoria"
     mock_get_jwt.assert_called_once()
     mock_delete_product.assert_called_once()

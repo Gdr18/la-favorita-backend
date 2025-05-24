@@ -18,8 +18,8 @@ def add_dish():
         raise ValueCustomError("not_authorized")
     dish_data = request.get_json()
     dish_object = DishModel(**dish_data)
-    new_dish = dish_object.insert_dish()
-    return success_json_response(new_dish.inserted_id, dishes_resource, "añadido", 201)
+    dish_object.insert_dish()
+    return success_json_response(dishes_resource, "añadido", 201)
 
 
 @dishes_route.route("/")
@@ -66,4 +66,4 @@ def handle_dish(dish_id):
         deleted_dish = DishModel.delete_dish(dish_id)
         if not deleted_dish.deleted_count > 0:
             raise ValueCustomError("not_found", dishes_resource)
-        return success_json_response(dish_id, dishes_resource, "eliminado")
+        return success_json_response(dishes_resource, "eliminado")

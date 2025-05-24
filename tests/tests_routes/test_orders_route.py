@@ -72,7 +72,7 @@ def test_not_authorized_error(
         response = client.delete(url, headers=auth_header)
 
     assert response.status_code == 401
-    assert response.json["err"] == "El token no está autorizado a acceder a esta ruta"
+    assert response.json["err"] == "not_auth"
     mock_get_jwt.assert_called_once()
     mock_get_order.assert_called_once() if mock else None
 
@@ -112,7 +112,7 @@ def test_order_not_found_error(
         response = client.delete(f"/orders/{ID}", headers=auth_header)
 
     assert response.status_code == 404
-    assert response.json["err"] == "Orden no encontrado"
+    assert response.json["err"] == "not_found"
     mock_get_jwt.assert_called_once()
     (
         mock_get_order.assert_called_once()
@@ -131,9 +131,7 @@ def test_add_order_success(mocker, client, auth_header):
     response = client.post("/orders/", json=VALID_ORDER_DATA, headers=auth_header)
 
     assert response.status_code == 201
-    assert (
-        response.json["msg"] == f"Orden '{ID}' ha sido insertado de forma satisfactoria"
-    )
+    assert response.json["msg"] == f"Orden añadida de forma satisfactoria"
     mock_db.assert_called_once()
 
 
@@ -197,7 +195,7 @@ def test_update_order_exception(client, auth_header, mock_get_order, mock_update
     response = client.put(f"/orders/{ID}", json={"state": "ready"}, headers=auth_header)
 
     assert response.status_code == 500
-    assert response.json["err"] == "Ha ocurrido un error en MongoDB: Database error"
+    assert response.json["err"] == "db_generic"
     mock_get_order.assert_called_once()
     mock_update_order.assert_called_once()
 
@@ -218,7 +216,5 @@ def test_delete_order_success(mocker, client, auth_header, mock_delete_order):
     response = client.delete(f"/orders/{ID}", headers=auth_header)
 
     assert response.status_code == 200
-    assert (
-        response.json["msg"] == f"Orden '{ID}' ha sido eliminado de forma satisfactoria"
-    )
+    assert response.json["msg"] == f"Orden eliminada de forma satisfactoria"
     mock_delete_order.assert_called_once()

@@ -5,7 +5,7 @@ from sendgrid import SendGridException
 
 from src.utils.exception_handlers import (
     ValueCustomError,
-    handle_model_custom_error,
+    handle_custom_value_error,
     handle_field_required_error,
     handle_length_value_error,
     handle_extra_inputs_forbidden_error,
@@ -53,144 +53,142 @@ PATTERN_ERROR = [{"loc": ["field1"]}]
 
 
 @pytest.mark.parametrize(
-    "function, arguments, code, message",
+    "function, arguments, code, error",
     [
         (
             ValueCustomError,
             VALUE_CUSTOM_ERRORS["value_custom1"],
             404,
-            "Usuario no encontrado",
+            "not_found",
         ),
         (
             ValueCustomError,
             VALUE_CUSTOM_ERRORS["value_custom2"],
             401,
-            "La contraseña no coincide",
+            "password_not_match",
         ),
         (
             ValueCustomError,
             VALUE_CUSTOM_ERRORS["value_custom3"],
             401,
-            "El email no está confirmado",
+            "email_not_confirmed",
         ),
         (
             ValueCustomError,
             VALUE_CUSTOM_ERRORS["value_custom4"],
             429,
-            "Se han reenviado demasiados emails de confirmación. Inténtalo mañana.",
+            "too_many_requests",
         ),
         (
             ValueCustomError,
             VALUE_CUSTOM_ERRORS["value_custom5"],
             401,
-            "El token no está autorizado a acceder a esta ruta",
+            "not_auth",
         ),
         (
             ValueCustomError,
             VALUE_CUSTOM_ERRORS["value_custom6"],
             401,
-            "El token no está autorizado a establecer 'role'",
+            "not_auth_set",
         ),
         (
             handle_extra_inputs_forbidden_error,
             EXTRA_INPUT_AND_FIELD_REQUIRED_ERRORS,
             400,
-            "Hay 2 campos que no son válidos: 'field1', 'field2'.",
+            "extra_input",
         ),
         (
             handle_field_required_error,
             EXTRA_INPUT_AND_FIELD_REQUIRED_ERRORS,
             400,
-            "Faltan 2 campos requeridos: 'field1', 'field2'.",
+            "field_required",
         ),
         (
             handle_length_value_error,
             LENGTH_VALUE_ERRORS["too_short"],
             400,
-            "La longitud del campo 'field1' es demasiado corta. Debe tener al menos 7 caracteres.",
+            "length_value",
         ),
         (
             handle_length_value_error,
             LENGTH_VALUE_ERRORS["too_long"],
             400,
-            "La longitud del campo 'field1' es demasiado larga. Debe tener como máximo 5 caracteres.",
+            "length_value",
         ),
         (
             handle_literal_value_error,
             LITERAL_VALUE_ERROR,
             400,
-            "El campo 'field1' debe ser uno de los valores permitidos: main, starter o dessert.",
+            "literal_value",
         ),
         (
             handle_pattern_value_error,
             PATTERN_ERROR,
             400,
-            "El campo 'field1' no cumple con el patrón requerido.",
+            "pattern_value",
         ),
         (
-            handle_model_custom_error,
+            handle_custom_value_error,
             [{"msg": ", El ingrediente 'garbanzo' no existe"}],
             400,
-            "El ingrediente 'garbanzo' no existe",
+            "custom_value",
         ),
         (
             handle_value_type_error,
             VALUE_TYPE_ERRORS["value_type1"],
             400,
-            "El campo 'field1' debe ser de tipo 'int'.",
+            "value_type",
         ),
         (
             handle_value_type_error,
             VALUE_TYPE_ERRORS["value_type2"],
             400,
-            "El elemento anidado en 'field1' debe ser de tipo 'int'.",
+            "value_type",
         ),
         (
             handle_value_type_error,
             VALUE_TYPE_ERRORS["value_type3"],
             400,
-            "El campo 'field2' perteneciente a 'field1' debe ser de tipo 'int'.",
+            "value_type",
         ),
         (
             handle_value_type_error,
             VALUE_TYPE_ERRORS["value_type4"],
             400,
-            "El campo 'field3' anidado en 'field2' perteneciente a 'field1' debe ser de tipo 'int'.",
+            "value_type",
         ),
         (
             handle_mongodb_exception,
             MONGODB_ERRORS["duplicate_key"],
             409,
-            "Error de clave duplicada en MongoDB: 'value'",
+            "db_duplicate_key",
         ),
         (
             handle_mongodb_exception,
             MONGODB_ERRORS["connection_failure"],
             500,
-            "Error de conexión con MongoDB: Connection failed",
+            "db_connection",
         ),
         (
             handle_mongodb_exception,
             MONGODB_ERRORS["generic_error"],
             500,
-            "Ha ocurrido un error en MongoDB: Generic error",
+            "db_generic",
         ),
     ],
 )
-def test_exceptions_handlers(app, function, arguments, code, message):
+def test_exceptions_handlers(app, function, arguments, code, error):
     with app.app_context():
-        error = (
+        err = (
             function(**arguments)
             if function == ValueCustomError
             else function(arguments)
         )
 
-        response, status_code = (
-            error.response if function == ValueCustomError else error
-        )
+        response, status_code = err.response if function == ValueCustomError else err
 
         assert status_code == code
-        assert response.json["err"] == message
+        assert response.json["err"] == error
 
 
 def test_mongodb_error_flask_handler(app):
@@ -202,7 +200,7 @@ def test_mongodb_error_flask_handler(app):
 
         response = client.get("/mongodb-error")
         assert response.status_code == 500
-        assert "Error de conexión" in response.json["err"]
+        assert response.json["err"] == "db_generic"
 
 
 def test_captured_validation_error_flask_handler(app):
@@ -219,7 +217,7 @@ def test_captured_validation_error_flask_handler(app):
         response = client.get("/validation-error")
 
         assert response.status_code == 400
-        assert "no cumple con el patrón requerido" in response.json["err"]
+        assert response.json["err"] == "pattern_value"
 
 
 def test_non_captured_validation_error_flask_handler(app, mocker):
@@ -239,7 +237,7 @@ def test_non_captured_validation_error_flask_handler(app, mocker):
         response = client.get("/validation-error")
 
         assert response.status_code == 400
-        assert "Error desconocido" in response.json["err"]
+        assert response.json["err"] == "validation"
 
 
 def test_value_custom_error_flask_handler(app):
@@ -251,7 +249,7 @@ def test_value_custom_error_flask_handler(app):
 
         response = client.get("/value-custom-error")
         assert response.status_code == 404
-        assert "Usuario no encontrado" in response.json["err"]
+        assert response.json["err"] == "not_found"
 
 
 def test_sendgrid_error_flask_handler(app):
@@ -263,7 +261,7 @@ def test_sendgrid_error_flask_handler(app):
 
         response = client.get("/sendgrid-error")
         assert response.status_code == 500
-        assert "Ha habido un error al enviar el correo" in response.json["err"]
+        assert response.json["err"] == "send_email"
 
 
 def test_generic_error_flask_handler(app):
@@ -275,4 +273,4 @@ def test_generic_error_flask_handler(app):
 
         response = client.get("/generic-error")
         assert response.status_code == 500
-        assert "Ha ocurrido un error inesperado" in response.json["err"]
+        assert response.json["err"] == "unexpected"

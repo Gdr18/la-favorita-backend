@@ -46,7 +46,7 @@ def test_token_not_authorized_error(mock_get_jwt, client, auth_header, url, meth
         response = client.put(url, json=VALID_SETTING_DATA, headers=auth_header)
 
     assert response.status_code == 401
-    assert response.json["err"] == "El token no está autorizado a acceder a esta ruta"
+    assert response.json["err"] == "not_auth"
     mock_get_jwt.assert_called_once()
 
 
@@ -83,7 +83,7 @@ def test_setting_not_found_error(
         response = client.put(url, json=VALID_SETTING_DATA, headers=auth_header)
 
     assert response.status_code == 404
-    assert response.json["err"] == "Configuración no encontrado"
+    assert response.json["err"] == "not_found"
     mock_get_jwt.assert_called_once()
     (
         mock_get_setting.assert_called_once()
@@ -103,10 +103,7 @@ def test_add_setting_success(mock_get_jwt, mocker, client, auth_header):
     response = client.post("/settings/", json=VALID_SETTING_DATA, headers=auth_header)
 
     assert response.status_code == 201
-    assert (
-        response.json["msg"]
-        == f"Configuración '{ID}' ha sido añadida de forma satisfactoria"
-    )
+    assert response.json["msg"] == f"Configuración añadida de forma satisfactoria"
     mock_get_jwt.assert_called_once()
     mock_db.assert_called_once()
 
@@ -171,9 +168,6 @@ def test_delete_setting_success(
     response = client.delete(f"/settings/{ID}", headers=auth_header)
 
     assert response.status_code == 200
-    assert (
-        response.json["msg"]
-        == f"Configuración '{ID}' ha sido eliminada de forma satisfactoria"
-    )
+    assert response.json["msg"] == f"Configuración eliminada de forma satisfactoria"
     mock_get_jwt.assert_called_once()
     mock_delete_setting.assert_called_once()

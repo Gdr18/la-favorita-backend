@@ -20,9 +20,7 @@ def add_email_token() -> tuple[Response, int]:
         data = request.get_json()
         email_token = TokenModel(**data)
         new_email_token = email_token.insert_email_token()
-        return success_json_response(
-            new_email_token.inserted_id, email_tokens_resource, "añadido", 201
-        )
+        return success_json_response(email_tokens_resource, "añadido", 201)
 
 
 @email_tokens_route.route("/", methods=["GET"])
@@ -67,8 +65,6 @@ def handle_email_token(email_token_id: str) -> tuple[Response, int]:
     if request.method == "DELETE":
         email_token_deleted = TokenModel.delete_email_token(email_token_id)
         if email_token_deleted.deleted_count > 0:
-            return success_json_response(
-                email_token_id, email_tokens_resource, "eliminado"
-            )
+            return success_json_response(email_tokens_resource, "eliminado")
         else:
             raise ValueCustomError("not_found", email_tokens_resource)

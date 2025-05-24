@@ -48,9 +48,7 @@ def test_send_email(app, mocker):
 
 
 def test_send_email_confirmation_link_production(mocker):
-    mock_config = mocker.patch(
-        "src.services.email_service.config", "config.ProductionConfig"
-    )
+    mocker.patch("src.services.email_service.config", "config.ProductionConfig")
     mock_generate_email_token = mocker.patch(
         "src.services.email_service.generate_email_token", return_value="mocked_token"
     )

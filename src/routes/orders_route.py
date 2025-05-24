@@ -17,10 +17,8 @@ orders_route = Blueprint("orders", __name__)
 def add_order() -> tuple[Response, int]:
     order_data = request.get_json()
     order_object = OrderModel(**order_data)
-    inserted_order = order_object.insert_order()
-    return success_json_response(
-        inserted_order.inserted_id, orders_resource, "insertado", 201
-    )
+    order_object.insert_order()
+    return success_json_response(orders_resource, "añadida", 201)
 
 
 @orders_route.route("/")
@@ -104,4 +102,4 @@ def handle_order(order_id):
         deleted_order = OrderModel.delete_order(order_id)
         if not deleted_order.deleted_count > 0:
             raise ValueCustomError("not_found", orders_resource)
-        return success_json_response(order_id, orders_resource, "eliminado")
+        return success_json_response(orders_resource, "eliminada")

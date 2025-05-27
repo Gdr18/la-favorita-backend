@@ -48,6 +48,8 @@ def change_email() -> tuple[Response, int]:
     user_data = request.get_json()
     user_id = get_jwt().get("sub")
     user_requested = UserModel.get_user_by_user_id_without_id(user_id)
+    if not user_requested:
+        raise ValueCustomError("not_found", "usuario")
     if user_requested["auth_provider"] == "google":
         user_requested["auth_provider"] = "email"
         user_requested["confirmed"] = False
@@ -152,7 +154,10 @@ def refresh_users_token():
         user_data = UserModel.get_user_by_user_id(user_id)
         access_token = generate_access_token(user_data)
         return (
-            jsonify(access_token=access_token, msg="El token de acceso se ha generado"),
+            jsonify(
+                access_token=access_token,
+                msg="Token de acceso generado de forma satisfactoria",
+            ),
             200,
         )
     else:
@@ -178,6 +183,8 @@ def confirm_email(token: str) -> tuple[Response, int]:
 @auth_route.route("/resend-email", methods=["POST"])
 def resend_email() -> tuple[Response, int]:
     email = request.get_json().get("email")
+    if not email:
+        raise ValueCustomError("resource_required", "email")
     user_data = UserModel.get_user_by_email(email)
     if user_data:
         user_token = TokenModel.get_email_tokens_by_user_id(user_data["_id"])

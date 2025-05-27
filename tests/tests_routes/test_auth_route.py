@@ -140,28 +140,34 @@ def insert_or_update_call_db(mocker):
         ("/auth/resend-email", "post"),
         ("/auth/login", "post"),
         ("/auth/confirm-email/test_token", "get"),
+        ("/auth/change-email", "post"),
     ],
 )
 def test_user_not_found_error(
     client,
+    auth_header,
     mock_decode_token,
     mock_db_get_email_tokens,
     mock_db_get_user_by_user_id,
     mock_db_get_user_by_email,
     mock_db_get_user_by_user_id_without_id,
+    mock_get_jwt,
     url,
     method,
 ):
-    if "confirm-email" not in url:
+    if ("login" in url) or ("resend-email" in url):
         mock_db_get_user_by_email.return_value = None
         get_user_call_db = mock_db_get_user_by_email
     else:
-        mock_decode_token.return_value = {"sub": ID}
+        if "confirm-email" in url:
+            mock_decode_token.return_value = {"sub": ID}
+        else:
+            mock_get_jwt.return_value = VALID_TOKEN_DATA
         mock_db_get_user_by_user_id_without_id.return_value = None
         get_user_call_db = mock_db_get_user_by_user_id_without_id
 
     if method == "post":
-        response = client.post(url, json=VALID_USER_DATA)
+        response = client.post(url, json=VALID_USER_DATA, headers=auth_header)
     elif method == "get":
         response = client.get(url)
 
@@ -493,7 +499,7 @@ def test_refresh_token_success(
     response = client.get("/auth/refresh-token", headers=auth_header_refresh)
 
     assert response.status_code == 200
-    assert response.json["msg"] == "El token de acceso se ha generado"
+    assert response.json["msg"] == "Token de acceso generado de forma satisfactoria"
     assert response.json["access_token"] == "access_token"
     mock_db_get_refresh_token_by_user_id.assert_called_once()
     mock_db_get_user_by_user_id.assert_called_once()
@@ -601,3 +607,10 @@ def test_resend_email_too_many_requests_error(
     assert response.status_code == 429
     assert response.json["err"] == "too_many_requests"
     mock_db_get_email_tokens.assert_called_once()
+
+
+def test_resend_email_resource_required_error(client):
+    response = client.post("/auth/resend-email", json={})
+
+    assert response.status_code == 400
+    assert response.json["err"] == "resource_required"

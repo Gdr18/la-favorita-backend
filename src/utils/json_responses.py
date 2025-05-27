@@ -14,6 +14,10 @@ def success_json_response(
         "eliminada",
         "realizado",
         "realizada",
+        "confirmado",
+        "confirmada",
+        "reenviado",
+        "reenviada",
     ],
     status_code: int = 200,
 ) -> tuple[Response, int]:

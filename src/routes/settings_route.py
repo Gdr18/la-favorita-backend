@@ -20,7 +20,7 @@ def add_setting() -> tuple[Response, int]:
     else:
         setting_data = request.get_json()
         setting_object = SettingModel(**setting_data)
-        new_setting = setting_object.insert_setting()
+        setting_object.insert_setting()
         return success_json_response(settings_resource, "añadida", 201)
 
 

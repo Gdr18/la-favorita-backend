@@ -22,7 +22,7 @@ def add_product() -> tuple[Response, int]:
     else:
         product_data = request.get_json()
         product_object = ProductModel(**product_data)
-        new_product = product_object.insert_product()
+        product_object.insert_product()
         return success_json_response(products_resource, "añadido", 201)
 
 

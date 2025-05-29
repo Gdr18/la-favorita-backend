@@ -10,6 +10,21 @@ users_resource = "usuario"
 
 users_route = Blueprint("users", __name__)
 
+NOT_AUTHORIZED_TO_SET = (
+    "created_at",
+    "expires_at",
+    "confirmed",
+    "auth_provider",
+)
+
+NOT_AUTHORIZED_TO_UPDATE = (
+    "email",
+    "created_at",
+    "expires_at",
+    "confirmed",
+    "auth_provider",
+)
+
 
 @users_route.route("/", methods=["POST"])
 @jwt_required()
@@ -18,8 +33,11 @@ def add_user() -> tuple[Response, int]:
     if not token_role == 0:
         raise ValueCustomError("not_authorized")
     user_data = request.get_json()
+    for field in NOT_AUTHORIZED_TO_SET:
+        if field in user_data.keys():
+            raise ValueCustomError("not_authorized_to_set", field)
     user_object = UserModel(**user_data)
-    new_user = user_object.insert_user()
+    user_object.insert_user()
     return success_json_response(users_resource, "añadido", 201)
 
 
@@ -61,12 +79,13 @@ def handle_user(user_id: str) -> tuple[Response, int]:
                 [
                     data.get("role"),
                     data.get("role") != user.get("role"),
-                    token_role != 1,
+                    token_role >= 1,
                 ]
             ):
                 raise ValueCustomError("not_authorized_to_set", "role")
-            if all([data.get("email"), data.get("email") != user.get("email")]):
-                raise ValueCustomError("not_authorized_to_set", "email")
+            for field in NOT_AUTHORIZED_TO_UPDATE:
+                if field in data.keys() and data[field] != user.get(field):
+                    raise ValueCustomError("not_authorized_to_set", field)
             combined_data = {**user, **data}
             user_object = UserModel(**combined_data)
             updated_user = user_object.update_user(user_id)

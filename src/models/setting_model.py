@@ -34,7 +34,7 @@ class SettingModel(BaseModel, extra="forbid"):
 
     @staticmethod
     def get_setting(setting_id: str) -> dict:
-        setting = db.settings.find_one({"_id": ObjectId(setting_id)})
+        setting = db.settings.find_one({"_id": ObjectId(setting_id)}, {"_id": 0})
         return setting
 
     def update_setting(self, setting_id: str) -> dict:

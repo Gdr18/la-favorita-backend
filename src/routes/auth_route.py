@@ -1,6 +1,5 @@
 from flask import Blueprint, request, url_for, jsonify, Response
 from flask_jwt_extended import jwt_required, get_jwt, decode_token
-from pymongo.errors import DuplicateKeyError
 
 from src.models.token_model import TokenModel
 from src.models.user_model import UserModel
@@ -23,22 +22,23 @@ auth_route = Blueprint("auth", __name__)
 @auth_route.route("/register", methods=["POST"])
 def register() -> tuple[Response, int]:
     session = client.start_session()
+    not_authorized = ("role", "created_at", "expires_at", "confirmed", "auth_provider")
     user_data = request.get_json()
-    if user_data.get("role"):
-        raise ValueCustomError("not_authorized_to_set", "role")
-    else:
-        user_object = UserModel(**user_data)
-        try:
-            session.start_transaction()
-            new_user = user_object.insert_user(session=session)
-            send_email({**user_object.model_dump(), "_id": new_user.inserted_id})
-            session.commit_transaction()
-            return success_json_response("usuario", "añadido", 201)
-        except Exception as e:
-            session.abort_transaction()
-            raise e
-        finally:
-            session.end_session()
+    for field in not_authorized:
+        if field in user_data.keys():
+            raise ValueCustomError("not_authorized_to_set", field)
+    user_object = UserModel(**user_data)
+    try:
+        session.start_transaction()
+        new_user = user_object.insert_user(session=session)
+        send_email({**user_object.model_dump(), "_id": new_user.inserted_id})
+        session.commit_transaction()
+        return success_json_response("usuario", "añadido", 201)
+    except Exception as e:
+        session.abort_transaction()
+        raise e
+    finally:
+        session.end_session()
 
 
 # Se precisa de un login previo gestionado por el frontend
@@ -147,7 +147,7 @@ def authorize_google() -> tuple[Response, int]:
 
 @auth_route.route("/refresh-token")
 @jwt_required(refresh=True)
-def refresh_users_token():
+def refresh_user_token():
     user_id = get_jwt().get("sub")
     check_refresh_token = TokenModel.get_refresh_token_by_user_id(user_id)
     if check_refresh_token:

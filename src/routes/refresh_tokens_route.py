@@ -19,7 +19,7 @@ def add_refresh_token() -> tuple[Response, int]:
     else:
         data = request.get_json()
         refresh_token = TokenModel(**data)
-        new_refresh_token = refresh_token.insert_refresh_token()
+        refresh_token.insert_refresh_token()
         return success_json_response(refresh_tokens_resource, "añadido", 201)
 
 

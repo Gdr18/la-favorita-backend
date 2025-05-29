@@ -19,7 +19,7 @@ def add_email_token() -> tuple[Response, int]:
     else:
         data = request.get_json()
         email_token = TokenModel(**data)
-        new_email_token = email_token.insert_email_token()
+        email_token.insert_email_token()
         return success_json_response(email_tokens_resource, "añadido", 201)
 
 

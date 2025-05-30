@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, field_validator
 from pymongo.results import InsertOneResult, DeleteResult
 
 from src.services.db_service import db
+from src.utils.models_helpers import to_json_serializable
 
 
 # Campos únicos: name. Está configurado en MongoDB Atlas.
@@ -30,12 +31,12 @@ class SettingModel(BaseModel, extra="forbid"):
     @staticmethod
     def get_settings(skip: int, per_page: int) -> List[dict]:
         settings = db.settings.find().skip(skip).limit(per_page)
-        return list(settings)
+        return to_json_serializable(list(settings))
 
     @staticmethod
     def get_setting(setting_id: str) -> dict:
         setting = db.settings.find_one({"_id": ObjectId(setting_id)}, {"_id": 0})
-        return setting
+        return to_json_serializable(setting)
 
     def update_setting(self, setting_id: str) -> dict:
         updated_setting = db.settings.find_one_and_update(
@@ -43,7 +44,7 @@ class SettingModel(BaseModel, extra="forbid"):
             {"$set": self.model_dump()},
             return_document=True,
         )
-        return updated_setting
+        return to_json_serializable(updated_setting)
 
     @staticmethod
     def delete_setting(setting_id: str) -> DeleteResult:

@@ -1,12 +1,12 @@
 from datetime import datetime, timezone
 import re
-
 from bson import ObjectId
 from pydantic import BaseModel, Field, field_validator
 from pymongo import ReturnDocument
 from pymongo.results import InsertOneResult, DeleteResult
 
 from src.services.db_service import db
+from src.utils.models_helpers import to_json_serializable
 
 
 # Campos únicos: "jti" y "user_id", configurado en MongoDB Atlas.
@@ -35,7 +35,7 @@ class TokenModel(BaseModel, extra="forbid"):
             )
         else:
             raise ValueError(
-                "El campo 'expires_at' debe ser una fecha de tipo unix timestamp o cadena en formato ISO 8601"
+                "El campo 'expires_at' debe ser una fecha de tipo unix timestamp o string en formato ISO 8601"
             )
         if v < datetime.now(timezone.utc):
             raise ValueError(
@@ -51,19 +51,19 @@ class TokenModel(BaseModel, extra="forbid"):
     @staticmethod
     def get_refresh_tokens(skip: int, per_page: int) -> list[dict]:
         refresh_tokens = db.refresh_tokens.find().skip(skip).limit(per_page)
-        return list(refresh_tokens)
+        return to_json_serializable(list(refresh_tokens))
 
     @staticmethod
     def get_refresh_token_by_token_id(token_id: str) -> dict:
         refresh_token = db.refresh_tokens.find_one(
             {"_id": ObjectId(token_id)}, {"_id": 0}
         )
-        return refresh_token
+        return to_json_serializable(refresh_token)
 
     @staticmethod
     def get_refresh_token_by_user_id(user_id: str) -> dict:
         refresh_token = db.refresh_tokens.find_one({"user_id": user_id}, {"_id": 0})
-        return refresh_token
+        return to_json_serializable(refresh_token)
 
     def update_refresh_token(self, token_id: str) -> dict:
         refresh_token_updated = db.refresh_tokens.find_one_and_update(
@@ -71,7 +71,7 @@ class TokenModel(BaseModel, extra="forbid"):
             {"$set": self.model_dump()},
             return_document=ReturnDocument.AFTER,
         )
-        return refresh_token_updated
+        return to_json_serializable(refresh_token_updated)
 
     def update_or_insert_refresh_token_by_user_id(
         self, user_id: str, session=None
@@ -83,7 +83,7 @@ class TokenModel(BaseModel, extra="forbid"):
             return_document=ReturnDocument.AFTER,
             session=session,
         )
-        return refresh_token_updated
+        return to_json_serializable(refresh_token_updated)
 
     @staticmethod
     def delete_refresh_token_by_token_id(token_id: str) -> DeleteResult:
@@ -105,17 +105,17 @@ class TokenModel(BaseModel, extra="forbid"):
     @staticmethod
     def get_email_tokens(skip: int, per_page: int) -> list[dict]:
         email_tokens = db.email_tokens.find().skip(skip).limit(per_page)
-        return list(email_tokens)
+        return to_json_serializable(list(email_tokens))
 
     @staticmethod
     def get_email_tokens_by_user_id(user_id: str) -> list[dict]:
         email_tokens = db.email_tokens.find({"user_id": user_id})
-        return list(email_tokens)
+        return to_json_serializable(list(email_tokens))
 
     @staticmethod
     def get_email_token(token_id: str) -> dict:
         email_token = db.email_tokens.find_one({"_id": ObjectId(token_id)}, {"_id": 0})
-        return email_token
+        return to_json_serializable(email_token)
 
     def update_email_token(self, token_id: str) -> dict:
         email_token_updated = db.email_tokens.find_one_and_update(
@@ -123,7 +123,7 @@ class TokenModel(BaseModel, extra="forbid"):
             {"$set": self.model_dump()},
             return_document=ReturnDocument.AFTER,
         )
-        return email_token_updated
+        return to_json_serializable(email_token_updated)
 
     @staticmethod
     def delete_email_token(token_id: str) -> DeleteResult:
@@ -138,19 +138,19 @@ class TokenModel(BaseModel, extra="forbid"):
     @staticmethod
     def get_active_tokens(skip: int, per_page: int) -> list[dict]:
         active_tokens = db.active_tokens.find().skip(skip).limit(per_page)
-        return list(active_tokens)
+        return to_json_serializable(list(active_tokens))
 
     @staticmethod
     def get_active_token_by_token_id(token_id: str) -> dict:
         active_token = db.active_tokens.find_one(
             {"_id": ObjectId(token_id)}, {"_id": 0}
         )
-        return active_token
+        return to_json_serializable(active_token)
 
     @staticmethod
     def get_active_token_by_user_id(user_id: str) -> dict:
         active_token = db.active_tokens.find_one({"user_id": user_id})
-        return active_token
+        return to_json_serializable(active_token)
 
     def update_active_token(self, token_id: str) -> dict:
         active_token_updated = db.active_tokens.find_one_and_update(
@@ -158,7 +158,7 @@ class TokenModel(BaseModel, extra="forbid"):
             {"$set": self.model_dump()},
             return_document=ReturnDocument.AFTER,
         )
-        return active_token_updated
+        return to_json_serializable(active_token_updated)
 
     def update_or_insert_active_token_by_user_id(
         self, user_id: str, session=None
@@ -170,7 +170,7 @@ class TokenModel(BaseModel, extra="forbid"):
             return_document=ReturnDocument.AFTER,
             session=session,
         )
-        return active_token_updated
+        return to_json_serializable(active_token_updated)
 
     @staticmethod
     def delete_active_token_by_token_id(token_id: str) -> DeleteResult:

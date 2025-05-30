@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Literal
 
 from bson import ObjectId
@@ -17,8 +17,7 @@ from pymongo.results import InsertOneResult, DeleteResult
 
 from src.services.db_service import db
 from src.services.security_service import bcrypt
-from src.utils.models_helpers import Address, ItemBasket
-from src.utils.json_responses import to_json_serializable
+from src.utils.models_helpers import Address, ItemBasket, to_json_serializable
 
 
 # Campos únicos: email. Está configurado en MongoDB Atlas.
@@ -36,7 +35,7 @@ class UserModel(BaseModel, extra="forbid"):
     confirmed: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.now)
     expires_at: Optional[datetime] = Field(
-        default_factory=lambda: datetime.utcnow() + timedelta(days=7)
+        default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=7)
     )
 
     @model_validator(mode="after")

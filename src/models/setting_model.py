@@ -1,5 +1,5 @@
-from typing import List
-
+from typing import List, Union, Annotated
+from datetime import datetime
 from bson import ObjectId
 from pydantic import BaseModel, Field, field_validator
 from pymongo.results import InsertOneResult, DeleteResult
@@ -7,21 +7,23 @@ from pymongo.results import InsertOneResult, DeleteResult
 from src.services.db_service import db
 from src.utils.models_helpers import to_json_serializable
 
+NonEmptyListStr = Annotated[List[str], Field(min_length=1)]
+
 
 # Campos únicos: name. Está configurado en MongoDB Atlas.
 class SettingModel(BaseModel, extra="forbid"):
     name: str = Field(..., min_length=1, max_length=50)
-    values: List[str] = Field(..., min_length=1)
+    values: Union[NonEmptyListStr, bool] = Field(...)
+    updated_at: datetime = Field(default_factory=datetime.now)
 
     @field_validator("values", mode="after")
     @classmethod
     def __validate_values(cls, v):
-        if all(len(item) > 0 for item in v):
-            return v
-        else:
+        if isinstance(v, list) and not all(len(item) > 0 for item in v):
             raise ValueError(
                 "Los elementos de la lista 'values' debe tener al menos un caracter en cada string."
             )
+        return v
 
     # Solicitudes a la colección settings
     def insert_setting(self) -> InsertOneResult:

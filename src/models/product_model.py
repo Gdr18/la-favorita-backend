@@ -3,6 +3,7 @@ from bson import ObjectId
 from pydantic import BaseModel, Field, field_validator, ValidationInfo
 from pymongo import ReturnDocument
 from pymongo.results import InsertOneResult, DeleteResult
+from datetime import datetime
 
 from src.services.db_service import db
 from src.utils.models_helpers import to_json_serializable
@@ -32,6 +33,7 @@ class ProductModel(BaseModel, extra="forbid"):
     brand: Optional[str] = Field(None, min_length=1, max_length=50)
     allergens: Optional[List[str]] = Field(None, min_length=1)
     notes: Optional[str] = Field(None, min_length=1, max_length=500)
+    created_at: datetime = Field(..., default_factory=datetime.now)
 
     @field_validator("categories", "allergens", mode="after")
     @classmethod

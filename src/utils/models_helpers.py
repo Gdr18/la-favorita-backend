@@ -1,4 +1,5 @@
-from typing import List, NotRequired, TypedDict
+from typing import List, NotRequired
+from typing_extensions import TypedDict
 from datetime import datetime
 from bson import ObjectId
 

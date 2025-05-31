@@ -17,9 +17,9 @@ class OrderModel(BaseModel, extra="forbid"):
     address: Optional[Address] = None
     payment: Literal["cash", "card", "paypal"] = Field(...)
     total_price: float = Field(..., ge=0)
-    state: Literal["accepted", "cooking", "canceled", "ready", "sent", "delivered"] = (
-        Field(default="accepted")
-    )
+    state: Literal[
+        "pending", "accepted", "cooking", "canceled", "ready", "sent", "delivered"
+    ] = Field(default="pending")
     created_at: datetime = Field(default_factory=datetime.now)
 
     @model_validator(mode="after")
@@ -33,6 +33,7 @@ class OrderModel(BaseModel, extra="forbid"):
     @staticmethod
     def check_level_state(new_state: str, old_state: str) -> None:
         allowed_transitions = {
+            "pending": ("accepted", "canceled"),
             "accepted": ("cooking", "canceled"),
             "cooking": ("canceled", "ready"),
             "ready": ("sent", "canceled"),

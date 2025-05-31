@@ -22,9 +22,15 @@ auth_route = Blueprint("auth", __name__)
 @auth_route.route("/register", methods=["POST"])
 def register() -> tuple[Response, int]:
     session = client.start_session()
-    not_authorized = ("role", "created_at", "expires_at", "confirmed", "auth_provider")
+    not_authorized_to_set = (
+        "created_at",
+        "expires_at",
+        "confirmed",
+        "auth_provider",
+        "role",
+    )
     user_data = request.get_json()
-    for field in not_authorized:
+    for field in not_authorized_to_set:
         if field in user_data.keys():
             raise ValueCustomError("not_authorized_to_set", field)
     user_object = UserModel(**user_data)
@@ -150,18 +156,17 @@ def authorize_google() -> tuple[Response, int]:
 def refresh_user_token():
     user_id = get_jwt().get("sub")
     check_refresh_token = TokenModel.get_refresh_token_by_user_id(user_id)
-    if check_refresh_token:
-        user_data = UserModel.get_user_by_user_id(user_id)
-        access_token = generate_access_token(user_data)
-        return (
-            jsonify(
-                access_token=access_token,
-                msg="Token de acceso generado de forma satisfactoria",
-            ),
-            200,
-        )
-    else:
+    if not check_refresh_token:
         raise ValueCustomError("not_found", "refresh token")
+    user_data = UserModel.get_user_by_user_id(user_id)
+    access_token = generate_access_token(user_data)
+    return (
+        jsonify(
+            access_token=access_token,
+            msg="Token de acceso generado de forma satisfactoria",
+        ),
+        200,
+    )
 
 
 @auth_route.route("/confirm-email/<token>", methods=["GET"])
@@ -169,15 +174,14 @@ def confirm_email(token: str) -> tuple[Response, int]:
     user_identity = decode_token(token)
     user_id = user_identity.get("sub")
     user_requested = UserModel.get_user_by_user_id_without_id(user_id)
-    if user_requested:
-        if user_requested["confirmed"]:
-            raise ValueCustomError("already_confirmed")
-        user_requested["confirmed"] = True
-        user_object = UserModel(**user_requested)
-        user_object.update_user(user_id)
-        return success_json_response("usuario", "confirmado")
-    else:
+    if not user_requested:
         raise ValueCustomError("not_found", "usuario")
+    if user_requested["confirmed"]:
+        raise ValueCustomError("already_confirmed")
+    user_requested["confirmed"] = True
+    user_object = UserModel(**user_requested)
+    user_object.update_user(user_id)
+    return success_json_response("usuario", "confirmado")
 
 
 @auth_route.route("/resend-email", methods=["POST"])
@@ -185,13 +189,11 @@ def resend_email() -> tuple[Response, int]:
     email = request.get_json().get("email")
     if not email:
         raise ValueCustomError("resource_required", "email")
-    user_data = UserModel.get_user_by_email(email)
-    if user_data:
-        user_token = TokenModel.get_email_tokens_by_user_id(user_data["_id"])
-        if len(user_token) < 5:
-            send_email(user_data)
-            return success_json_response("email de confirmación", "reenviado")
-        else:
-            raise ValueCustomError("too_many_requests")
-    else:
+    user = UserModel.get_user_by_email(email)
+    if not user:
         raise ValueCustomError("not_found", "usuario")
+    user_tokens = TokenModel.get_email_tokens_by_user_id(user["_id"])
+    if not len(user_tokens) < 5:
+        raise ValueCustomError("too_many_requests")
+    send_email(user)
+    return success_json_response("email de confirmación", "reenviado")

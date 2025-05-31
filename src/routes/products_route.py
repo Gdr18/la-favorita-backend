@@ -8,7 +8,7 @@ from src.utils.exception_handlers import ValueCustomError
 from src.utils.json_responses import success_json_response, db_json_response
 from src.services.db_service import client
 
-products_resource = "producto"
+PRODUCTS_RESOURCE = "producto"
 
 products_route = Blueprint("products", __name__)
 
@@ -17,27 +17,27 @@ products_route = Blueprint("products", __name__)
 @jwt_required()
 def add_product() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
-    if not token_role <= 2:
+    if token_role != 1:
         raise ValueCustomError("not_authorized")
-    else:
-        product_data = request.get_json()
-        product_object = ProductModel(**product_data)
-        product_object.insert_product()
-        return success_json_response(products_resource, "añadido", 201)
+    product_data = request.get_json()
+    if product_data.get("created_at"):
+        raise ValueCustomError("not_authorized_to_set", "created_at")
+    product_object = ProductModel(**product_data)
+    product_object.insert_product()
+    return success_json_response(PRODUCTS_RESOURCE, "añadido", 201)
 
 
 @products_route.route("/", methods=["GET"])
 @jwt_required()
 def get_products() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
-    if not token_role <= 2:
+    if not any([token_role == 1, token_role == 2]):
         raise ValueCustomError("not_authorized")
-    else:
-        page = int(request.args.get("page", 1))
-        per_page = int(request.args.get("per-page", 10))
-        skip = (page - 1) * per_page
-        products = ProductModel.get_products(skip, per_page)
-        return db_json_response(products)
+    page = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per-page", 10))
+    skip = (page - 1) * per_page
+    products = ProductModel.get_products(skip, per_page)
+    return db_json_response(products)
 
 
 @products_route.route("/<product_id>", methods=["PUT"])
@@ -45,13 +45,17 @@ def get_products() -> tuple[Response, int]:
 def update_product(product_id) -> tuple[Response, int]:
     session = client.start_session()
     token_role = get_jwt().get("role")
-    if not token_role <= 2:
+    if not any([token_role == 1, token_role == 2]):
         raise ValueCustomError("not_authorized")
     product = ProductModel.get_product(product_id)
     if not product:
-        raise ValueCustomError("not_found", products_resource)
-    data = request.get_json()
-    combined_data = {**product, **data}
+        raise ValueCustomError("not_found", PRODUCTS_RESOURCE)
+    new_product_data = request.get_json()
+    if new_product_data.get("created_at") and new_product_data[
+        "created_at"
+    ] != product.get("created_at"):
+        raise ValueCustomError("not_authorized_to_set", "created_at")
+    combined_data = {**product, **new_product_data}
     product_object = ProductModel(**combined_data)
     try:
         session.start_transaction()
@@ -78,18 +82,21 @@ def update_product(product_id) -> tuple[Response, int]:
 @jwt_required()
 def handle_product(product_id: str) -> tuple[Response, int]:
     token_role = get_jwt().get("role")
-    if not token_role <= 2:
-        raise ValueCustomError("not_authorized")
+
     if request.method == "GET":
+        if not any([token_role == 1, token_role == 2]):
+            raise ValueCustomError("not_authorized")
         product = ProductModel.get_product(product_id)
         if product:
             return db_json_response(product)
         else:
-            raise ValueCustomError("not_found", products_resource)
+            raise ValueCustomError("not_found", PRODUCTS_RESOURCE)
 
     if request.method == "DELETE":
+        if token_role != 1:
+            raise ValueCustomError("not_authorized")
         deleted_product = ProductModel.delete_product(product_id)
         if deleted_product.deleted_count > 0:
-            return success_json_response(products_resource, "eliminado")
+            return success_json_response(PRODUCTS_RESOURCE, "eliminado")
         else:
-            raise ValueCustomError("not_found", products_resource)
+            raise ValueCustomError("not_found", PRODUCTS_RESOURCE)

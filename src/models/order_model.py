@@ -6,7 +6,7 @@ from bson import ObjectId
 from datetime import datetime
 
 from src.services.db_service import db
-from src.utils.models_helpers import Address, ItemOrder
+from src.utils.models_helpers import Address, ItemOrder, to_json_serializable
 
 
 # Índice: user_id. Está configurado en MongoDB Atlas.
@@ -17,9 +17,9 @@ class OrderModel(BaseModel, extra="forbid"):
     address: Optional[Address] = None
     payment: Literal["cash", "card", "paypal"] = Field(...)
     total_price: float = Field(..., ge=0)
-    state: Literal["accepted", "cooking", "canceled", "ready", "sent", "delivered"] = (
-        Field(default="accepted")
-    )
+    state: Literal[
+        "pending", "accepted", "cooking", "canceled", "ready", "sent", "delivered"
+    ] = Field(default="pending")
     created_at: datetime = Field(default_factory=datetime.now)
 
     @model_validator(mode="after")
@@ -33,6 +33,7 @@ class OrderModel(BaseModel, extra="forbid"):
     @staticmethod
     def check_level_state(new_state: str, old_state: str) -> None:
         allowed_transitions = {
+            "pending": ("accepted", "canceled"),
             "accepted": ("cooking", "canceled"),
             "cooking": ("canceled", "ready"),
             "ready": ("sent", "canceled"),
@@ -52,17 +53,17 @@ class OrderModel(BaseModel, extra="forbid"):
     @staticmethod
     def get_orders(skip: int, per_page: int) -> List[dict]:
         orders = db.orders.find().skip(skip).limit(per_page)
-        return list(orders)
+        return to_json_serializable(list(orders))
 
     @staticmethod
     def get_orders_by_user_id(user_id: str, skip: int, per_page: int) -> List[dict]:
         user_orders = db.orders.find({"user_id": user_id}).skip(skip).limit(per_page)
-        return list(user_orders)
+        return to_json_serializable(list(user_orders))
 
     @staticmethod
     def get_order(order_id: str) -> dict:
         order = db.orders.find_one({"_id": ObjectId(order_id)}, {"_id": 0})
-        return order
+        return to_json_serializable(order)
 
     def update_order(self, order_id: str, session=None) -> dict:
         updated_order = db.orders.find_one_and_update(
@@ -71,7 +72,7 @@ class OrderModel(BaseModel, extra="forbid"):
             return_document=ReturnDocument.AFTER,
             session=session,
         )
-        return updated_order
+        return to_json_serializable(updated_order)
 
     @staticmethod
     def delete_order(order_id: str) -> DeleteResult:

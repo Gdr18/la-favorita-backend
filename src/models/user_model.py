@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Literal
 
 from bson import ObjectId
@@ -17,7 +17,7 @@ from pymongo.results import InsertOneResult, DeleteResult
 
 from src.services.db_service import db
 from src.services.security_service import bcrypt
-from src.utils.models_helpers import Address, ItemBasket
+from src.utils.models_helpers import Address, ItemBasket, to_json_serializable
 
 
 # Campos únicos: email. Está configurado en MongoDB Atlas.
@@ -35,7 +35,7 @@ class UserModel(BaseModel, extra="forbid"):
     confirmed: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.now)
     expires_at: Optional[datetime] = Field(
-        default_factory=lambda: datetime.utcnow() + timedelta(days=7)
+        default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=7)
     )
 
     @model_validator(mode="after")
@@ -99,27 +99,27 @@ class UserModel(BaseModel, extra="forbid"):
             upsert=True,
             return_document=ReturnDocument.AFTER,
         )
-        return user
+        return to_json_serializable(user)
 
     @staticmethod
     def get_users(skip: int, per_page: int) -> list[dict]:
         users = db.users.find().skip(skip).limit(per_page)
-        return list(users)
+        return to_json_serializable(list(users))
 
     @staticmethod
     def get_user_by_user_id_without_id(user_id: str) -> dict:
         user = db.users.find_one({"_id": ObjectId(user_id)}, {"_id": 0})
-        return user
+        return to_json_serializable(user)
 
     @staticmethod
     def get_user_by_user_id(user_id: str) -> dict:
         user = db.users.find_one({"_id": ObjectId(user_id)})
-        return user
+        return to_json_serializable(user)
 
     @staticmethod
     def get_user_by_email(email: str) -> dict:
         user = db.users.find_one({"email": email})
-        return user
+        return to_json_serializable(user)
 
     def update_user(self, user_id: str) -> dict:
         updated_user = db.users.find_one_and_update(
@@ -127,7 +127,7 @@ class UserModel(BaseModel, extra="forbid"):
             {"$set": self.model_dump()},
             return_document=ReturnDocument.AFTER,
         )
-        return updated_user
+        return to_json_serializable(updated_user)
 
     @staticmethod
     def delete_user(user_id: str) -> DeleteResult:

@@ -5,7 +5,7 @@ from src.models.token_model import TokenModel
 from src.utils.exception_handlers import ValueCustomError
 from src.utils.json_responses import success_json_response, db_json_response
 
-email_tokens_resource = "email token"
+EMAIL_TOKENS_RESOURCE = "email token"
 
 email_tokens_route = Blueprint("email_tokens", __name__)
 
@@ -16,11 +16,12 @@ def add_email_token() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     if token_role != 0:
         raise ValueCustomError("not_authorized")
-    else:
-        data = request.get_json()
-        email_token = TokenModel(**data)
-        new_email_token = email_token.insert_email_token()
-        return success_json_response(email_tokens_resource, "añadido", 201)
+    email_token_data = request.get_json()
+    if email_token_data.get("created_at"):
+        raise ValueCustomError("not_authorized_to_set", "created_at")
+    email_token = TokenModel(**email_token_data)
+    email_token.insert_email_token()
+    return success_json_response(EMAIL_TOKENS_RESOURCE, "añadido", 201)
 
 
 @email_tokens_route.route("/", methods=["GET"])
@@ -29,12 +30,11 @@ def get_email_tokens() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     if token_role != 0:
         raise ValueCustomError("not_authorized")
-    else:
-        page = int(request.args.get("page", 1))
-        per_page = int(request.args.get("per-page", 10))
-        skip = (page - 1) * per_page
-        email_tokens = TokenModel.get_email_tokens(skip, per_page)
-        return db_json_response(email_tokens)
+    page = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per-page", 10))
+    skip = (page - 1) * per_page
+    email_tokens = TokenModel.get_email_tokens(skip, per_page)
+    return db_json_response(email_tokens)
 
 
 @email_tokens_route.route("/<email_token_id>", methods=["GET", "PUT", "DELETE"])
@@ -46,25 +46,27 @@ def handle_email_token(email_token_id: str) -> tuple[Response, int]:
 
     if request.method == "GET":
         email_token = TokenModel.get_email_token(email_token_id)
-        if email_token:
-            return db_json_response(email_token)
-        else:
-            raise ValueCustomError("not_found", email_tokens_resource)
+        if not email_token:
+            raise ValueCustomError("not_found", EMAIL_TOKENS_RESOURCE)
+        return db_json_response(email_token)
 
     if request.method == "PUT":
         email_token = TokenModel.get_email_token(email_token_id)
-        if email_token:
-            data = request.get_json()
-            mixed_data = {**email_token, **data}
-            email_token_object = TokenModel(**mixed_data)
-            email_token_updated = email_token_object.update_email_token(email_token_id)
-            return db_json_response(email_token_updated)
-        else:
-            raise ValueCustomError("not_found", email_tokens_resource)
+        if not email_token:
+            raise ValueCustomError("not_found", EMAIL_TOKENS_RESOURCE)
+        email_token_new_data = request.get_json()
+        if (
+            email_token_new_data.get("created_at")
+            and email_token_new_data["created_at"] != email_token["created_at"]
+        ):
+            raise ValueCustomError("not_authorized_to_set", "created_at")
+        mixed_data = {**email_token, **email_token_new_data}
+        email_token_object = TokenModel(**mixed_data)
+        email_token_updated = email_token_object.update_email_token(email_token_id)
+        return db_json_response(email_token_updated)
 
     if request.method == "DELETE":
         email_token_deleted = TokenModel.delete_email_token(email_token_id)
-        if email_token_deleted.deleted_count > 0:
-            return success_json_response(email_tokens_resource, "eliminado")
-        else:
-            raise ValueCustomError("not_found", email_tokens_resource)
+        if not email_token_deleted.deleted_count > 0:
+            raise ValueCustomError("not_found", EMAIL_TOKENS_RESOURCE)
+        return success_json_response(EMAIL_TOKENS_RESOURCE, "eliminado")

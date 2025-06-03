@@ -7,6 +7,7 @@ from src.models.product_model import ProductModel
 from src.utils.json_responses import success_json_response, db_json_response
 from src.utils.exception_handlers import ValueCustomError
 from src.services.db_service import client
+from src.services.bar_service import check_manual_closure, check_schedule_bar
 
 ORDERS_RESOURCE = "orden"
 NOT_AUTHORIZED_TO_UPDATE = ["created_at", "user_id"]
@@ -17,6 +18,10 @@ orders_route = Blueprint("orders", __name__)
 @orders_route.route("/", methods=["POST"])
 @jwt_required()
 def add_order() -> tuple[Response, int]:
+    if not check_manual_closure():
+        raise ValueCustomError("bar_closed_manually")
+    if not check_schedule_bar():
+        raise ValueCustomError("bar_closed_schedule")
     order_data = request.get_json()
     if order_data.get("created_at"):
         raise ValueCustomError("not_authorized_to_set", "created_at")

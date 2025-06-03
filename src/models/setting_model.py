@@ -13,10 +13,10 @@ NonEmptyListStr = Annotated[List[str], Field(min_length=1)]
 # Campos únicos: name. Está configurado en MongoDB Atlas.
 class SettingModel(BaseModel, extra="forbid"):
     name: str = Field(..., min_length=1, max_length=50)
-    values: Union[NonEmptyListStr, bool] = Field(...)
+    value: Union[NonEmptyListStr, bool] = Field(...)
     updated_at: datetime = Field(default_factory=datetime.now)
 
-    @field_validator("values", mode="after")
+    @field_validator("value", mode="after")
     @classmethod
     def __validate_values(cls, v):
         if isinstance(v, list) and not all(len(item) > 0 for item in v):
@@ -38,6 +38,11 @@ class SettingModel(BaseModel, extra="forbid"):
     @staticmethod
     def get_setting(setting_id: str) -> dict:
         setting = db.settings.find_one({"_id": ObjectId(setting_id)}, {"_id": 0})
+        return to_json_serializable(setting)
+
+    @staticmethod
+    def get_setting_by_name(name: str) -> dict:
+        setting = db.settings.find_one({"name": name}, {"_id": 0})
         return to_json_serializable(setting)
 
     def update_setting(self, setting_id: str) -> dict:

@@ -14,10 +14,8 @@ def check_schedule_bar():
     day_of_week = now.strftime("%A").lower()
 
     if (
-        OPEN_LUNCH <= now_time <= CLOSE_LUNCH
-        or OPEN_DINNER <= now_time <= CLOSE_DINNER
-        and day_of_week != "lunes"
-    ):
+        OPEN_LUNCH <= now_time <= CLOSE_LUNCH or OPEN_DINNER <= now_time <= CLOSE_DINNER
+    ) and day_of_week != "monday":
         return True
 
     return False
@@ -26,20 +24,20 @@ def check_schedule_bar():
 def check_manual_closure():
     manual_closure = SettingModel.get_setting_by_name("manual_closure")
 
-    if manual_closure["values"]:
+    if manual_closure["value"]:
         closing_time = datetime.fromisoformat(manual_closure["updated_at"]).time()
-        now = datetime.now().time()
+        now_time = datetime.now().time()
 
         close_in_lunch_time = OPEN_LUNCH <= closing_time <= CLOSE_LUNCH
         close_in_dinner_time = OPEN_DINNER <= closing_time <= CLOSE_DINNER
 
-        in_lunch_time = OPEN_LUNCH <= now <= CLOSE_LUNCH
-        in_dinner_time = OPEN_DINNER <= now <= CLOSE_DINNER
+        in_lunch_time = OPEN_LUNCH <= now_time <= CLOSE_LUNCH
+        in_dinner_time = OPEN_DINNER <= now_time <= CLOSE_DINNER
 
         if (close_in_lunch_time and in_dinner_time) or (
             close_in_dinner_time and in_lunch_time
         ):
-            SettingModel(values=False, name="manual_closure").update_setting(
+            SettingModel(value=False, name="manual_closure").update_setting(
                 manual_closure["_id"]
             )
             return True

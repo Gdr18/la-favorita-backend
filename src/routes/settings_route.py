@@ -15,7 +15,7 @@ settings_route = Blueprint("settings", __name__)
 @jwt_required()
 def add_setting() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
-    if token_role > 1:
+    if token_role != 1:
         raise ValueCustomError("not_authorized")
     setting_data = request.get_json()
     if setting_data.get("updated_at"):

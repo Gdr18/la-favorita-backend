@@ -3,7 +3,7 @@ import re
 
 from src.models.order_model import OrderModel
 from tests.test_helpers import (
-    assert_get_document_by_id_template,
+    assert_get_document_template,
     assert_insert_document_template,
     assert_get_all_documents_template,
     assert_delete_document_template,
@@ -302,7 +302,7 @@ def test_get_orders_by_user_id(mock_db):
 
 
 def test_get_order(mock_db):
-    return assert_get_document_by_id_template(mock_db, OrderModel.get_order, VALID_DATA)
+    return assert_get_document_template(mock_db, OrderModel.get_order, VALID_DATA)
 
 
 def test_update_order(mock_db):

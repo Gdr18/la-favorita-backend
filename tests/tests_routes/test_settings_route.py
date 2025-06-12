@@ -5,7 +5,7 @@ from src.models.setting_model import SettingModel
 from tests.test_helpers import app, client, auth_header
 
 ID = "507f1f77bcf86cd799439011"
-VALID_SETTING_DATA = {"name": "test", "values": ["value1", "value2"]}
+VALID_SETTING_DATA = {"name": "test", "value": ["value1", "value2"]}
 
 
 @pytest.fixture
@@ -47,6 +47,20 @@ def test_token_not_authorized_error(mock_get_jwt, client, auth_header, url, meth
 
     assert response.status_code == 401
     assert response.json["err"] == "not_auth"
+    mock_get_jwt.assert_called_once()
+
+
+def test_not_authorized_to_set(mock_get_jwt, client, auth_header):
+    mock_get_jwt.return_value = {"role": 1}
+
+    response = client.post(
+        "/settings/",
+        json={**VALID_SETTING_DATA, "updated_at": "2023-10-01T00:00:00Z"},
+        headers=auth_header,
+    )
+
+    assert response.status_code == 401
+    assert response.json["err"] == "not_auth_set"
     mock_get_jwt.assert_called_once()
 
 

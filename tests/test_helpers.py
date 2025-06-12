@@ -46,7 +46,7 @@ def assert_get_all_documents_template(mock_db, method, expected_result):
     mock_db.find.assert_called_once()
 
 
-def assert_get_document_by_id_template(mock_db, method, expected_result):
+def assert_get_document_template(mock_db, method, expected_result):
     mock_db.find_one.return_value = expected_result
     result = method(ID)
     assert result == expected_result

@@ -25,6 +25,10 @@ class ValueCustomError(Exception):
             self.response = self.json_response_too_many_requests()
         elif self.function == "resource_required":
             self.response = self.json_response_resource_required()
+        elif self.function == "bar_closed_manually":
+            self.response = self.json_response_bar_closed_manually()
+        elif self.function == "bar_closed_schedule":
+            self.response = self.json_response_bar_closed_schedule()
 
     def json_response_not_found(self) -> tuple[Response, int]:
         return (
@@ -85,6 +89,26 @@ class ValueCustomError(Exception):
                 msg=f"'{self.resource.capitalize()}' requerido para esta operación",
             ),
             400,
+        )
+
+    @staticmethod
+    def json_response_bar_closed_manually() -> tuple[Response, int]:
+        return (
+            jsonify(
+                err="bar_closed_manually",
+                msg="No se aceptan pedidos en este momento. Prueba dentro de un rato.",
+            ),
+            503,
+        )
+
+    @staticmethod
+    def json_response_bar_closed_schedule() -> tuple[Response, int]:
+        return (
+            jsonify(
+                err="bar_closed_schedule",
+                msg="El bar está cerrado. Nuestro horario es: de 13:00 a 16:00 y de 20:00 a 0:00.",
+            ),
+            503,
         )
 
 

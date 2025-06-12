@@ -9,7 +9,7 @@ VALID_DISH_DATA = {
     "name": "Pizza",
     "description": "Delicious pizza",
     "category": "main",
-    "ingredients": [{"name": "tomato", "waste": 0}],
+    "ingredients": [{"name": "Producto 2", "waste": 0}],
     "price": 10.99,
     "available": True,
 }
@@ -51,6 +51,40 @@ def test_token_not_authorized_error(mock_get_jwt, client, auth_header, url, meth
 
     assert response.status_code == 401
     assert response.json["err"] == "not_auth"
+    mock_get_jwt.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "url, method",
+    [
+        ("/dishes/", "post"),
+        ("/dishes/507f1f77bcf86cd799439011", "put"),
+    ],
+)
+def test_token_not_authorized_to_set_error(
+    mock_get_jwt, mock_get_dish, client, auth_header, url, method
+):
+    mock_get_jwt.return_value = {"role": 1}
+    mock_get_dish.return_value = {
+        **VALID_DISH_DATA,
+        "created_at": "2025-06-10T20:11:10+02:00",
+    }
+
+    if method == "put":
+        response = client.put(
+            url,
+            json={**VALID_DISH_DATA, "created_at": "2025-06-12T20:11:10+02:00"},
+            headers=auth_header,
+        )
+    elif method == "post":
+        response = client.post(
+            url,
+            json={**VALID_DISH_DATA, "created_at": "2025-06-12T20:11:10+02:00"},
+            headers=auth_header,
+        )
+
+    assert response.status_code == 401
+    assert response.json["err"] == "not_auth_set"
     mock_get_jwt.assert_called_once()
 
 

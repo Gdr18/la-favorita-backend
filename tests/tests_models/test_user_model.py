@@ -8,7 +8,7 @@ from src.models.user_model import UserModel
 from tests.test_helpers import (
     assert_update_document_template,
     assert_delete_document_template,
-    assert_get_document_by_id_template,
+    assert_get_document_template,
     assert_get_all_documents_template,
     assert_insert_document_template,
 )
@@ -324,7 +324,7 @@ def test_get_users(mock_db):
     ],
 )
 def test_get_user_by_user_id_with_and_without_id(mock_db, method, expected_result):
-    return assert_get_document_by_id_template(mock_db, method, expected_result)
+    return assert_get_document_template(mock_db, method, expected_result)
 
 
 def test_get_user_by_email(mock_db):

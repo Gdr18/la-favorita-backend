@@ -12,7 +12,7 @@ from src.models.product_model import (
 from tests.test_helpers import (
     assert_insert_document_template,
     assert_get_all_documents_template,
-    assert_get_document_by_id_template,
+    assert_get_document_template,
     assert_update_document_template,
     assert_delete_document_template,
 )
@@ -310,7 +310,7 @@ def test_get_products(mock_db_products):
 
 
 def test_get_product(mock_db_products):
-    return assert_get_document_by_id_template(
+    return assert_get_document_template(
         mock_db_products, ProductModel.get_product, VALID_DATA
     )
 

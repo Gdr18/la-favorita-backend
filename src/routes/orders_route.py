@@ -62,8 +62,7 @@ def get_user_orders(user_id):
 @jwt_required()
 def update_order(order_id):
     session = client.start_session()
-    token_data = get_jwt()
-    token_role = token_data.get("role")
+    token_role = get_jwt().get("role")
     order = OrderModel.get_order(order_id)
     if not order:
         raise ValueCustomError("not_found", ORDERS_RESOURCE)

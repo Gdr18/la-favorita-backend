@@ -80,6 +80,52 @@ def test_not_authorized_error(
 @pytest.mark.parametrize(
     "url, method",
     [
+        ("/orders/", "post"),
+        ("/orders/507f1f77bcf86cd799439011", "put"),
+    ],
+)
+def test_not_authorized_to_set_error(
+    mocker, client, auth_header, mock_get_jwt, mock_get_order, url, method
+):
+    if method == "post":
+        mock_manual_closure = mocker.patch(
+            "src.routes.orders_route.check_manual_closure", return_value=True
+        )
+        mock_schedule = mocker.patch(
+            "src.routes.orders_route.check_schedule_bar", return_value=True
+        )
+
+        response = client.post(
+            url,
+            json={**VALID_ORDER_DATA, "created_at": "2025-06-10T20:11:10+02:00"},
+            headers=auth_header,
+        )
+
+        mock_manual_closure.assert_called_once()
+        mock_schedule.assert_called_once()
+    elif method == "put":
+        mock_get_jwt.return_value = {"role": 1}
+        mock_get_order.return_value = {
+            **VALID_ORDER_DATA,
+            "created_at": "2025-06-09T20:11:10+02:00",
+        }
+
+        response = client.put(
+            url,
+            json={"created_at": "2025-06-10T20:11:10+02:00"},
+            headers=auth_header,
+        )
+
+        mock_get_jwt.assert_called_once()
+        mock_get_order.assert_called_once()
+
+    assert response.status_code == 401
+    assert response.json["err"] == "not_auth_set"
+
+
+@pytest.mark.parametrize(
+    "url, method",
+    [
         ("/orders/507f1f77bcf86cd799439011", "put"),
         ("/orders/507f1f77bcf86cd799439011", "get"),
         ("/orders/507f1f77bcf86cd799439011", "delete"),
@@ -121,7 +167,41 @@ def test_order_not_found_error(
     )
 
 
+def test_bar_is_closed_manually_error(mocker, client, auth_header):
+    mock_manual_closure = mocker.patch(
+        "src.routes.orders_route.check_manual_closure", return_value=False
+    )
+
+    response = client.post("/orders/", json=VALID_ORDER_DATA, headers=auth_header)
+
+    assert response.status_code == 503
+    assert response.json["err"] == "bar_closed_manually"
+    mock_manual_closure.assert_called_once()
+
+
+def test_bar_is_closed_error(mocker, client, auth_header):
+    mock_manual_closure = mocker.patch(
+        "src.routes.orders_route.check_manual_closure", return_value=True
+    )
+    mock_schedule = mocker.patch(
+        "src.routes.orders_route.check_schedule_bar", return_value=False
+    )
+
+    response = client.post("/orders/", json=VALID_ORDER_DATA, headers=auth_header)
+
+    assert response.status_code == 503
+    assert response.json["err"] == "bar_closed_schedule"
+    mock_manual_closure.assert_called_once()
+    mock_schedule.assert_called_once()
+
+
 def test_add_order_success(mocker, client, auth_header):
+    mock_manual_closure = mocker.patch(
+        "src.routes.orders_route.check_manual_closure", return_value=True
+    )
+    mock_schedule = mocker.patch(
+        "src.routes.orders_route.check_schedule_bar", return_value=True
+    )
     mock_db = mocker.patch.object(
         OrderModel,
         "insert_order",
@@ -133,9 +213,12 @@ def test_add_order_success(mocker, client, auth_header):
     assert response.status_code == 201
     assert response.json["msg"] == f"Orden añadida de forma satisfactoria"
     mock_db.assert_called_once()
+    mock_manual_closure.assert_called_once()
+    mock_schedule.assert_called_once()
 
 
-def test_get_orders_success(mocker, client, auth_header):
+def test_get_orders_success(mocker, client, auth_header, mock_get_jwt):
+    mock_get_jwt.return_value = {"role": 1}
     mock_db = mocker.patch.object(
         OrderModel, "get_orders", return_value=[VALID_ORDER_DATA]
     )
@@ -160,8 +243,9 @@ def test_get_user_orders_success(mocker, client, auth_header):
 
 
 def test_update_order_success(
-    mocker, client, auth_header, mock_get_order, mock_update_order
+    mocker, mock_get_jwt, client, auth_header, mock_get_order, mock_update_order
 ):
+    mock_get_jwt.return_value = {"role": 1}
     mock_get_order.return_value = VALID_ORDER_DATA
     mock_update_order.return_value = {**VALID_ORDER_DATA, "state": "ready"}
     mock_update_product = mocker.patch.object(
@@ -188,7 +272,10 @@ def test_update_order_success(
     mock_update_product.assert_called_once()
 
 
-def test_update_order_exception(client, auth_header, mock_get_order, mock_update_order):
+def test_update_order_exception(
+    client, auth_header, mock_get_jwt, mock_get_order, mock_update_order
+):
+    mock_get_jwt.return_value = {"role": 1}
     mock_get_order.return_value = VALID_ORDER_DATA
     mock_update_order.side_effect = PyMongoError("Database error")
 
@@ -210,7 +297,10 @@ def test_get_order_success(client, auth_header, mock_get_order):
     mock_get_order.assert_called_once()
 
 
-def test_delete_order_success(mocker, client, auth_header, mock_delete_order):
+def test_delete_order_success(
+    mocker, mock_get_jwt, client, auth_header, mock_delete_order
+):
+    mock_get_jwt.return_value = {"role": 1}
     mock_delete_order.return_value = mocker.MagicMock(deleted_count=1)
 
     response = client.delete(f"/orders/{ID}", headers=auth_header)

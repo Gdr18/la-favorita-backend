@@ -96,15 +96,31 @@ def test_user_not_found_error(
     )
 
 
-@pytest.mark.parametrize("field", [{"email": "invalid_email"}, {"role": 2}])
-def test_not_authorized_to_set_error(mock_get_user, client, auth_header, field):
-    mock_get_user.return_value = VALID_USER_DATA
-
-    response = client.put(f"/users/{ID}", json=field, headers=auth_header)
+@pytest.mark.parametrize(
+    "url, method", [("/users/507f1f77bcf86cd799439011", "put"), ("/users/", "post")]
+)
+def test_not_authorized_to_set_error(
+    mock_get_jwt, mock_get_user, client, auth_header, url, method
+):
+    mock_get_jwt.return_value = {"role": 0, "sub": ID}
+    if method == "post":
+        response = client.post(
+            url,
+            json={**VALID_USER_DATA, "auth_provider": "google"},
+            headers=auth_header,
+        )
+    elif method == "put":
+        mock_get_user.return_value = {**VALID_USER_DATA, "role": 0}
+        response = client.put(
+            url,
+            json={**VALID_USER_DATA, "role": 1},
+            headers=auth_header,
+        )
 
     assert response.status_code == 401
     assert response.json["err"] == "not_auth_set"
-    mock_get_user.assert_called_once()
+    mock_get_jwt.assert_called_once()
+    mock_get_user.assert_called_once() if method == "put" else None
 
 
 def test_add_user_success(mocker, client, mock_get_jwt, auth_header):
@@ -149,7 +165,7 @@ def test_get_user_success(mock_get_user, client, auth_header, mock_get_jwt):
 
 def test_update_user_success(mocker, mock_get_user, client, auth_header, mock_get_jwt):
     mock_get_jwt.return_value = {
-        "role": 0,
+        "role": 1,
         "sub": ID,
         "jti": "bb53e637-8627-457c-840f-6cae52a12e8b",
     }
@@ -157,17 +173,15 @@ def test_update_user_success(mocker, mock_get_user, client, auth_header, mock_ge
     mock_update_user = mocker.patch.object(
         UserModel,
         "update_user",
-        return_value={**VALID_USER_DATA, "name": "Updated User"},
+        return_value={**VALID_USER_DATA, "role": 0},
     )
 
-    response = client.put(
-        f"/users/{ID}", json={"name": "Updated User"}, headers=auth_header
-    )
+    response = client.put(f"/users/{ID}", json={"role": 0}, headers=auth_header)
 
     assert response.status_code == 200
     assert json.loads(response.data.decode()) == {
         **VALID_USER_DATA,
-        "name": "Updated User",
+        "role": 0,
     }
     mock_get_jwt.assert_called_once()
     mock_get_user.assert_called_once()

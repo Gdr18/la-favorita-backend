@@ -57,6 +57,37 @@ def test_token_not_authorized_error(mock_get_jwt, client, auth_header, url, meth
 
 @pytest.mark.parametrize(
     "url, method",
+    [("/active-tokens/", "post"), ("/active-tokens/507f1f77bcf86cd799439011", "put")],
+)
+def test_not_authorized_to_set_error(
+    client, auth_header, mock_get_jwt, mock_get_active_token, url, method
+):
+    mock_get_jwt.return_value = {"role": 0}
+
+    if method == "post":
+        response = client.post(
+            url,
+            json={**VALID_DATA, "created_at": "2030-10-01T00:00:00Z"},
+            headers=auth_header,
+        )
+    elif method == "put":
+        mock_get_active_token.return_value = {
+            **VALID_DATA,
+            "created_at": "2031-10-01T00:00:00Z",
+        }
+        response = client.put(
+            url,
+            json={**VALID_DATA, "created_at": "2030-10-01T00:00:00Z"},
+            headers=auth_header,
+        )
+    assert response.status_code == 401
+    assert response.json["err"] == "not_auth_set"
+    mock_get_jwt.assert_called_once()
+    mock_get_active_token.assert_called_once() if method == "put" else None
+
+
+@pytest.mark.parametrize(
+    "url, method",
     [
         ("/active-tokens/507f1f77bcf86cd799439011", "get"),
         ("/active-tokens/507f1f77bcf86cd799439011", "delete"),

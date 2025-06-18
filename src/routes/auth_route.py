@@ -7,14 +7,14 @@ from src.services.email_service import send_email
 from src.services.security_service import (
     generate_access_token,
     generate_refresh_token,
-    revoke_access_token,
+    delete_active_token,
     delete_refresh_token,
     google,
     verify_password,
 )
 from src.utils.exception_handlers import ValueCustomError
 from src.utils.json_responses import success_json_response
-from src.services.db_services import client
+from src.services.db_service import client
 
 auth_route = Blueprint("auth", __name__)
 
@@ -22,22 +22,29 @@ auth_route = Blueprint("auth", __name__)
 @auth_route.route("/register", methods=["POST"])
 def register() -> tuple[Response, int]:
     session = client.start_session()
+    not_authorized_to_set = (
+        "created_at",
+        "expires_at",
+        "confirmed",
+        "auth_provider",
+        "role",
+    )
     user_data = request.get_json()
-    if user_data.get("role"):
-        raise ValueCustomError("not_authorized_to_set", "role")
-    else:
-        user_object = UserModel(**user_data)
-        try:
-            session.start_transaction()
-            new_user = user_object.insert_user(session=session)
-            send_email({**user_object.model_dump(), "_id": new_user.inserted_id})
-            session.commit_transaction()
-            return success_json_response(new_user.inserted_id, "usuario", "añadido", 201)
-        except Exception as e:
-            session.abort_transaction()
-            raise e
-        finally:
-            session.end_session()
+    for field in not_authorized_to_set:
+        if field in user_data.keys():
+            raise ValueCustomError("not_authorized_to_set", field)
+    user_object = UserModel(**user_data)
+    try:
+        session.start_transaction()
+        new_user = user_object.insert_user(session=session)
+        send_email({**user_object.model_dump(), "_id": new_user.inserted_id})
+        session.commit_transaction()
+        return success_json_response("usuario", "añadido", 201)
+    except Exception as e:
+        session.abort_transaction()
+        raise e
+    finally:
+        session.end_session()
 
 
 # Se precisa de un login previo gestionado por el frontend
@@ -47,21 +54,24 @@ def change_email() -> tuple[Response, int]:
     user_data = request.get_json()
     user_id = get_jwt().get("sub")
     user_requested = UserModel.get_user_by_user_id_without_id(user_id)
-    if user_requested.get("auth_provider") == "google":
+    if not user_requested:
+        raise ValueCustomError("not_found", "usuario")
+    if user_requested["auth_provider"] == "google":
         user_requested["auth_provider"] = "email"
         user_requested["confirmed"] = False
         if not user_data.get("password"):
-            raise Exception("Se necesita contraseña para cambiar el email")
-        user_requested["password"] = user_data.get("password")
-    user_requested["email"] = user_data.get("email")
+            raise ValueCustomError("resource_required", "password")
+        user_requested["password"] = user_data["password"]
+    user_requested["email"] = user_data["email"]
     user_object = UserModel(**user_requested)
     updated_user = user_object.update_user(user_id)
     send_email(updated_user)
-    return success_json_response(user_id, "email del usuario", "cambiado")
+    return success_json_response("email del usuario", "actualizado")
 
 
 @auth_route.route("/login", methods=["POST"])
 def login() -> tuple[Response, int]:
+    session = client.start_session()
     user_data = request.get_json()
     user_requested = UserModel.get_user_by_email(user_data.get("email"))
     if not user_requested:
@@ -70,25 +80,33 @@ def login() -> tuple[Response, int]:
         raise ValueCustomError("not_match")
     if not user_requested.get("confirmed"):
         raise ValueCustomError("not_confirmed")
-    access_token = generate_access_token(user_requested)
-    refresh_token = generate_refresh_token(user_requested)
-    return (
-        jsonify(
-            msg=f"El usuario '{user_requested.get('_id')}' ha iniciado sesión de forma manual",
-            access_token=access_token,
-            refresh_token=refresh_token,
-        ),
-        200,
-    )
+    try:
+        session.start_transaction()
+        access_token = generate_access_token(user_requested, session)
+        refresh_token = generate_refresh_token(user_requested, session)
+        session.commit_transaction()
+        return (
+            jsonify(
+                msg=f"Usuario inicia sesión manual de forma satisfactoria",
+                access_token=access_token,
+                refresh_token=refresh_token,
+            ),
+            200,
+        )
+    except Exception as e:
+        session.abort_transaction()
+        raise e
+    finally:
+        session.end_session()
 
 
 @auth_route.route("/logout", methods=["POST"])
 @jwt_required()
 def logout() -> tuple[Response, int]:
-    token = get_jwt()
-    revoke_access_token(token)
-    delete_refresh_token(token["sub"])
-    return success_json_response(token["sub"], "logout del usuario", "realizado")
+    user_id = get_jwt().get("sub")
+    delete_active_token(user_id)
+    delete_refresh_token(user_id)
+    return success_json_response("logout del usuario", "realizado")
 
 
 @auth_route.route("/login/google")
@@ -99,6 +117,7 @@ def login_google() -> tuple[Response, int]:
 
 @auth_route.route("/callback/google")
 def authorize_google() -> tuple[Response, int]:
+    session = client.start_session()
     google_token = google.authorize_access_token()
     nonce = request.args.get("nonce")
     google_user_info = google.parse_id_token(google_token, nonce=nonce)
@@ -110,31 +129,44 @@ def authorize_google() -> tuple[Response, int]:
     }
     user_object = UserModel(**user_data)
     user = user_object.insert_or_update_user_by_email()
-    access_token = generate_access_token(user)
-    refresh_token = generate_refresh_token(user)
-    return (
-        jsonify(
-            {
-                "msg": f"""El usuario '{user.get("_id")}' ha iniciado sesión con Google""",
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-            }
-        ),
-        200,
-    )
+    try:
+        session.start_transaction()
+        access_token = generate_access_token(user, session)
+        refresh_token = generate_refresh_token(user, session)
+        session.commit_transaction()
+        return (
+            jsonify(
+                {
+                    "msg": "Usuario inicia sesión con Google de forma satisfactoria",
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                }
+            ),
+            200,
+        )
+    except Exception as e:
+        session.abort_transaction()
+        raise e
+    finally:
+        session.end_session()
 
 
 @auth_route.route("/refresh-token")
 @jwt_required(refresh=True)
-def refresh_users_token() -> tuple[Response, int]:
+def refresh_user_token():
     user_id = get_jwt().get("sub")
     check_refresh_token = TokenModel.get_refresh_token_by_user_id(user_id)
-    if check_refresh_token:
-        user_data = UserModel.get_user_by_user_id_without_id(user_id)
-        access_token = generate_access_token(user_data)
-        return jsonify(access_token=access_token, msg="El token de acceso se ha generado"), 200
-    else:
+    if not check_refresh_token:
         raise ValueCustomError("not_found", "refresh token")
+    user_data = UserModel.get_user_by_user_id(user_id)
+    access_token = generate_access_token(user_data)
+    return (
+        jsonify(
+            access_token=access_token,
+            msg="Token de acceso generado de forma satisfactoria",
+        ),
+        200,
+    )
 
 
 @auth_route.route("/confirm-email/<token>", methods=["GET"])
@@ -142,24 +174,26 @@ def confirm_email(token: str) -> tuple[Response, int]:
     user_identity = decode_token(token)
     user_id = user_identity.get("sub")
     user_requested = UserModel.get_user_by_user_id_without_id(user_id)
-    if user_requested:
-        user_requested["confirmed"] = True
-        user_object = UserModel(**user_requested)
-        user_object.update_user(user_id)
-        return success_json_response(user_id, "usuario", "confirmado")
-    else:
+    if not user_requested:
         raise ValueCustomError("not_found", "usuario")
+    if user_requested["confirmed"]:
+        raise ValueCustomError("already_confirmed")
+    user_requested["confirmed"] = True
+    user_object = UserModel(**user_requested)
+    user_object.update_user(user_id)
+    return success_json_response("usuario", "confirmado")
 
 
-@auth_route.route("/resend-email/<user_id>", methods=["POST"])
-def resend_email(user_id: str) -> tuple[Response, int]:
-    user_token = TokenModel.get_email_tokens_by_user_id(user_id)
-    if len(user_token) < 5:
-        user_data = UserModel.get_user_by_user_id(user_id)
-        if user_data:
-            send_email(user_data)
-            return success_json_response(user_id, "email de confirmación del usuario", "reenviado")
-        else:
-            raise ValueCustomError("not_found", "usuario")
-    else:
+@auth_route.route("/resend-email", methods=["POST"])
+def resend_email() -> tuple[Response, int]:
+    email = request.get_json().get("email")
+    if not email:
+        raise ValueCustomError("resource_required", "email")
+    user = UserModel.get_user_by_email(email)
+    if not user:
+        raise ValueCustomError("not_found", "usuario")
+    user_tokens = TokenModel.get_email_tokens_by_user_id(user["_id"])
+    if not len(user_tokens) < 5:
         raise ValueCustomError("too_many_requests")
+    send_email(user)
+    return success_json_response("email de confirmación", "reenviado")

@@ -1,11 +1,13 @@
+from typing import List, NotRequired
 from typing_extensions import TypedDict
-from typing import List, Optional
+from datetime import datetime
+from bson import ObjectId
 
 
 class Ingredient(TypedDict):
     name: str
-    allergens: Optional[List[str]]
-    waste: int
+    allergens: NotRequired[List[str]]
+    waste: float
 
 
 class ItemOrder(TypedDict):
@@ -22,7 +24,19 @@ class ItemBasket(TypedDict):
 
 
 class Address(TypedDict):
-    name: Optional[str]
+    name: NotRequired[str]
     line_one: str
-    line_two: Optional[str]
+    line_two: NotRequired[str]
     postal_code: str
+
+
+def to_json_serializable(obj):
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    elif isinstance(obj, ObjectId):
+        return str(obj)
+    elif isinstance(obj, list):
+        return [to_json_serializable(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {k: to_json_serializable(v) for k, v in obj.items()}
+    return obj

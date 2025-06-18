@@ -5,21 +5,23 @@ from src.models.dish_model import DishModel
 from src.utils.json_responses import success_json_response, db_json_response
 from src.utils.exception_handlers import ValueCustomError
 
-dishes_resource = "plato"
+DISHES_RESOURCE = "plato"
 
 dishes_route = Blueprint("dishes", __name__)
 
 
 @dishes_route.route("/", methods=["POST"])
 @jwt_required()
-def insert_dish():
+def add_dish():
     token_role = get_jwt().get("role")
     if token_role != 1:
         raise ValueCustomError("not_authorized")
     dish_data = request.get_json()
+    if dish_data.get("created_at"):
+        raise ValueCustomError("not_authorized_to_set", "created_at")
     dish_object = DishModel(**dish_data)
-    new_dish = dish_object.insert_dish()
-    return success_json_response(new_dish.inserted_id, dishes_resource, "añadido")
+    dish_object.insert_dish()
+    return success_json_response(DISHES_RESOURCE, "añadido", 201)
 
 
 @dishes_route.route("/")
@@ -41,7 +43,7 @@ def get_category_dishes(category):
 def get_dish(dish_id):
     dish = DishModel.get_dish(dish_id)
     if not dish:
-        raise ValueCustomError("not_found", dishes_resource)
+        raise ValueCustomError("not_found", DISHES_RESOURCE)
     return db_json_response(dish)
 
 
@@ -55,8 +57,12 @@ def handle_dish(dish_id):
     if request.method == "PUT":
         dish = DishModel.get_dish(dish_id)
         if not dish:
-            raise ValueCustomError("not_found", dishes_resource)
+            raise ValueCustomError("not_found", DISHES_RESOURCE)
         dish_data = request.get_json()
+        if dish_data.get("created_at") and dish_data["created_at"] != dish.get(
+            "created_at"
+        ):
+            raise ValueCustomError("not_authorized_to_set", "created_at")
         mixed_data = {**dish, **dish_data}
         dish_object = DishModel(**mixed_data)
         updated_dish = dish_object.update_dish(dish_id)
@@ -65,5 +71,5 @@ def handle_dish(dish_id):
     if request.method == "DELETE":
         deleted_dish = DishModel.delete_dish(dish_id)
         if not deleted_dish.deleted_count > 0:
-            raise ValueCustomError("not_found", dishes_resource)
-        return success_json_response(dish_id, dishes_resource, "eliminado")
+            raise ValueCustomError("not_found", DISHES_RESOURCE)
+        return success_json_response(DISHES_RESOURCE, "eliminado")

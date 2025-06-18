@@ -1,10 +1,15 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import Union
 
 from authlib.integrations.flask_client import OAuth
 from flask import jsonify, Response
 from flask_bcrypt import Bcrypt
-from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager, decode_token
+from flask_jwt_extended import (
+    create_access_token,
+    create_refresh_token,
+    JWTManager,
+    decode_token,
+)
 from pymongo.results import InsertOneResult, DeleteResult
 
 from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
@@ -28,12 +33,14 @@ def verify_password(db_password: str, password: str) -> bool:
     return bcrypt.check_password_hash(db_password, password)
 
 
-def verify_google_identity(google_token: str, user_email: str) -> Union[bool, Exception]:
+def verify_google_identity(
+    google_token: str, user_email: str
+) -> Union[bool, Exception]:
     token_info = google.parse_id_token(google_token)
     return token_info["email"] == user_email
 
 
-def generate_access_token(user_data: dict) -> str:
+def generate_access_token(user_data: dict, session=None) -> str:
     user_role = user_data.get("role")
     user_identity = user_data.get("_id")
     token_info = {
@@ -42,24 +49,41 @@ def generate_access_token(user_data: dict) -> str:
         "expires_delta": get_expiration_time_access_token(user_role),
     }
     access_token = create_access_token(**token_info)
+
+    access_token_decoded = decode_token(access_token)
+    data_access_token = {
+        "user_id": access_token_decoded.get("sub"),
+        "jti": access_token_decoded.get("jti"),
+        "expires_at": access_token_decoded.get("exp"),
+        "created_at": datetime.now(),
+    }
+    TokenModel(**data_access_token).update_or_insert_active_token_by_user_id(
+        data_access_token["user_id"], session
+    )
     return access_token
 
 
-def generate_refresh_token(user_data: dict) -> Union[str, tuple[Response, int]]:
+def generate_refresh_token(
+    user_data: dict, session
+) -> Union[str, tuple[Response, int]]:
     user_role = user_data.get("role")
     user_identity = user_data.get("_id")
-
-    token_info = {"identity": str(user_identity), "expires_delta": get_expiration_time_refresh_token(user_role)}
+    token_info = {
+        "identity": str(user_identity),
+        "expires_delta": get_expiration_time_refresh_token(user_role),
+    }
     refresh_token = create_refresh_token(**token_info)
 
     refresh_token_decoded = decode_token(refresh_token)
-    data_refresh_token_db = {
+    data_refresh_token = {
         "user_id": refresh_token_decoded.get("sub"),
         "jti": refresh_token_decoded.get("jti"),
         "expires_at": refresh_token_decoded.get("exp"),
+        "created_at": datetime.now(),
     }
-    refresh_token_object = TokenModel(**data_refresh_token_db)
-    refresh_token_object.insert_refresh_token()
+    TokenModel(**data_refresh_token).update_or_insert_refresh_token_by_user_id(
+        data_refresh_token["user_id"], session
+    )
     return refresh_token
 
 
@@ -73,14 +97,12 @@ def generate_email_token(user_data: dict) -> Union[str, tuple[Response, int]]:
         "jti": decoded_token_email.get("jti"),
         "expires_at": decoded_token_email.get("exp"),
     }
-    try:
-        TokenModel(**data_email_token_db).insert_email_token()
-        return email_token
-    except Exception as e:
-        raise Exception(f"Error de la base de datos: {str(e)}")
+    TokenModel(**data_email_token_db).insert_email_token()
+    return email_token
 
 
 def get_expiration_time_access_token(role: int) -> timedelta:
+    # TODO: Añadir el rol 0
     if role == 1:
         return timedelta(minutes=15)
     elif role == 2:
@@ -90,6 +112,7 @@ def get_expiration_time_access_token(role: int) -> timedelta:
 
 
 def get_expiration_time_refresh_token(role: int) -> timedelta:
+    # TODO: Añadir el rol 0
     if role == 1:
         return timedelta(hours=3)
     elif role == 2:
@@ -98,39 +121,39 @@ def get_expiration_time_refresh_token(role: int) -> timedelta:
         return timedelta(days=30)
 
 
-def revoke_access_token(token: dict) -> InsertOneResult:
-    token_object = TokenModel(user_id=token["sub"], jti=token["jti"], expires_at=token["exp"])
-    try:
-        token_revoked = token_object.insert_revoked_token()
-        return token_revoked
-    except Exception as e:
-        raise Exception(f"Error de la base de datos: {str(e)}")
+def delete_active_token(user_id: str) -> DeleteResult:
+    deleted_active_token = TokenModel.delete_active_token_by_user_id(user_id)
+    return deleted_active_token
 
 
 def delete_refresh_token(user_id: str) -> DeleteResult:
-    try:
-        deleted_refresh_token = TokenModel.delete_refresh_token_by_user_id(user_id)
-        return deleted_refresh_token
-    except Exception as e:
-        raise Exception(f"Error de la base de datos: {str(e)}")
+    deleted_refresh_token = TokenModel.delete_refresh_token_by_user_id(user_id)
+    return deleted_refresh_token
 
 
 @jwt.token_in_blocklist_loader
-def check_if_token_revoked(jwt_header: dict, jwt_payload: dict) -> Union[bool, None]:
-    check_token = TokenModel.get_revoked_token_by_jti(jwt_payload["jti"])
-    return True if check_token else None
+def check_if_token_active_callback(
+    jwt_header: dict, jwt_payload: dict
+) -> Union[bool, None]:
+    check_token = TokenModel.get_active_token_by_user_id(jwt_payload["sub"])
+    return True if not check_token else None
 
 
 @jwt.revoked_token_loader
 def revoked_token_callback(jwt_header: dict, jwt_payload: dict) -> tuple[Response, int]:
-    return jsonify(err="El token ha sido revocado"), 401
+    return jsonify(err="revoked_token", msg="El token ha sido revocado"), 401
 
 
 @jwt.expired_token_loader
 def expired_token_callback(jwt_header: dict, wt_payload: dict) -> tuple[Response, int]:
-    return jsonify(err="El token ha expirado"), 401
+    return jsonify(err="expired_token", msg="El token ha expirado"), 401
 
 
 @jwt.unauthorized_loader
 def unauthorized_callback(error_message: str) -> tuple[Response, int]:
-    return jsonify(err="Necesita un token válido para acceder a esta ruta"), 401
+    return (
+        jsonify(
+            err="invalid_token", msg="Necesita un token válido para acceder a esta ruta"
+        ),
+        401,
+    )

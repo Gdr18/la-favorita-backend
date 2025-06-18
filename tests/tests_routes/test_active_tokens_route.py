@@ -6,7 +6,7 @@ from src.models.token_model import TokenModel
 
 
 ID = "507f1f77bcf86cd799439011"
-VALID_DATA = {
+VALID_ACTIVE_TOKEN_DATA = {
     "user_id": ID,
     "jti": "bb53e637-8627-457c-840f-6cae52a12e8b",
     "expires_at": "2025-10-01T00:00:00Z",
@@ -42,13 +42,13 @@ def test_token_not_authorized_error(mock_get_jwt, client, auth_header, url, meth
     mock_get_jwt.return_value = {"role": 1}
 
     if method == "post":
-        response = client.post(url, json=VALID_DATA, headers=auth_header)
+        response = client.post(url, json=VALID_ACTIVE_TOKEN_DATA, headers=auth_header)
     elif method == "get":
         response = client.get(url, headers=auth_header)
     elif method == "delete":
         response = client.delete(url, headers=auth_header)
     elif method == "put":
-        response = client.put(url, json=VALID_DATA, headers=auth_header)
+        response = client.put(url, json=VALID_ACTIVE_TOKEN_DATA, headers=auth_header)
 
     assert response.status_code == 401
     assert response.json["err"] == "not_auth"
@@ -67,17 +67,17 @@ def test_not_authorized_to_set_error(
     if method == "post":
         response = client.post(
             url,
-            json={**VALID_DATA, "created_at": "2030-10-01T00:00:00Z"},
+            json={**VALID_ACTIVE_TOKEN_DATA, "created_at": "2030-10-01T00:00:00Z"},
             headers=auth_header,
         )
     elif method == "put":
         mock_get_active_token.return_value = {
-            **VALID_DATA,
+            **VALID_ACTIVE_TOKEN_DATA,
             "created_at": "2031-10-01T00:00:00Z",
         }
         response = client.put(
             url,
-            json={**VALID_DATA, "created_at": "2030-10-01T00:00:00Z"},
+            json={**VALID_ACTIVE_TOKEN_DATA, "created_at": "2030-10-01T00:00:00Z"},
             headers=auth_header,
         )
     assert response.status_code == 401
@@ -116,7 +116,7 @@ def test_active_token_not_found_error(
     elif method == "delete":
         response = client.delete(url, headers=auth_header)
     elif method == "put":
-        response = client.put(url, json=VALID_DATA, headers=auth_header)
+        response = client.put(url, json=VALID_ACTIVE_TOKEN_DATA, headers=auth_header)
 
     assert response.status_code == 404
     assert response.json["err"] == "not_found"
@@ -136,7 +136,9 @@ def test_add_active_token_success(mocker, client, mock_get_jwt, auth_header):
         return_value=mocker.MagicMock(inserted_id=ID),
     )
 
-    response = client.post("/active-tokens/", json=VALID_DATA, headers=auth_header)
+    response = client.post(
+        "/active-tokens/", json=VALID_ACTIVE_TOKEN_DATA, headers=auth_header
+    )
 
     assert response.status_code == 201
     assert response.json["msg"] == "Token activo añadido de forma satisfactoria"
@@ -147,13 +149,13 @@ def test_add_active_token_success(mocker, client, mock_get_jwt, auth_header):
 def test_get_active_tokens_success(mocker, mock_get_jwt, client, auth_header):
     mock_get_jwt.return_value = {"role": 0}
     mock_db = mocker.patch.object(
-        TokenModel, "get_active_tokens", return_value=[VALID_DATA]
+        TokenModel, "get_active_tokens", return_value=[VALID_ACTIVE_TOKEN_DATA]
     )
 
     response = client.get("/active-tokens/", headers=auth_header)
 
     assert response.status_code == 200
-    assert json.loads(response.data.decode()) == [VALID_DATA]
+    assert json.loads(response.data.decode()) == [VALID_ACTIVE_TOKEN_DATA]
     mock_get_jwt.assert_called_once()
     mock_db.assert_called_once()
 
@@ -162,12 +164,12 @@ def test_get_active_token_success(
     client, auth_header, mock_get_jwt, mock_get_active_token
 ):
     mock_get_jwt.return_value = {"role": 0}
-    mock_get_active_token.return_value = VALID_DATA
+    mock_get_active_token.return_value = VALID_ACTIVE_TOKEN_DATA
 
     response = client.get(f"/active-tokens/{ID}", headers=auth_header)
 
     assert response.status_code == 200
-    assert json.loads(response.data.decode()) == VALID_DATA
+    assert json.loads(response.data.decode()) == VALID_ACTIVE_TOKEN_DATA
     mock_get_jwt.assert_called_once()
     mock_get_active_token.assert_called_once()
 
@@ -176,11 +178,11 @@ def test_update_active_token_success(
     mocker, mock_get_jwt, mock_get_active_token, client, auth_header
 ):
     mock_get_jwt.return_value = {"role": 0}
-    mock_get_active_token.return_value = VALID_DATA
+    mock_get_active_token.return_value = VALID_ACTIVE_TOKEN_DATA
     mocker.patch.object(
         TokenModel,
         "update_active_token",
-        return_value={**VALID_DATA, "expires_at": "2025-10-01T00:00:00Z"},
+        return_value={**VALID_ACTIVE_TOKEN_DATA, "expires_at": "2025-10-01T00:00:00Z"},
     )
 
     response = client.put(
@@ -191,7 +193,7 @@ def test_update_active_token_success(
 
     assert response.status_code == 200
     assert json.loads(response.data.decode()) == {
-        **VALID_DATA,
+        **VALID_ACTIVE_TOKEN_DATA,
         "expires_at": "2025-10-01T00:00:00Z",
     }
     mock_get_jwt.assert_called_once()

@@ -29,7 +29,7 @@ def add_setting() -> tuple[Response, int]:
 @jwt_required()
 def get_settings() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
-    if token_role > 1:
+    if token_role != 1:
         raise ValueCustomError("not_authorized")
     page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per-page", 10))
@@ -43,7 +43,7 @@ def get_settings() -> tuple[Response, int]:
 def handle_setting(setting_id: str) -> tuple[Response, int]:
     token = get_jwt()
     token_role = token.get("role")
-    if token_role > 1:
+    if token_role != 1:
         raise ValueCustomError("not_authorized")
 
     if request.method == "GET":
@@ -58,7 +58,6 @@ def handle_setting(setting_id: str) -> tuple[Response, int]:
             raise ValueCustomError("not_found", SETTINGS_RESOURCE)
         setting_new_data = request.get_json()
         mixed_data = {**setting, **setting_new_data}
-        # TODO: Comprobar que lo siguiente funciona
         mixed_data.pop("updated_at", None)
         setting_object = SettingModel(**mixed_data)
         updated_setting = setting_object.update_setting(setting_id)

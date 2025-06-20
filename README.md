@@ -4,6 +4,7 @@ API desarrollada con **Python + Flask + MongoDB** para gestionar productos y ped
 Esta aplicación permite a usuarios con distintos roles consultar y modificar la base de datos de forma segura,
 facilitando tanto la realización de pedidos por parte de los clientes como su gestión por parte del personal del bar,
 entre otras funcionalidades.
+
 ---
 
 ## 🚀 Tecnologías utilizadas
@@ -65,7 +66,7 @@ DEFAULT_SENDER_EMAIL = "senderemail"
 ```
 
 - `MONGO_DB_URI`: URI de conexión a la base de datos MongoDB.
-- `CONFIG`: Configuración de la aplicación.
+- `CONFIG`: Configuración de la aplicación (desarrollo/producción).
 - `JWT_SECRET_KEY`: Clave secreta para la autenticación JWT.
 - `CLIENT_ID` y `CLIENT_SECRET`: Credenciales de OAuth para autenticación con Google.
 - `SECRET_KEY`: Clave secreta para la aplicación Flask.
@@ -91,6 +92,75 @@ python -m pytest
 ```
 
 En consola aparecerá el código que ha pasado y fallado las pruebas, junto con la cobertura de cada archivo.
+
+---
+
+## 📫 Documentación de la API
+
+Puedes consultar y probar todos los endpoints desde la colección de Postman:
+
+🔗 [Colección de Postman](https://www.postman.com/tu-nombre-de-usuario/workspace/My-Workspace~959b1184-c553-4747-8bce-84d1bf72923a/collection/26739293-51b9ab63-6047-487f-a538-17276126744f?action=share&creator=26739293)
+
+Incluye:
+
+- Endpoints protegidos y públicos
+- Headers, query params y body requeridos
+- Respuestas esperadas y posibles errores
+- Documentación embebida en cada endpoint
+
+> 💡 Asegúrate de iniciar sesión primero con una cuenta de prueba para obtener un `access_token` válido.
+
+---
+
+## 🧪 Cuentas de prueba
+
+Puedes iniciar sesión con las siguientes credenciales para obtener tokens JWT válidos. Estos te permitirán acceder a los
+endpoints según el rol asignado:
+
+### 👩‍💻 Developer
+
+- Email: `developer@example.com`
+- Contraseña: `developer123`
+
+### 👑 Admin
+
+- Email: `admin@example.com`
+- Contraseña: `admin123`
+
+### 🧑‍🔧 Staff
+
+- Email: `staff@example.com`
+- Contraseña: `staff123`
+
+> Los tokens de acceso son temporales. Puedes obtener uno nuevo en cualquier momento repitiendo el login.
+
+### 👤 Cliente
+
+El rol `cliente` se asigna automáticamente a cualquier usuario que se registre a través del endpoint de
+`/auth/register`. No necesitas permisos especiales para registrarte.
+
+### 🧾 Equivalencia de roles (internos)
+
+| Rol (nomenclatura) | Valor en base de datos |
+|--------------------|------------------------|
+| `customer`         | `3`                    |
+| `staff`            | `2`                    |
+| `admin`            | `1`                    |
+| `developer`        | `0`                    |
+
+---
+
+## 🔐 Acceso a endpoints por rol
+
+Cada endpoint protegido requiere un determinado nivel de rol (`developer`, `admin`, `staff`). Estos niveles
+están definidos en la lógica del backend y limitan el acceso a funciones como:
+
+- Creación y edición de productos o configuraciones
+- Consulta de tokens
+- Gestión de usuarios
+
+La documentación en Postman especifica, donde corresponde, qué rol es necesario.
+
 ___
 
 ## 👩‍💻 Autor

@@ -15,7 +15,7 @@ users_route = Blueprint("users", __name__)
 @jwt_required()
 def add_user() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
-    if not token_role == 0:
+    if token_role != 1:
         raise ValueCustomError("not_authorized")
     not_authorized_to_set = (
         "created_at",
@@ -36,7 +36,7 @@ def add_user() -> tuple[Response, int]:
 @jwt_required()
 def get_users() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
-    if not token_role <= 1:
+    if token_role != 1:
         raise ValueCustomError("not_authorized")
     page = request.args.get("page", 1)
     per_page = request.args.get("per-page", 10)
@@ -51,7 +51,7 @@ def handle_user(user_id: str) -> tuple[Response, int]:
     token = get_jwt()
     token_user_id = token["sub"]
     token_role = token["role"]
-    if not any([token_user_id == user_id, token_role <= 1]):
+    if not any([token_user_id == user_id, token_role == 1]):
         raise ValueCustomError("not_authorized")
 
     if request.method == "GET":

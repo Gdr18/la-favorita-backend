@@ -13,7 +13,7 @@ from src.utils.models_helpers import Address, ItemOrder, to_json_serializable
 class OrderModel(BaseModel, extra="forbid"):
     user_id: str = Field(..., pattern=r"^[a-f0-9]{24}$")
     items: List[ItemOrder] = Field(..., min_length=1)
-    type_order: Literal["delivery", "collect", "take_away"] = Field(...)
+    type_order: Literal["delivery", "local", "take_away"] = Field(...)
     address: Optional[Address] = None
     payment: Literal["cash", "card", "paypal"] = Field(...)
     total_price: float = Field(..., ge=0)

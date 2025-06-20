@@ -306,7 +306,7 @@ def test_get_order(mock_db):
 
 
 def test_update_order(mock_db):
-    new_data = {**VALID_DATA, "type_order": "collect"}
+    new_data = {**VALID_DATA, "type_order": "local"}
     order_object = OrderModel(**new_data)
     return assert_update_document_template(mock_db, order_object.update_order, new_data)
 

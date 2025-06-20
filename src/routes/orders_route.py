@@ -43,7 +43,7 @@ def get_orders() -> tuple[Response, int]:
     return db_json_response(orders)
 
 
-@orders_route.route("/users/<user_id>")
+@orders_route.route("/user/<user_id>")
 @jwt_required()
 def get_user_orders(user_id):
     token_data = get_jwt()
@@ -62,15 +62,19 @@ def get_user_orders(user_id):
 @jwt_required()
 def update_order(order_id):
     session = client.start_session()
-    token_role = get_jwt().get("role")
+    token = get_jwt()
+    token_role = token.get("role")
+    token_id = token.get("sub")
     order = OrderModel.get_order(order_id)
     if not order:
         raise ValueCustomError("not_found", ORDERS_RESOURCE)
-    if token_role != 1:
+    if not any([token_id == order["user_id"], token_role == 1]):
         raise ValueCustomError("not_authorized")
     order_new_data = request.get_json()
-    for field in NOT_AUTHORIZED_TO_UPDATE:
-        if order_new_data.get(field) and order_new_data[field] != order[field]:
+    for field in order_new_data.keys():
+        if (token_role != 1 and field != "state") or (
+            field in NOT_AUTHORIZED_TO_UPDATE
+        ):
             raise ValueCustomError("not_authorized_to_set", field)
     if order_new_data.get("state") and order["state"] != order_new_data["state"]:
         OrderModel.check_level_state(order_new_data.get("state"), order["state"])

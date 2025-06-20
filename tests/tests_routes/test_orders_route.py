@@ -20,7 +20,7 @@ VALID_ORDER_DATA = {
             ],
         }
     ],
-    "type_order": "collect",
+    "type_order": "local",
     "payment": "card",
     "total_price": 20.0,
     "state": "cooking",
@@ -51,7 +51,7 @@ def mock_delete_order(mocker):
     "url, method, mock",
     [
         ("/orders/", "get", False),
-        ("/orders/users/507f1f77bcf86cd799439011", "get", False),
+        ("/orders/user/507f1f77bcf86cd799439011", "get", False),
         ("/orders/507f1f77bcf86cd799439011", "put", True),
         ("/orders/507f1f77bcf86cd799439011", "get", True),
         ("/orders/507f1f77bcf86cd799439011", "delete", False),
@@ -235,7 +235,7 @@ def test_get_user_orders_success(mocker, client, auth_header):
         OrderModel, "get_orders_by_user_id", return_value=[VALID_ORDER_DATA]
     )
 
-    response = client.get(f"/orders/users/{ID}", headers=auth_header)
+    response = client.get(f"/orders/user/{ID}", headers=auth_header)
 
     assert response.status_code == 200
     assert json.loads(response.data.decode()) == [VALID_ORDER_DATA]

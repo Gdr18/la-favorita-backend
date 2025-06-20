@@ -102,7 +102,6 @@ def generate_email_token(user_data: dict) -> Union[str, tuple[Response, int]]:
 
 
 def get_expiration_time_access_token(role: int) -> timedelta:
-    # TODO: Añadir el rol 0
     if role == 1:
         return timedelta(minutes=15)
     elif role == 2:
@@ -112,7 +111,6 @@ def get_expiration_time_access_token(role: int) -> timedelta:
 
 
 def get_expiration_time_refresh_token(role: int) -> timedelta:
-    # TODO: Añadir el rol 0
     if role == 1:
         return timedelta(hours=3)
     elif role == 2:

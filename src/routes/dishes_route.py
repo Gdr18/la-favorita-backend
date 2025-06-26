@@ -36,6 +36,8 @@ def get_dishes():
 @dishes_route.route("/category/<category>")
 def get_category_dishes(category):
     dishes_by_category = DishModel.get_dishes_by_category(category)
+    if not dishes_by_category:
+        raise ValueCustomError("not_found", DISHES_RESOURCE)
     return db_json_response(dishes_by_category)
 
 

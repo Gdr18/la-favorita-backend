@@ -28,6 +28,7 @@ def register() -> tuple[Response, int]:
         "confirmed",
         "auth_provider",
         "role",
+        "basket",
     )
     user_data = request.get_json()
     for field in not_authorized_to_set:
@@ -137,7 +138,7 @@ def authorize_google() -> tuple[Response, int]:
         return (
             jsonify(
                 {
-                    "msg": "Usuario inicia sesión con Google de forma satisfactoria",
+                    "msg": "El usuario ha iniciado sesión con Google de forma satisfactoria",
                     "access_token": access_token,
                     "refresh_token": refresh_token,
                 }

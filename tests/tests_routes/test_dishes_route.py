@@ -91,6 +91,7 @@ def test_token_not_authorized_to_set_error(
 @pytest.mark.parametrize(
     "url, method",
     [
+        ("/dishes/category/snacks", "get"),
         ("/dishes/507f1f77bcf86cd799439011", "get"),
         ("/dishes/507f1f77bcf86cd799439011", "put"),
         ("/dishes/507f1f77bcf86cd799439011", "delete"),
@@ -106,8 +107,12 @@ def test_dish_not_found_error(
     url,
     method,
 ):
+    mock_get_category_dishes = mocker.patch.object(DishModel, "get_dishes_by_category")
     mock_get_jwt.return_value = {"role": 1}
-    if method in ["put", "get"]:
+
+    if method == "get" and "category" in url:
+        mock_get_category_dishes.return_value = None
+    elif method in ["put", "get"]:
         mock_get_dish.return_value = None
     else:
         mock_delete_dish.return_value = mocker.MagicMock(deleted_count=0)
@@ -121,12 +126,14 @@ def test_dish_not_found_error(
 
     assert response.status_code == 404
     assert response.json["err"] == "not_found"
+
     mock_get_jwt.assert_called_once() if method != "get" else None
-    (
+    if "category" in url:
+        mock_get_category_dishes.assert_called_once() if method == "get" else None
+    elif method in ["put", "get"]:
         mock_get_dish.assert_called_once()
-        if method != "delete"
-        else mock_delete_dish.assert_called_once()
-    )
+    else:
+        mock_delete_dish.assert_called_once()
 
 
 def test_add_dish_success(mocker, client, auth_header, mock_get_jwt):

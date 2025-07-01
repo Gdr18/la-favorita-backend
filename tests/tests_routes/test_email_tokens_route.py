@@ -139,7 +139,7 @@ def test_add_email_token_success(mocker, client, auth_header, mock_get_jwt):
     )
 
     assert response.status_code == 201
-    assert response.json["msg"] == f"Email token añadido de forma satisfactoria"
+    assert response.json["msg"] == f"Token de email añadido de forma satisfactoria"
     mock_get_jwt.assert_called_once()
     mock_db.assert_called_once()
 
@@ -208,6 +208,6 @@ def test_delete_email_token_success(
     response = client.delete(f"/email-tokens/{ID}", headers=auth_header)
 
     assert response.status_code == 200
-    assert response.json["msg"] == f"Email token eliminado de forma satisfactoria"
+    assert response.json["msg"] == f"Token de email eliminado de forma satisfactoria"
     mock_get_jwt.assert_called_once()
     mock_delete_email_token.assert_called_once()

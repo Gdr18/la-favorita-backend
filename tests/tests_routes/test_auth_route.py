@@ -449,7 +449,7 @@ def test_callback_google_success(
     assert response.status_code == 200
     assert (
         response.json["msg"]
-        == "Usuario inicia sesión con Google de forma satisfactoria"
+        == "El usuario ha iniciado sesión con Google de forma satisfactoria"
     )
     assert response.json["access_token"] == "access_token"
     assert response.json["refresh_token"] == "refresh_token"

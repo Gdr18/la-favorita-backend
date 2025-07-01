@@ -95,7 +95,7 @@ En consola aparecerá el código que ha pasado y fallado las pruebas, junto con 
 
 ---
 
-## 📫 Documentación de la API
+## 📓 Documentación de la API
 
 Puedes consultar y probar todos los endpoints desde la colección de Postman:
 
@@ -154,10 +154,6 @@ El rol `cliente` se asigna automáticamente a cualquier usuario que se registre 
 
 Cada endpoint protegido requiere un determinado nivel de rol (`developer`, `admin`, `staff`). Estos niveles
 están definidos en la lógica del backend y limitan el acceso a funciones como:
-
-- Creación y edición de productos o configuraciones
-- Consulta de tokens
-- Gestión de usuarios
 
 La documentación en Postman especifica, donde corresponde, qué rol es necesario.
 

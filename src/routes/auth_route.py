@@ -28,7 +28,6 @@ def register() -> tuple[Response, int]:
         "confirmed",
         "auth_provider",
         "role",
-        "basket",
     )
     user_data = request.get_json()
     for field in not_authorized_to_set:

@@ -5,7 +5,7 @@ from src.models.token_model import TokenModel
 from src.utils.exception_handlers import ValueCustomError
 from src.utils.json_responses import success_json_response, db_json_response
 
-EMAIL_TOKENS_RESOURCE = "email token"
+EMAIL_TOKENS_RESOURCE = "token de email"
 
 email_tokens_route = Blueprint("email_tokens", __name__)
 

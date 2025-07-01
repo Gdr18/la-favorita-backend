@@ -87,7 +87,7 @@ def login() -> tuple[Response, int]:
         session.commit_transaction()
         return (
             jsonify(
-                msg=f"Usuario inicia sesión manual de forma satisfactoria",
+                msg=f"Usuario ha iniciado sesión manualmente de forma satisfactoria",
                 access_token=access_token,
                 refresh_token=refresh_token,
             ),

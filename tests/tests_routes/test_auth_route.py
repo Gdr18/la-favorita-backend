@@ -338,7 +338,8 @@ def test_login_success(
 
     assert response.status_code == 200
     assert (
-        response.json["msg"] == f"Usuario inicia sesión manual de forma satisfactoria"
+        response.json["msg"]
+        == f"Usuario ha iniciado sesión manualmente de forma satisfactoria"
     )
     assert response.json["access_token"] == "access_token"
     assert response.json["refresh_token"] == "refresh_token"

@@ -119,18 +119,18 @@ endpoints según el rol asignado:
 
 ### 👩‍💻 Developer
 
-- Email: `developer@example.com`
-- Contraseña: `developer123`
+- Email: `developer_user@outlook.com`
+- Contraseña: `Developer_user123`
 
 ### 👑 Admin
 
-- Email: `admin@example.com`
-- Contraseña: `admin123`
+- Email: `admin_user@outlook.com`
+- Contraseña: `Admin_user123`
 
 ### 🧑‍🔧 Staff
 
-- Email: `staff@example.com`
-- Contraseña: `staff123`
+- Email: `staff_user@outlook.com`
+- Contraseña: `Staff_user123`
 
 > Los tokens de acceso son temporales. Puedes obtener uno nuevo en cualquier momento repitiendo el login.
 

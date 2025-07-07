@@ -13,9 +13,9 @@ from src.services.db_service import db
 # Campos únicos: name. Está configurado en MongoDB Atlas.
 # Índices: category, ingredients.name. Está configurado en MongoDB Atlas.
 class DishModel(BaseModel, extra="forbid"):
-    name: str = Field(..., min_length=1, max_length=50)
+    name: str = Field(..., min_length=1, max_length=100)
     category: Literal["starter", "main", "dessert"] = Field(...)
-    description: str = Field(..., min_length=1, max_length=100)
+    description: str = Field(..., min_length=1, max_length=200)
     ingredients: List[Ingredient] = Field(..., min_length=1)
     custom: Optional[Dict] = None
     price: float = Field(..., gt=0)

@@ -30,9 +30,9 @@ def mock_db(mocker):
 
 def test_dish_valid_data(mock_db):
     dish = DishModel(**VALID_DATA)
-    assert isinstance(dish.name, str) and 0 < len(dish.name) < 51
+    assert isinstance(dish.name, str) and 0 < len(dish.name) < 101
     assert dish.category in ["starter", "main", "dessert"]
-    assert isinstance(dish.description, str) and 0 < len(dish.description) < 101
+    assert isinstance(dish.description, str) and 0 < len(dish.description) < 201
     assert isinstance(dish.ingredients, list) and all(
         isinstance(item, dict) for item in dish.ingredients
     )

@@ -57,7 +57,7 @@ CATEGORIES = [
     "arroz",
     "legumbre",
     "huevo",
-    "salsa",
+    "fruto seco" "salsa",
     "condimento",
     "especia",
     "aceite",

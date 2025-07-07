@@ -89,7 +89,7 @@ def mock_db_products(mocker):
 
 
 def test_get_allowed_values(mock_db_settings):
-    mock_db_settings.find_one.return_value = {"values": ["value1", "value2"]}
+    mock_db_settings.find_one.return_value = {"value": ["value1", "value2"]}
     result = get_allowed_values("test_name")
     assert result == ["value1", "value2"]
     mock_db_settings.find_one.assert_called_once_with(
@@ -99,8 +99,8 @@ def test_get_allowed_values(mock_db_settings):
 
 def test_reload_allowed_values(mock_db_settings):
     mock_db_settings.find_one.side_effect = [
-        {"values": ALLERGENS},
-        {"values": CATEGORIES},
+        {"value": ALLERGENS},
+        {"value": CATEGORIES},
     ]
     reload_allowed_values()
     assert _allowed_allergens == ALLERGENS

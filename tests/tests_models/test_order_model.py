@@ -29,11 +29,11 @@ VALID_DATA = {
     "address": {
         "name": "Casa",
         "line_one": "Calle de la Libertad 5",
-        "postal_code": "28001",
+        "postal_code": "03001",
     },
     "payment": "cash",
     "total_price": 10.0,
-    "state": "accepted",
+    "state": "pending",
 }
 
 
@@ -46,6 +46,7 @@ def mock_db(mocker):
 
 def test_order_valid_data():
     order = OrderModel(**VALID_DATA)
+    order_two = OrderModel(**{**VALID_DATA, "type_order": "local"})
     assert isinstance(order.user_id, str) and USER_ID_PATTERN.match(order.user_id)
     assert isinstance(order.items, list) and all(
         isinstance(item, dict) for item in order.items
@@ -55,6 +56,7 @@ def test_order_valid_data():
     assert order.payment in ["cash", "card", "paypal"]
     assert isinstance(order.total_price, float) and order.total_price > 0
     assert order.state in [
+        "pending",
         "accepted",
         "cooking",
         "canceled",
@@ -62,6 +64,7 @@ def test_order_valid_data():
         "sent",
         "delivered",
     ]
+    assert order_two.state == "accepted"
 
 
 @pytest.mark.parametrize(

@@ -9,9 +9,8 @@ VALID_DISH_DATA = {
     "name": "Pizza",
     "description": "Delicious pizza",
     "category": "main",
-    "ingredients": [{"name": "Producto 2", "waste": 0}],
+    "ingredients": [{"name": "Huevo", "waste": 0}],
     "price": 10.99,
-    "available": True,
 }
 ID = "507f1f77bcf86cd799439011"
 

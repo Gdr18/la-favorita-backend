@@ -12,7 +12,7 @@ from src.utils.models_helpers import to_json_serializable
 # Funciones para obtener y actualizar los valores permitidos para categorías y alérgenos de productos
 def get_allowed_values(name: str) -> list[str]:
     settings_request = db.settings.find_one({"name": name}, {"name": 0, "_id": 0})
-    return settings_request.get("values") if settings_request else []
+    return settings_request.get("value") if settings_request else []
 
 
 _allowed_allergens = get_allowed_values("allergens")

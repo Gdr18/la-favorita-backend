@@ -23,7 +23,6 @@ VALID_ORDER_DATA = {
     "type_order": "local",
     "payment": "card",
     "total_price": 20.0,
-    "state": "cooking",
 }
 
 
@@ -246,7 +245,7 @@ def test_update_order_success(
     mocker, mock_get_jwt, client, auth_header, mock_get_order, mock_update_order
 ):
     mock_get_jwt.return_value = {"role": 1}
-    mock_get_order.return_value = VALID_ORDER_DATA
+    mock_get_order.return_value = {**VALID_ORDER_DATA, "state": "cooking"}
     mock_update_order.return_value = {**VALID_ORDER_DATA, "state": "ready"}
     mock_update_product = mocker.patch.object(
         ProductModel,
@@ -276,7 +275,7 @@ def test_update_order_exception(
     client, auth_header, mock_get_jwt, mock_get_order, mock_update_order
 ):
     mock_get_jwt.return_value = {"role": 1}
-    mock_get_order.return_value = VALID_ORDER_DATA
+    mock_get_order.return_value = {**VALID_ORDER_DATA, "state": "cooking"}
     mock_update_order.side_effect = PyMongoError("Database error")
 
     response = client.put(f"/orders/{ID}", json={"state": "ready"}, headers=auth_header)

@@ -28,7 +28,7 @@ VALID_DATA_EMAIL = {
     "role": 1,
     "phone": "+34666666666",
     "basket": [{"name": "galletas", "qty": 1, "price": 3.33}],
-    "addresses": [{"line_one": "Calle Falsa 123", "postal_code": "12345"}],
+    "addresses": [{"line_one": "Calle Falsa 123", "postal_code": "03001"}],
 }
 
 VALID_DATA_GOOGLE = {
@@ -38,7 +38,7 @@ VALID_DATA_GOOGLE = {
     "role": 1,
     "phone": "+34666666666",
     "basket": [{"name": "galletas", "qty": 1, "price": 3.33}],
-    "addresses": [{"line_one": "Calle Falsa 123", "postal_code": "12345"}],
+    "addresses": [{"line_one": "Calle Falsa 123", "postal_code": "03001"}],
 }
 
 

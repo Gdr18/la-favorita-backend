@@ -15,9 +15,7 @@ VALID_DATA = {
     "name": "Tarta de queso",
     "category": "dessert",
     "description": "Tarta de queso casera",
-    "ingredients": [
-        {"name": "Producto 1", "allergens": ["cereal", "huevo"], "waste": 0.1}
-    ],
+    "ingredients": [{"name": "Huevo", "allergens": ["huevo"], "waste": 0.1}],
     "custom": {"mermelada": False},
     "price": 5.5,
 }
@@ -30,7 +28,7 @@ def mock_db(mocker):
     return mock_db
 
 
-def test_dish_valid_data():
+def test_dish_valid_data(mock_db):
     dish = DishModel(**VALID_DATA)
     assert isinstance(dish.name, str) and 0 < len(dish.name) < 51
     assert dish.category in ["starter", "main", "dessert"]

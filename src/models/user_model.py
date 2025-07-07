@@ -72,7 +72,8 @@ class UserModel(BaseModel, extra="forbid"):
             return hashed_password
         else:
             raise ValueError(
-                "El campo 'password' debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-)"
+                "El campo 'password' debe tener al menos 8 caracteres, contener al menos una mayúscula, "
+                "una minúscula, un número y un carácter especial (!@#$%^&*_-)"
             )
 
     @field_validator("addresses", "basket", mode="before")

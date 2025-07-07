@@ -99,7 +99,7 @@ En consola aparecerá el código que ha pasado y fallado las pruebas, junto con 
 
 Puedes consultar y probar todos los endpoints desde la colección de Postman:
 
-🔗 [Colección de Postman](https://www.postman.com/tu-nombre-de-usuario/workspace/My-Workspace~959b1184-c553-4747-8bce-84d1bf72923a/collection/26739293-51b9ab63-6047-487f-a538-17276126744f?action=share&creator=26739293)
+🔗 [Colección de Postman](https://www.postman.com/maintenance-participant-28116252/workspace/gdor-comparte/collection/26739293-51b9ab63-6047-487f-a538-17276126744f?action=share&creator=26739293)
 
 Incluye:
 

@@ -28,6 +28,8 @@ class OrderModel(BaseModel, extra="forbid"):
             raise ValueError(
                 "Cuando el campo 'type_order' tiene el valor 'delivery' el campo 'address' debe tener un valor de tipo diccionario"
             )
+        if self.type_order == "local" and self.state == "pending":
+            self.state = "accepted"
         return self
 
     @staticmethod
@@ -36,7 +38,7 @@ class OrderModel(BaseModel, extra="forbid"):
             "pending": ("accepted", "canceled"),
             "accepted": ("cooking", "canceled"),
             "cooking": ("canceled", "ready"),
-            "ready": ("sent", "canceled"),
+            "ready": ("sent", "delivered", "canceled"),
             "sent": ("delivered", "canceled"),
         }
 

@@ -45,6 +45,7 @@ ALLERGENS = [
 ]
 CATEGORIES = [
     "snack",
+    "marisco",
     "dulce",
     "fruta",
     "verdura",

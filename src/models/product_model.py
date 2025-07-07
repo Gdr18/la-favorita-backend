@@ -26,6 +26,7 @@ def reload_allowed_values() -> None:
 
 
 # Campos únicos: name. Está configurado en MongoDB Atlas.
+# Índices: categories. Está configurado en MongoDB Atlas.
 class ProductModel(BaseModel, extra="forbid"):
     name: str = Field(..., min_length=1, max_length=50)
     categories: List[str] = Field(..., min_length=1)

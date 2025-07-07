@@ -1,4 +1,4 @@
-from typing import List, NotRequired
+from typing import List, NotRequired, Literal
 from typing_extensions import TypedDict
 from datetime import datetime
 from bson import ObjectId
@@ -27,7 +27,24 @@ class Address(TypedDict):
     name: NotRequired[str]
     line_one: str
     line_two: NotRequired[str]
-    postal_code: str
+    postal_code: Literal[
+        "03001",
+        "03002",
+        "03003",
+        "03004",
+        "03005",
+        "03006",
+        "03007",
+        "03008",
+        "03009",
+        "03010",
+        "03011",
+        "03012",
+        "03013",
+        "03014",
+        "03015",
+        "03016",
+    ]
 
 
 def to_json_serializable(obj):

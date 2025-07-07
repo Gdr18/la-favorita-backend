@@ -10,6 +10,7 @@ from src.services.db_service import client
 from src.services.bar_service import check_manual_closure, check_schedule_bar
 
 ORDERS_RESOURCE = "orden"
+NOT_AUTHORIZED_TO_SET = ["created_at", "state"]
 NOT_AUTHORIZED_TO_UPDATE = ["created_at", "user_id"]
 
 orders_route = Blueprint("orders", __name__)
@@ -23,8 +24,9 @@ def add_order() -> tuple[Response, int]:
     if not check_schedule_bar():
         raise ValueCustomError("bar_closed_schedule")
     order_data = request.get_json()
-    if order_data.get("created_at"):
-        raise ValueCustomError("not_authorized_to_set", "created_at")
+    for field in order_data.keys():
+        if field in NOT_AUTHORIZED_TO_SET:
+            raise ValueCustomError("not_authorized_to_set", field)
     order_object = OrderModel(**order_data)
     order_object.insert_order()
     return success_json_response(ORDERS_RESOURCE, "añadida", 201)

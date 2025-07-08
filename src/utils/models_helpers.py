@@ -1,4 +1,4 @@
-from typing import List, NotRequired, Literal
+from typing import List, NotRequired, Literal, Dict, Union
 from typing_extensions import TypedDict
 from datetime import datetime
 from bson import ObjectId
@@ -14,6 +14,7 @@ class ItemOrder(TypedDict):
     name: str
     qty: int
     ingredients: List[Ingredient]
+    custom: Union[Dict[str, bool], None]
     price: float
 
 
@@ -21,6 +22,7 @@ class ItemBasket(TypedDict):
     name: str
     qty: int
     price: float
+    custom: Union[Dict[str, bool], None]
 
 
 class Address(TypedDict):

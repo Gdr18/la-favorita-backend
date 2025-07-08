@@ -1,12 +1,11 @@
 from pydantic import BaseModel, Field, model_validator
-from typing import List, Literal, Optional, Dict
+from typing import List, Literal, Union, Dict
 from pymongo.results import InsertOneResult, DeleteResult, UpdateResult
 from pymongo import ReturnDocument
 from bson import ObjectId
 from datetime import datetime
 
-from src.utils.models_helpers import Ingredient
-from src.utils.models_helpers import to_json_serializable
+from src.utils.models_helpers import Ingredient, to_json_serializable
 from src.services.db_service import db
 
 
@@ -17,7 +16,7 @@ class DishModel(BaseModel, extra="forbid"):
     category: Literal["starter", "main", "dessert"] = Field(...)
     description: str = Field(..., min_length=1, max_length=200)
     ingredients: List[Ingredient] = Field(..., min_length=1)
-    custom: Optional[Dict] = None
+    custom: Union[Dict[str, bool], None] = None
     price: float = Field(..., gt=0)
     available: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.now)
@@ -31,6 +30,7 @@ class DishModel(BaseModel, extra="forbid"):
                 {"name": 1, "_id": 0, "allergens": 1},
             )
         )
+
         difference_between = set(ingredients_names).difference(
             set([value["name"] for value in checked_ingredients])
         )
@@ -45,6 +45,10 @@ class DishModel(BaseModel, extra="forbid"):
                     product["waste"] = ingredient["waste"]
 
         self.ingredients = checked_ingredients
+
+        if not self.custom:
+            self.custom = {ingredient: True for ingredient in ingredients_names}
+
         return self
 
     # Solicitudes a la colección dish

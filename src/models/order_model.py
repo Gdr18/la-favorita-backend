@@ -30,6 +30,15 @@ class OrderModel(BaseModel, extra="forbid"):
             )
         if self.type_order == "local" and self.state == "pending":
             self.state = "accepted"
+        for item in self.items:
+            if False in item["custom"].values():
+                item["custom"] = {
+                    key: value
+                    for key, value in item["custom"].items()
+                    if value is False
+                }
+            else:
+                item["custom"] = None
         return self
 
     @staticmethod

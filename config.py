@@ -21,3 +21,4 @@ class DevelopmentConfig(Config):
 
 
 config = os.getenv("CONFIG")
+email_confirmation_link = os.getenv("EMAIL_CONFIRMATION_LINK")

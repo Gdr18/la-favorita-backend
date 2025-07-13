@@ -27,7 +27,14 @@ VALID_DATA_EMAIL = {
     "password": "ValidPass123!",
     "role": 1,
     "phone": "+34666666666",
-    "basket": [{"name": "galletas", "qty": 1, "price": 3.33}],
+    "basket": [
+        {
+            "name": "galletas",
+            "qty": 1,
+            "price": 3.33,
+            "custom": {"chocolate": True, "nuts": True},
+        }
+    ],
     "addresses": [{"line_one": "Calle Falsa 123", "postal_code": "03001"}],
 }
 
@@ -37,7 +44,14 @@ VALID_DATA_GOOGLE = {
     "auth_provider": "google",
     "role": 1,
     "phone": "+34666666666",
-    "basket": [{"name": "galletas", "qty": 1, "price": 3.33}],
+    "basket": [
+        {
+            "name": "galletas",
+            "qty": 1,
+            "price": 3.33,
+            "custom": {"chocolate": False, "nuts": True},
+        }
+    ],
     "addresses": [{"line_one": "Calle Falsa 123", "postal_code": "03001"}],
 }
 
@@ -62,6 +76,9 @@ def test_user_valid_data_email():
     assert user.basket is None or (
         isinstance(user.basket, list)
         and all(isinstance(item, dict) for item in user.basket)
+    )
+    assert user.basket[0]["custom"] is None or isinstance(
+        user.basket[0]["custom"], dict
     )
     assert user.addresses is None or (
         isinstance(user.addresses, list)

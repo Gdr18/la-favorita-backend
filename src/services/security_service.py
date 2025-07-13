@@ -12,7 +12,7 @@ from flask_jwt_extended import (
 )
 from pymongo.results import InsertOneResult, DeleteResult
 
-from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, config
 from src.models.token_model import TokenModel
 
 bcrypt = Bcrypt()
@@ -133,8 +133,10 @@ def delete_refresh_token(user_id: str) -> DeleteResult:
 def check_if_token_active_callback(
     jwt_header: dict, jwt_payload: dict
 ) -> Union[bool, None]:
+    if config == "config.DevelopmentConfig":
+        return False
     check_token = TokenModel.get_active_token_by_user_id(jwt_payload["sub"])
-    return True if not check_token else None
+    return True if not check_token else False
 
 
 @jwt.revoked_token_loader

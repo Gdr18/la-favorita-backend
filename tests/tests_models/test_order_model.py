@@ -19,9 +19,10 @@ VALID_DATA = {
             "name": "Plato 1",
             "qty": 2,
             "ingredients": [
-                {"name": "Producto 1", "allergens": ["cereal", "huevo"], "waste": 0.1},
-                {"name": "Producto 2", "waste": 0.2},
+                {"name": "Huevo", "allergens": ["huevo"], "waste": 0.1},
+                {"name": "Tomate", "waste": 0.2},
             ],
+            "custom": {"Huevo": True, "Tomate": False},
             "price": 5.0,
         }
     ],
@@ -46,6 +47,7 @@ def mock_db(mocker):
 
 def test_order_valid_data():
     order = OrderModel(**VALID_DATA)
+    VALID_DATA["items"][0]["custom"] = {"Huevo": True, "Tomate": True}
     order_two = OrderModel(**{**VALID_DATA, "type_order": "local"})
     assert isinstance(order.user_id, str) and USER_ID_PATTERN.match(order.user_id)
     assert isinstance(order.items, list) and all(
@@ -65,6 +67,7 @@ def test_order_valid_data():
         "delivered",
     ]
     assert order_two.state == "accepted"
+    assert order_two.items[0]["custom"] is None
 
 
 @pytest.mark.parametrize(

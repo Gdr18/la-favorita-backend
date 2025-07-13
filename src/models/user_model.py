@@ -82,6 +82,18 @@ class UserModel(BaseModel, extra="forbid"):
         if v is None:
             return v
         if isinstance(v, list) and all(isinstance(i, dict) for i in v):
+            if field.field_name == "basket":
+                for item in v:
+                    if item.get("custom"):
+                        if False in item["custom"].values():
+                            item["custom"] = {
+                                key: value
+                                for key, value in item["custom"].items()
+                                if value is False
+                            }
+                        else:
+                            item["custom"] = None
+                return v
             return v
         else:
             raise ValueError(

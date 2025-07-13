@@ -14,7 +14,7 @@ class ItemOrder(TypedDict):
     name: str
     qty: int
     ingredients: List[Ingredient]
-    custom: Union[Dict[str, bool], None]
+    custom: NotRequired[Union[Dict[str, bool], None]]
     price: float
 
 
@@ -22,7 +22,7 @@ class ItemBasket(TypedDict):
     name: str
     qty: int
     price: float
-    custom: Union[Dict[str, bool], None]
+    custom: NotRequired[Union[Dict[str, bool], None]]
 
 
 class Address(TypedDict):

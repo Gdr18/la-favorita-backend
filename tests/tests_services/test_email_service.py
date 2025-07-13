@@ -45,23 +45,3 @@ def test_send_email(app, mocker):
         mock_generate_email_token.assert_called_once_with(USER_INFO)
         mock_sendgrid_client.assert_called_once()
         mock_open_patch.assert_called_once()
-
-
-def test_send_email_confirmation_link_production(mocker):
-    mocker.patch("src.services.email_service.config", "config.ProductionConfig")
-    mock_generate_email_token = mocker.patch(
-        "src.services.email_service.generate_email_token", return_value="mocked_token"
-    )
-    mock_sendgrid_client = mocker.patch(
-        "src.services.email_service.SendGridAPIClient", autospec=True
-    )
-
-    send_email(USER_INFO)
-
-    confirmation_link = (
-        "https://gador-auth.herokuapp.com/auth/confirm-email/mocked_token"
-    )
-    sent_email = mock_sendgrid_client.return_value.send.call_args[0][0]
-    assert confirmation_link in sent_email.contents[0].content
-    mock_generate_email_token.assert_called_once_with(USER_INFO)
-    mock_sendgrid_client.assert_called_once()

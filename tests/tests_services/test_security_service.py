@@ -150,12 +150,19 @@ def test_revoke_tokens_functions(mocker, function_name, class_method):
 
 
 def test_check_if_token_active_callback(mocker, app):
+    mocker.patch("src.services.security_service.config", "config")
     mock_db_call = mocker.patch.object(
-        TokenModel, "get_active_token_by_user_id", return_value=None
+        TokenModel, "get_active_token_by_user_id", return_value=VALID_JWT
     )
     result = check_if_token_active_callback(None, VALID_JWT)
-    assert result is True
+    assert result is False
     mock_db_call.assert_called_once()
+
+
+def test_check_if_token_active_callback_mode_dev(mocker, app):
+    mocker.patch("src.services.security_service.config", "config.DevelopmentConfig")
+    result = check_if_token_active_callback(None, VALID_JWT)
+    assert result is False
 
 
 @pytest.mark.parametrize(

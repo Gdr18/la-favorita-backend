@@ -9,7 +9,7 @@ from src.services.db_service import db
 from src.utils.models_helpers import Address, ItemOrder, to_json_serializable
 
 
-# Índice: user_id. Está configurado en MongoDB Atlas.
+# Índices: "user_id". Está configurado en MongoDB Atlas.
 class OrderModel(BaseModel, extra="forbid"):
     user_id: str = Field(..., pattern=r"^[a-f0-9]{24}$")
     items: List[ItemOrder] = Field(..., min_length=1)
@@ -56,7 +56,7 @@ class OrderModel(BaseModel, extra="forbid"):
                 f"""El campo 'state' sólo puede tener los siguientes valores: {', '.join([f"'{word}'" for word in allowed_transitions.get(old_state)])}."""
             )
 
-    # Solicitudes a la colección order
+    # Solicitudes a la colección "order"
     def insert_order(self) -> InsertOneResult:
         new_order = db.orders.insert_one(self.model_dump())
         return new_order

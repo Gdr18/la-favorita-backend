@@ -25,8 +25,8 @@ def reload_allowed_values() -> None:
     _allowed_categories = get_allowed_values("categories")
 
 
-# Campos únicos: name. Está configurado en MongoDB Atlas.
-# Índices: categories. Está configurado en MongoDB Atlas.
+# Campos únicos: "name". Está configurado en MongoDB Atlas.
+# Índices: "categories". Está configurado en MongoDB Atlas.
 class ProductModel(BaseModel, extra="forbid"):
     name: str = Field(..., min_length=1, max_length=50)
     categories: List[str] = Field(..., min_length=1)
@@ -61,7 +61,7 @@ class ProductModel(BaseModel, extra="forbid"):
             )
         return value
 
-    # Solicitudes a la colección products
+    # Solicitudes a la colección "products"
     def insert_product(self) -> InsertOneResult:
         new_product = db.products.insert_one(self.model_dump())
         return new_product

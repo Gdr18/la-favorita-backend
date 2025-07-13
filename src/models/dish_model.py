@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, model_validator
 from typing import List, Literal, Union, Dict
-from pymongo.results import InsertOneResult, DeleteResult, UpdateResult
+from pymongo.results import InsertOneResult, DeleteResult
 from pymongo import ReturnDocument
 from bson import ObjectId
 from datetime import datetime
@@ -9,8 +9,8 @@ from src.utils.models_helpers import Ingredient, to_json_serializable
 from src.services.db_service import db
 
 
-# Campos únicos: name. Está configurado en MongoDB Atlas.
-# Índices: category, ingredients.name. Está configurado en MongoDB Atlas.
+# Campos únicos: "name". Está configurado en MongoDB Atlas.
+# Índices: "category", "ingredients.name". Está configurado en MongoDB Atlas.
 class DishModel(BaseModel, extra="forbid"):
     name: str = Field(..., min_length=1, max_length=100)
     category: Literal["starter", "main", "dessert"] = Field(...)
@@ -51,7 +51,7 @@ class DishModel(BaseModel, extra="forbid"):
 
         return self
 
-    # Solicitudes a la colección dish
+    # Solicitudes a la colección "dish"
     def insert_dish(self) -> InsertOneResult:
         new_dish = db.dishes.insert_one(self.model_dump())
         return new_dish
@@ -80,9 +80,7 @@ class DishModel(BaseModel, extra="forbid"):
         return to_json_serializable(updated_dish)
 
     @staticmethod
-    def update_dishes_availability(
-        ingredient: str, value: bool, session=None
-    ) -> UpdateResult:
+    def update_dishes_availability(ingredient: str, value: bool, session=None) -> dict:
         updated_dishes = db.dishes.update_many(
             {"ingredients": {"$elemMatch": {"name": ingredient}}},
             {"$set": {"available": value}},

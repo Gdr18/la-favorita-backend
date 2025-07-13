@@ -10,7 +10,7 @@ from src.utils.models_helpers import to_json_serializable
 NonEmptyListStr = Annotated[List[str], Field(min_length=1)]
 
 
-# Campos únicos: name. Está configurado en MongoDB Atlas.
+# Campos únicos: "name". Está configurado en MongoDB Atlas.
 class SettingModel(BaseModel, extra="forbid"):
     name: str = Field(..., min_length=1, max_length=50)
     value: Union[NonEmptyListStr, bool] = Field(...)
@@ -25,7 +25,7 @@ class SettingModel(BaseModel, extra="forbid"):
             )
         return v
 
-    # Solicitudes a la colección settings
+    # Solicitudes a la colección "settings"
     def insert_setting(self) -> InsertOneResult:
         new_setting = db.settings.insert_one(self.model_dump())
         return new_setting

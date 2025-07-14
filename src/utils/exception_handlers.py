@@ -2,6 +2,8 @@ from flask import jsonify, Response, Flask
 from pydantic import ValidationError
 from sendgrid import SendGridException
 from pymongo.errors import PyMongoError, DuplicateKeyError, ConnectionFailure
+from bson.errors import InvalidId
+from typing import Union
 
 
 class ValueCustomError(Exception):
@@ -197,7 +199,9 @@ def handle_pattern_value_error(errors: list[dict]) -> tuple[Response, int]:
 
 
 # Función para manejar errores de MongoDB
-def handle_mongodb_exception(error: PyMongoError) -> tuple[Response, int]:
+def handle_mongodb_exception(
+    error: Union[PyMongoError, InvalidId]
+) -> tuple[Response, int]:
     if isinstance(error, DuplicateKeyError):
         return (
             jsonify(
@@ -214,6 +218,14 @@ def handle_mongodb_exception(error: PyMongoError) -> tuple[Response, int]:
             ),
             500,
         )
+    elif isinstance(error, InvalidId):
+        return (
+            jsonify(
+                err="db_invalid_id",
+                msg=f"ID inválido proporcionado: Debe ser una entrada de 12 bytes o una cadena hexadecimal de 24 caracteres",
+            ),
+            400,
+        )
     else:
         return (
             jsonify(
@@ -228,6 +240,10 @@ def handle_mongodb_exception(error: PyMongoError) -> tuple[Response, int]:
 def register_global_exception_handlers(app: Flask) -> None:
     @app.errorhandler(PyMongoError)
     def handle_pymongo_error(error: PyMongoError) -> tuple[Response, int]:
+        return handle_mongodb_exception(error) @ app.errorhandler(PyMongoError)
+
+    @app.errorhandler(InvalidId)
+    def handle_pymongo_error(error: InvalidId) -> tuple[Response, int]:
         return handle_mongodb_exception(error)
 
     @app.errorhandler(ValidationError)
@@ -273,8 +289,13 @@ def register_global_exception_handlers(app: Flask) -> None:
             msg=f"Ha habido un error al enviar el correo de confirmación: {str(error)}",
         ), (error.status_code if hasattr(error, "status_code") else 500)
 
+    @app.errorhandler(404)
+    def handle_not_found_error(error: Exception) -> tuple[Response, int]:
+        raise ValueCustomError("not_found", "recurso")
+
     @app.errorhandler(Exception)
     def handle_unexpected_error(error: Exception) -> tuple[Response, int]:
+        print(f"Error inesperado: {type(error).__name__}")
         return (
             jsonify(
                 err="unexpected",

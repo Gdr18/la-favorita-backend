@@ -295,7 +295,6 @@ def register_global_exception_handlers(app: Flask) -> None:
 
     @app.errorhandler(Exception)
     def handle_unexpected_error(error: Exception) -> tuple[Response, int]:
-        print(f"Error inesperado: {type(error).__name__}")
         return (
             jsonify(
                 err="unexpected",

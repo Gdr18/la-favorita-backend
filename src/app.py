@@ -16,6 +16,7 @@ from src.utils.exception_handlers import register_global_exception_handlers
 
 def run_app(config):
     app = Flask(__name__)
+    app.url_map.strict_slashes = False
     app.config.from_object(config)
 
     bcrypt.init_app(app)

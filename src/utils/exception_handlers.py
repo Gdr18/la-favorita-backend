@@ -69,19 +69,17 @@ class ValueCustomError(Exception):
     @staticmethod
     def json_response_not_authorized() -> tuple[Response, int]:
         return (
-            jsonify(
-                err="not_auth", msg=f"El token no está autorizado a acceder a esta ruta"
-            ),
-            401,
+            jsonify(err="not_auth", msg=f"No está autorizado a acceder a este recurso"),
+            403,
         )
 
     def json_response_not_authorized_to_set(self) -> tuple[Response, int]:
         return (
             jsonify(
                 err="not_auth_set",
-                msg=f"El token no está autorizado a establecer '{self.resource}'",
+                msg=f"No está autorizado a establecer '{self.resource}'",
             ),
-            401,
+            403,
         )
 
     def json_response_resource_required(self):
@@ -240,7 +238,7 @@ def handle_mongodb_exception(
 def register_global_exception_handlers(app: Flask) -> None:
     @app.errorhandler(PyMongoError)
     def handle_pymongo_error(error: PyMongoError) -> tuple[Response, int]:
-        return handle_mongodb_exception(error) @ app.errorhandler(PyMongoError)
+        return handle_mongodb_exception(error)
 
     @app.errorhandler(InvalidId)
     def handle_pymongo_error(error: InvalidId) -> tuple[Response, int]:

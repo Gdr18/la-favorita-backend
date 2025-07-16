@@ -87,7 +87,7 @@ def generate_refresh_token(
     return refresh_token
 
 
-def generate_email_token(user_data: dict) -> Union[str, tuple[Response, int]]:
+def generate_email_token(user_data: dict) -> tuple:
     user_identity = user_data.get("_id")
     token_info = {"identity": str(user_identity), "expires_delta": timedelta(days=1)}
     email_token = create_access_token(**token_info)
@@ -97,8 +97,7 @@ def generate_email_token(user_data: dict) -> Union[str, tuple[Response, int]]:
         "jti": decoded_token_email.get("jti"),
         "expires_at": decoded_token_email.get("exp"),
     }
-    TokenModel(**data_email_token_db).insert_email_token()
-    return email_token
+    return email_token, data_email_token_db
 
 
 def get_expiration_time_access_token(role: int) -> timedelta:

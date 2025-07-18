@@ -15,10 +15,10 @@ refresh_tokens_route = Blueprint("refresh_tokens", __name__)
 def add_refresh_token() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     if token_role != 0:
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
     token_data = request.get_json()
     if token_data.get("created_at"):
-        raise ValueCustomError("not_authorized_to_set", "created_at")
+        raise ValueCustomError("not_auth_set", "created_at")
     refresh_token = TokenModel(**token_data)
     refresh_token.insert_refresh_token()
     return success_json_response(REFRESH_TOKENS_RESOURCE, "añadido", 201)
@@ -29,7 +29,7 @@ def add_refresh_token() -> tuple[Response, int]:
 def get_refresh_tokens() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     if token_role != 0:
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
     page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per-page", 10))
     skip = (page - 1) * per_page
@@ -42,7 +42,7 @@ def get_refresh_tokens() -> tuple[Response, int]:
 def handle_refresh_token(refresh_token_id: str) -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     if token_role != 0:
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
 
     if request.method == "GET":
         refresh_token = TokenModel.get_refresh_token_by_token_id(refresh_token_id)
@@ -59,7 +59,7 @@ def handle_refresh_token(refresh_token_id: str) -> tuple[Response, int]:
             token_new_data.get("created_at")
             and token_new_data["created_at"] != refresh_token["created_at"]
         ):
-            raise ValueCustomError("not_authorized_to_set", "created_at")
+            raise ValueCustomError("not_auth_set", "created_at")
         mixed_data = {**refresh_token, **token_new_data}
         refresh_token_object = TokenModel(**mixed_data)
         refresh_token_updated = refresh_token_object.update_refresh_token(

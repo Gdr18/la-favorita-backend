@@ -1,9 +1,10 @@
 from sendgrid import SendGridAPIClient, Mail
-from flask import Response
+from flask import Response, jsonify
 
 from config import email_confirmation_link, SENDGRID_API_KEY, DEFAULT_SENDER_EMAIL
 from src.services.security_service import generate_email_token
 from src.models.token_model import TokenModel
+from src.utils.exception_handlers import EmailCustomError
 
 
 def send_email(user_info: dict) -> Response:
@@ -19,11 +20,14 @@ def send_email(user_info: dict) -> Response:
     email = Mail(
         from_email=DEFAULT_SENDER_EMAIL,
         to_emails=user_email,
-        subject="Confirma el email de registro",
+        subject="Confirmación de Registro La Favorita",
         html_content=email_template,
     )
-
-    sg = SendGridAPIClient(api_key=SENDGRID_API_KEY)
-    response = sg.send(email)
-    TokenModel(**token_data_db).insert_email_token()
-    return response
+    try:
+        sg = SendGridAPIClient(api_key=SENDGRID_API_KEY)
+        response = sg.send(email)
+    except Exception as e:
+        raise EmailCustomError(e)
+    else:
+        TokenModel(**token_data_db).insert_email_token()
+        return response

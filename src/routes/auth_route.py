@@ -32,7 +32,7 @@ def register() -> tuple[Response, int]:
     user_data = request.get_json()
     for field in not_authorized_to_set:
         if field in user_data.keys():
-            raise ValueCustomError("not_authorized_to_set", field)
+            raise ValueCustomError("not_auth_set", field)
     user_object = UserModel(**user_data)
     try:
         session.start_transaction()
@@ -77,9 +77,9 @@ def login() -> tuple[Response, int]:
     if not user_requested:
         raise ValueCustomError("not_found", "usuario")
     if not verify_password(user_requested.get("password"), user_data.get("password")):
-        raise ValueCustomError("not_match")
+        raise ValueCustomError("password_not_match")
     if not user_requested.get("confirmed"):
-        raise ValueCustomError("not_confirmed")
+        raise ValueCustomError("email_not_confirmed")
     try:
         session.start_transaction()
         access_token = generate_access_token(user_requested, session)
@@ -177,7 +177,7 @@ def confirm_email(token: str) -> tuple[Response, int]:
     if not user_requested:
         raise ValueCustomError("not_found", "usuario")
     if user_requested["confirmed"]:
-        raise ValueCustomError("already_confirmed")
+        raise ValueCustomError("email_already_confirmed")
     user_requested["confirmed"] = True
     user_object = UserModel(**user_requested)
     user_object.update_user(user_id)

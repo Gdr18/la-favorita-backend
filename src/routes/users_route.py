@@ -16,7 +16,7 @@ users_route = Blueprint("users", __name__)
 def add_user() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     if token_role != 1:
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
     not_authorized_to_set = (
         "created_at",
         "expires_at",
@@ -26,7 +26,7 @@ def add_user() -> tuple[Response, int]:
     user_data = request.get_json()
     for field in not_authorized_to_set:
         if field in user_data.keys():
-            raise ValueCustomError("not_authorized_to_set", field)
+            raise ValueCustomError("not_auth_set", field)
     user_object = UserModel(**user_data)
     user_object.insert_user()
     return success_json_response(USERS_RESOURCE, "añadido", 201)
@@ -37,7 +37,7 @@ def add_user() -> tuple[Response, int]:
 def get_users() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     if token_role != 1:
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
     page = request.args.get("page", 1)
     per_page = request.args.get("per-page", 10)
     skip = (page - 1) * per_page
@@ -52,7 +52,7 @@ def handle_user(user_id: str) -> tuple[Response, int]:
     token_user_id = token["sub"]
     token_role = token["role"]
     if not any([token_user_id == user_id, token_role == 1]):
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
 
     if request.method == "GET":
         user = UserModel.get_user_by_user_id_without_id(user_id)
@@ -79,7 +79,7 @@ def handle_user(user_id: str) -> tuple[Response, int]:
             ):
                 if field == "role" and token_role == 1:
                     continue
-                raise ValueCustomError("not_authorized_to_set", field)
+                raise ValueCustomError("not_auth_set", field)
         combined_data = {**user, **user_new_data}
         user_object = UserModel(**combined_data)
         updated_user = user_object.update_user(user_id)

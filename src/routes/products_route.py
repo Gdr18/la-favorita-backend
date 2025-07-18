@@ -18,10 +18,10 @@ products_route = Blueprint("products", __name__)
 def add_product() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     if token_role != 1:
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
     product_data = request.get_json()
     if product_data.get("created_at"):
-        raise ValueCustomError("not_authorized_to_set", "created_at")
+        raise ValueCustomError("not_auth_set", "created_at")
     product_object = ProductModel(**product_data)
     product_object.insert_product()
     return success_json_response(PRODUCTS_RESOURCE, "añadido", 201)
@@ -32,7 +32,7 @@ def add_product() -> tuple[Response, int]:
 def get_products() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     if not any([token_role == 1, token_role == 2]):
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
     page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per-page", 10))
     skip = (page - 1) * per_page
@@ -46,7 +46,7 @@ def update_product(product_id) -> tuple[Response, int]:
     session = client.start_session()
     token_role = get_jwt().get("role")
     if not any([token_role == 1, token_role == 2]):
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
     product = ProductModel.get_product(product_id)
     if not product:
         raise ValueCustomError("not_found", PRODUCTS_RESOURCE)
@@ -54,7 +54,7 @@ def update_product(product_id) -> tuple[Response, int]:
     if new_product_data.get("created_at") and new_product_data[
         "created_at"
     ] != product.get("created_at"):
-        raise ValueCustomError("not_authorized_to_set", "created_at")
+        raise ValueCustomError("not_auth_set", "created_at")
     combined_data = {**product, **new_product_data}
     product_object = ProductModel(**combined_data)
     try:
@@ -85,7 +85,7 @@ def handle_product(product_id: str) -> tuple[Response, int]:
 
     if request.method == "GET":
         if not any([token_role == 1, token_role == 2]):
-            raise ValueCustomError("not_authorized")
+            raise ValueCustomError("not_auth")
         product = ProductModel.get_product(product_id)
         if product:
             return db_json_response(product)
@@ -94,7 +94,7 @@ def handle_product(product_id: str) -> tuple[Response, int]:
 
     if request.method == "DELETE":
         if token_role != 1:
-            raise ValueCustomError("not_authorized")
+            raise ValueCustomError("not_auth")
         deleted_product = ProductModel.delete_product(product_id)
         if deleted_product.deleted_count > 0:
             return success_json_response(PRODUCTS_RESOURCE, "eliminado")

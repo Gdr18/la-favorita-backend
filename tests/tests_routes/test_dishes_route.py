@@ -48,7 +48,7 @@ def test_token_not_authorized_error(mock_get_jwt, client, auth_header, url, meth
     elif method == "post":
         response = client.post(url, json=VALID_DISH_DATA, headers=auth_header)
 
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json["err"] == "not_auth"
     mock_get_jwt.assert_called_once()
 
@@ -82,7 +82,7 @@ def test_token_not_authorized_to_set_error(
             headers=auth_header,
         )
 
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json["err"] == "not_auth_set"
     mock_get_jwt.assert_called_once()
 

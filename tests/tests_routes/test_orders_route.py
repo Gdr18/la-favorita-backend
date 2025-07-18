@@ -70,7 +70,7 @@ def test_not_authorized_error(
     elif method == "delete":
         response = client.delete(url, headers=auth_header)
 
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json["err"] == "not_auth"
     mock_get_jwt.assert_called_once()
     mock_get_order.assert_called_once() if mock else None
@@ -118,7 +118,7 @@ def test_not_authorized_to_set_error(
         mock_get_jwt.assert_called_once()
         mock_get_order.assert_called_once()
 
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json["err"] == "not_auth_set"
 
 

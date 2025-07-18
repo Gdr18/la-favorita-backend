@@ -15,10 +15,10 @@ dishes_route = Blueprint("dishes", __name__)
 def add_dish():
     token_role = get_jwt().get("role")
     if token_role != 1:
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
     dish_data = request.get_json()
     if dish_data.get("created_at"):
-        raise ValueCustomError("not_authorized_to_set", "created_at")
+        raise ValueCustomError("not_auth_set", "created_at")
     dish_object = DishModel(**dish_data)
     dish_object.insert_dish()
     return success_json_response(DISHES_RESOURCE, "añadido", 201)
@@ -54,7 +54,7 @@ def get_dish(dish_id):
 def handle_dish(dish_id):
     token_role = get_jwt().get("role")
     if token_role != 1:
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
 
     if request.method == "PUT":
         dish = DishModel.get_dish(dish_id)
@@ -64,7 +64,7 @@ def handle_dish(dish_id):
         if dish_data.get("created_at") and dish_data["created_at"] != dish.get(
             "created_at"
         ):
-            raise ValueCustomError("not_authorized_to_set", "created_at")
+            raise ValueCustomError("not_auth_set", "created_at")
         mixed_data = {**dish, **dish_data}
         dish_object = DishModel(**mixed_data)
         updated_dish = dish_object.update_dish(dish_id)

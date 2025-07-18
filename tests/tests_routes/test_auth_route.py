@@ -198,7 +198,7 @@ def test_register_with_role_error(client):
         json={**VALID_USER_DATA, "role": 3},
     )
 
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json["err"] == "not_auth_set"
 
 

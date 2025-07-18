@@ -50,7 +50,7 @@ def test_token_not_authorized_error(mock_get_jwt, client, auth_header, url, meth
     elif method == "put":
         response = client.put(url, json=VALID_EMAIL_TOKEN_DATA, headers=auth_header)
 
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json["err"] == "not_auth"
     mock_get_jwt.asssert_called_once()
 
@@ -80,7 +80,7 @@ def test_not_authorized_to_set_error(
             json={**VALID_EMAIL_TOKEN_DATA, "created_at": "2030-10-01T00:00:00Z"},
             headers=auth_header,
         )
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json["err"] == "not_auth_set"
     mock_get_jwt.assert_called_once()
     mock_get_email_token.assert_called_once() if method == "put" else None

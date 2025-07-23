@@ -11,10 +11,7 @@ class EmailCustomError(Exception):
         self.error = str(error).lower()
         if "sender identity" in self.error:
             self.message = "El remitente del correo no está verificado. Revisa tu configuración en SendGrid."
-        elif (
-            "the to field is required" in self.error
-            or "to field is required" in self.error
-        ):
+        elif "to field is required" in self.error:
             self.message = "Falta el destinatario del correo."
         elif "permission denied" in self.error:
             self.message = (

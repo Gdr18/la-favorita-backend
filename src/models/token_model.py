@@ -131,8 +131,10 @@ class TokenModel(BaseModel, extra="forbid"):
         return email_token_deleted
 
     @staticmethod
-    def delete_email_tokens_by_user_id(user_id: str) -> DeleteResult:
-        email_tokens_deleted = db.email_tokens.delete_many({"user_id": user_id})
+    def delete_email_tokens_by_user_id(user_id: str, session=None) -> DeleteResult:
+        email_tokens_deleted = db.email_tokens.delete_many(
+            {"user_id": user_id}, session=session
+        )
         return email_tokens_deleted
 
     # Solicitudes a la colección "active_tokens"

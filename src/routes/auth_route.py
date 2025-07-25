@@ -1,5 +1,6 @@
 from flask import Blueprint, request, url_for, jsonify, Response
 from flask_jwt_extended import jwt_required, get_jwt, decode_token
+from pymongo.errors import PyMongoError
 
 from src.models.token_model import TokenModel
 from src.models.user_model import UserModel
@@ -184,7 +185,7 @@ def confirm_email(token: str) -> tuple[Response, int]:
     try:
         session.start_transaction()
         user_object.update_user(user_id, session=session)
-        TokenModel.delete_email_tokens_by_user_id(user_id)
+        TokenModel.delete_email_tokens_by_user_id(user_id, session=session)
         session.commit_transaction()
         return success_json_response("usuario", "confirmado")
     except Exception as e:

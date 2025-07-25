@@ -575,6 +575,29 @@ def test_confirm_email_already_confirmed_error(
     mock_db_get_user_by_user_id_without_id.assert_called_once()
 
 
+def test_confirm_email_mongodb_error(
+    mock_db_update_user,
+    client,
+    mock_db_get_user_by_user_id_without_id,
+    mock_decode_token,
+):
+    mock_decode_token.return_value = {"sub": ID}
+    mock_db_get_user_by_user_id_without_id.return_value = {
+        **VALID_USER_DATA,
+        "auth_provider": "email",
+        "confirmed": False,
+    }
+    mock_db_update_user.side_effect = PyMongoError("Database error")
+
+    response = client.get("/auth/confirm-email/test_token")
+
+    assert response.status_code == 500
+    assert response.json["err"] == "db_generic"
+    mock_decode_token.assert_called_once()
+    mock_db_get_user_by_user_id_without_id.assert_called_once()
+    mock_db_update_user.assert_called_once()
+
+
 def test_resend_email_success(
     client, mock_db_get_user_by_email, mock_send_email, mock_db_get_email_tokens
 ):

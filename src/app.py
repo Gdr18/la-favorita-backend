@@ -9,13 +9,12 @@ from src.routes.settings_route import settings_route
 from src.routes.users_route import users_route
 from src.routes.orders_route import orders_route
 from src.routes.dishes_route import dishes_route
-from src.routes.static_route import static_route
 from src.services.security_service import jwt, oauth, bcrypt
 from src.utils.exception_handlers import register_global_exception_handlers
 
 
 def run_app(config):
-    app = Flask(__name__)
+    app = Flask(__name__, static_url_path="")
     app.url_map.strict_slashes = False
     app.config.from_object(config)
 
@@ -32,7 +31,6 @@ def run_app(config):
     app.register_blueprint(email_tokens_route, url_prefix="/email-tokens")
     app.register_blueprint(orders_route, url_prefix="/orders")
     app.register_blueprint(dishes_route, url_prefix="/dishes")
-    app.register_blueprint(static_route, url_prefix="/static")
 
     register_global_exception_handlers(app)
 

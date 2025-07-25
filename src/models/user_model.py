@@ -134,11 +134,12 @@ class UserModel(BaseModel, extra="forbid"):
         user = db.users.find_one({"email": email})
         return to_json_serializable(user)
 
-    def update_user(self, user_id: str) -> dict:
+    def update_user(self, user_id: str, session=None) -> dict:
         updated_user = db.users.find_one_and_update(
             {"_id": ObjectId(user_id)},
             {"$set": self.model_dump()},
             return_document=ReturnDocument.AFTER,
+            session=session,
         )
         return to_json_serializable(updated_user)
 

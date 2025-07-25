@@ -130,6 +130,11 @@ class TokenModel(BaseModel, extra="forbid"):
         email_token_deleted = db.email_tokens.delete_one({"_id": ObjectId(token_id)})
         return email_token_deleted
 
+    @staticmethod
+    def delete_email_tokens_by_user_id(user_id: str) -> DeleteResult:
+        email_tokens_deleted = db.email_tokens.delete_many({"user_id": user_id})
+        return email_tokens_deleted
+
     # Solicitudes a la colección "active_tokens"
     def insert_active_token(self) -> InsertOneResult:
         new_active_token = db.active_tokens.insert_one(self.model_dump())

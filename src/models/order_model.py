@@ -9,11 +9,11 @@ from src.services.db_service import db
 from src.utils.models_helpers import Address, ItemOrder, to_json_serializable
 
 
-# Índice: user_id. Está configurado en MongoDB Atlas.
+# Índices: "user_id". Está configurado en MongoDB Atlas.
 class OrderModel(BaseModel, extra="forbid"):
     user_id: str = Field(..., pattern=r"^[a-f0-9]{24}$")
     items: List[ItemOrder] = Field(..., min_length=1)
-    type_order: Literal["delivery", "collect", "take_away"] = Field(...)
+    type_order: Literal["delivery", "local", "take_away"] = Field(...)
     address: Optional[Address] = None
     payment: Literal["cash", "card", "paypal"] = Field(...)
     total_price: float = Field(..., ge=0)
@@ -28,6 +28,18 @@ class OrderModel(BaseModel, extra="forbid"):
             raise ValueError(
                 "Cuando el campo 'type_order' tiene el valor 'delivery' el campo 'address' debe tener un valor de tipo diccionario"
             )
+        if self.type_order == "local" and self.state == "pending":
+            self.state = "accepted"
+        for item in self.items:
+            if item.get("custom"):
+                if False in item["custom"].values():
+                    item["custom"] = {
+                        key: value
+                        for key, value in item["custom"].items()
+                        if value is False
+                    }
+                else:
+                    item["custom"] = None
         return self
 
     @staticmethod
@@ -36,7 +48,7 @@ class OrderModel(BaseModel, extra="forbid"):
             "pending": ("accepted", "canceled"),
             "accepted": ("cooking", "canceled"),
             "cooking": ("canceled", "ready"),
-            "ready": ("sent", "canceled"),
+            "ready": ("sent", "delivered", "canceled"),
             "sent": ("delivered", "canceled"),
         }
 
@@ -45,7 +57,7 @@ class OrderModel(BaseModel, extra="forbid"):
                 f"""El campo 'state' sólo puede tener los siguientes valores: {', '.join([f"'{word}'" for word in allowed_transitions.get(old_state)])}."""
             )
 
-    # Solicitudes a la colección order
+    # Solicitudes a la colección "order"
     def insert_order(self) -> InsertOneResult:
         new_order = db.orders.insert_one(self.model_dump())
         return new_order

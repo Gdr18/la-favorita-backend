@@ -49,7 +49,7 @@ def test_token_not_authorized_error(mock_get_jwt, client, auth_header, url, meth
     elif method == "put":
         response = client.put(url, json=VALID_USER_DATA, headers=auth_header)
 
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json["err"] == "not_auth"
     mock_get_jwt.assert_called_once()
 
@@ -102,7 +102,7 @@ def test_user_not_found_error(
 def test_not_authorized_to_set_error(
     mock_get_jwt, mock_get_user, client, auth_header, url, method
 ):
-    mock_get_jwt.return_value = {"role": 0, "sub": ID}
+    mock_get_jwt.return_value = {"role": 1, "sub": ID}
     if method == "post":
         response = client.post(
             url,
@@ -110,21 +110,21 @@ def test_not_authorized_to_set_error(
             headers=auth_header,
         )
     elif method == "put":
-        mock_get_user.return_value = {**VALID_USER_DATA, "role": 0}
+        mock_get_user.return_value = {**VALID_USER_DATA, "confirmed": False}
         response = client.put(
             url,
-            json={**VALID_USER_DATA, "role": 1},
+            json={**VALID_USER_DATA, "confirmed": True},
             headers=auth_header,
         )
 
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json["err"] == "not_auth_set"
     mock_get_jwt.assert_called_once()
     mock_get_user.assert_called_once() if method == "put" else None
 
 
 def test_add_user_success(mocker, client, mock_get_jwt, auth_header):
-    mock_get_jwt.return_value = {"role": 0}
+    mock_get_jwt.return_value = {"role": 1}
     mock_db = mocker.patch.object(
         UserModel, "insert_user", return_value=mocker.MagicMock(inserted_id=ID)
     )
@@ -138,7 +138,7 @@ def test_add_user_success(mocker, client, mock_get_jwt, auth_header):
 
 
 def test_get_users_success(mocker, client, auth_header, mock_get_jwt):
-    mock_get_jwt.return_value = {"role": 0}
+    mock_get_jwt.return_value = {"role": 1}
     mock_db = mocker.patch.object(
         UserModel, "get_users", return_value=[VALID_USER_DATA]
     )

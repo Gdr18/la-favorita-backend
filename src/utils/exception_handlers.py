@@ -1,114 +1,93 @@
 from flask import jsonify, Response, Flask
 from pydantic import ValidationError
-from sendgrid import SendGridException
 from pymongo.errors import PyMongoError, DuplicateKeyError, ConnectionFailure
+from bson.errors import InvalidId
+from typing import Union
+
+
+class EmailCustomError(Exception):
+    def __init__(self, error: Exception):
+        self.status_code = getattr(error, "status_code", 500)
+        self.error = str(error).lower()
+        if "sender identity" in self.error:
+            self.message = "El remitente del correo no está verificado. Revisa tu configuración en SendGrid."
+        elif "to field is required" in self.error:
+            self.message = "Falta el destinatario del correo."
+        elif "permission denied" in self.error:
+            self.message = (
+                "Permisos insuficientes. Verifica tu API key o autenticación."
+            )
+        elif "invalid email address" in self.error:
+            self.message = "La dirección de correo electrónico no es válida."
+        elif "unauthorized" in self.error or "api key" in self.error:
+            self.message = "No estás autorizado. Revisa tu clave API de SendGrid."
+        elif "403" in self.error:
+            self.message = "Acceso denegado por SendGrid (403 Forbidden)."
+        elif "401" in self.error:
+            self.message = "No autorizado (401). Verifica tu clave API o autenticación."
+        elif "timeout" in self.error:
+            self.message = "Tiempo de espera agotado al conectar con SendGrid."
+        else:
+            self.message = "Error desconocido al enviar el correo con SendGrid."
+        self.response = (
+            jsonify(
+                err="send_email",
+                msg=self.message,
+            ),
+            self.status_code,
+        )
 
 
 class ValueCustomError(Exception):
-    def __init__(self, function: str, resource: str = None):
-        self.function = function
+    def __init__(self, error_type: str, resource: str = None):
+        self.error_type = error_type
         self.resource = resource
 
-        if self.function == "not_authorized_to_set":
-            self.response = self.json_response_not_authorized_to_set()
-        elif self.function == "not_authorized":
-            self.response = self.json_response_not_authorized()
-        elif self.function == "not_found":
-            self.response = self.json_response_not_found()
-        elif self.function == "not_match":
-            self.response = self.json_response_not_match()
-        elif self.function == "not_confirmed":
-            self.response = self.json_response_not_confirmed()
-        elif self.function == "already_confirmed":
-            self.response = self.json_response_already_confirmed()
-        elif self.function == "too_many_requests":
-            self.response = self.json_response_too_many_requests()
-        elif self.function == "resource_required":
-            self.response = self.json_response_resource_required()
-        elif self.function == "bar_closed_manually":
-            self.response = self.json_response_bar_closed_manually()
-        elif self.function == "bar_closed_schedule":
-            self.response = self.json_response_bar_closed_schedule()
+        if self.error_type == "not_auth_set":
+            self.message = f"No está autorizado a establecer '{self.resource}'"
+        elif self.error_type == "not_auth":
+            self.message = "No está autorizado a acceder a este recurso"
+        elif self.error_type == "not_found":
+            self.message = f"{self.resource.capitalize()} no encontrado"
+            self.status_code = 404
+        elif self.error_type == "password_not_match":
+            self.message = "La contraseña no coincide"
+        elif self.error_type == "email_not_confirmed":
+            self.message = "El email no está confirmado"
+        elif self.error_type == "email_already_confirmed":
+            self.message = "El email ya está confirmado"
+        elif self.error_type == "too_many_requests":
+            self.message = "Se han reenviado demasiados emails de confirmación. Inténtalo más tarde."
+            self.status_code = 429
+        elif self.error_type == "resource_required":
+            self.message = (
+                f"'{self.resource.capitalize()}' requerido para esta operación"
+            )
+            self.status_code = 400
+        elif self.error_type == "bar_closed_manually":
+            self.message = (
+                "No se aceptan pedidos en este momento. Prueba dentro de un rato."
+            )
+        elif self.error_type == "bar_closed_schedule":
+            self.message = "El bar está cerrado. Nuestro horario es: de 13:00 a 16:00 y de 20:00 a 0:00."
 
-    def json_response_not_found(self) -> tuple[Response, int]:
-        return (
-            jsonify(err="not_found", msg=f"{self.resource.capitalize()} no encontrado"),
-            404,
-        )
+        if self.error_type in [
+            "password_not_match",
+            "email_not_confirmed",
+            "email_already_confirmed",
+        ]:
+            self.status_code = 401
+        elif self.error_type in ["not_auth_set", "not_auth"]:
+            self.status_code = 403
+        elif self.error_type in ["bar_closed_manually", "bar_closed_schedule"]:
+            self.status_code = 503
 
-    @staticmethod
-    def json_response_not_match() -> tuple[Response, int]:
-        return jsonify(err="password_not_match", msg="La contraseña no coincide"), 401
-
-    @staticmethod
-    def json_response_not_confirmed() -> tuple[Response, int]:
-        return (
-            jsonify(err="email_not_confirmed", msg=f"El email no está confirmado"),
-            401,
-        )
-
-    @staticmethod
-    def json_response_already_confirmed() -> tuple[Response, int]:
-        return (
-            jsonify(err="email_already_confirmed", msg=f"El email ya está confirmado"),
-            401,
-        )
-
-    @staticmethod
-    def json_response_too_many_requests() -> tuple[Response, int]:
-        return (
+        self.response = (
             jsonify(
-                err="too_many_requests",
-                msg=f"Se han reenviado demasiados emails de confirmación. Inténtalo más tarde.",
+                err=self.error_type,
+                msg=self.message,
             ),
-            429,
-        )
-
-    @staticmethod
-    def json_response_not_authorized() -> tuple[Response, int]:
-        return (
-            jsonify(
-                err="not_auth", msg=f"El token no está autorizado a acceder a esta ruta"
-            ),
-            401,
-        )
-
-    def json_response_not_authorized_to_set(self) -> tuple[Response, int]:
-        return (
-            jsonify(
-                err="not_auth_set",
-                msg=f"El token no está autorizado a establecer '{self.resource}'",
-            ),
-            401,
-        )
-
-    def json_response_resource_required(self):
-        return (
-            jsonify(
-                err="resource_required",
-                msg=f"'{self.resource.capitalize()}' requerido para esta operación",
-            ),
-            400,
-        )
-
-    @staticmethod
-    def json_response_bar_closed_manually() -> tuple[Response, int]:
-        return (
-            jsonify(
-                err="bar_closed_manually",
-                msg="No se aceptan pedidos en este momento. Prueba dentro de un rato.",
-            ),
-            503,
-        )
-
-    @staticmethod
-    def json_response_bar_closed_schedule() -> tuple[Response, int]:
-        return (
-            jsonify(
-                err="bar_closed_schedule",
-                msg="El bar está cerrado. Nuestro horario es: de 13:00 a 16:00 y de 20:00 a 0:00.",
-            ),
-            503,
+            self.status_code,
         )
 
 
@@ -197,7 +176,9 @@ def handle_pattern_value_error(errors: list[dict]) -> tuple[Response, int]:
 
 
 # Función para manejar errores de MongoDB
-def handle_mongodb_exception(error: PyMongoError) -> tuple[Response, int]:
+def handle_mongodb_exception(
+    error: Union[PyMongoError, InvalidId]
+) -> tuple[Response, int]:
     if isinstance(error, DuplicateKeyError):
         return (
             jsonify(
@@ -214,6 +195,14 @@ def handle_mongodb_exception(error: PyMongoError) -> tuple[Response, int]:
             ),
             500,
         )
+    elif isinstance(error, InvalidId):
+        return (
+            jsonify(
+                err="db_invalid_id",
+                msg=f"ID inválido proporcionado: Debe ser una entrada de 12 bytes o una cadena hexadecimal de 24 caracteres",
+            ),
+            400,
+        )
     else:
         return (
             jsonify(
@@ -229,6 +218,14 @@ def register_global_exception_handlers(app: Flask) -> None:
     @app.errorhandler(PyMongoError)
     def handle_pymongo_error(error: PyMongoError) -> tuple[Response, int]:
         return handle_mongodb_exception(error)
+
+    @app.errorhandler(InvalidId)
+    def handle_pymongo_invalid_id_error(error: InvalidId) -> tuple[Response, int]:
+        return handle_mongodb_exception(error)
+
+    @app.errorhandler(EmailCustomError)
+    def handle_email_error(error: EmailCustomError) -> tuple[Response, int]:
+        return error.response
 
     @app.errorhandler(ValidationError)
     def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
@@ -266,12 +263,9 @@ def register_global_exception_handlers(app: Flask) -> None:
     def handle_custom_error(error: ValueCustomError) -> tuple[Response, int]:
         return error.response
 
-    @app.errorhandler(SendGridException)
-    def handle_send_email_error(error: SendGridException) -> tuple[Response, int]:
-        return jsonify(
-            err="send_email",
-            msg=f"Ha habido un error al enviar el correo de confirmación: {str(error)}",
-        ), (error.status_code if hasattr(error, "status_code") else 500)
+    @app.errorhandler(404)
+    def handle_not_found_error(error: Exception) -> tuple[Response, int]:
+        raise ValueCustomError("not_found", "recurso")
 
     @app.errorhandler(Exception)
     def handle_unexpected_error(error: Exception) -> tuple[Response, int]:

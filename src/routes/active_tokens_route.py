@@ -15,10 +15,10 @@ active_tokens_route = Blueprint("active_tokens", __name__)
 def add_active_token() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     if not token_role == 0:
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
     active_token_data = request.get_json()
     if active_token_data.get("created_at"):
-        raise ValueCustomError("not_authorized_to_set", "created_at")
+        raise ValueCustomError("not_auth_set", "created_at")
     active_token = TokenModel(**active_token_data)
     active_token.insert_active_token()
     return success_json_response(ACTIVE_TOKENS_RESOURCE, "añadido", 201)
@@ -29,7 +29,7 @@ def add_active_token() -> tuple[Response, int]:
 def get_active_tokens() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     if not token_role == 0:
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
     page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per-page", 10))
     skip = (page - 1) * per_page
@@ -42,7 +42,7 @@ def get_active_tokens() -> tuple[Response, int]:
 def handle_active_token(active_token_id: str) -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     if not token_role == 0:
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
 
     if request.method == "GET":
         active_token = TokenModel.get_active_token_by_token_id(active_token_id)
@@ -59,7 +59,7 @@ def handle_active_token(active_token_id: str) -> tuple[Response, int]:
             active_token_new_data.get("created_at")
             and active_token_new_data["created_at"] != active_token["created_at"]
         ):
-            raise ValueCustomError("not_authorized_to_set", "created_at")
+            raise ValueCustomError("not_auth_set", "created_at")
         mixed_data = {**active_token, **active_token_new_data}
         active_token_object = TokenModel(**mixed_data)
         active_token_updated = active_token_object.update_active_token(active_token_id)

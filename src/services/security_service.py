@@ -12,7 +12,7 @@ from flask_jwt_extended import (
 )
 from pymongo.results import InsertOneResult, DeleteResult
 
-from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+from config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, config
 from src.models.token_model import TokenModel
 
 bcrypt = Bcrypt()
@@ -87,7 +87,7 @@ def generate_refresh_token(
     return refresh_token
 
 
-def generate_email_token(user_data: dict) -> Union[str, tuple[Response, int]]:
+def generate_email_token(user_data: dict) -> tuple:
     user_identity = user_data.get("_id")
     token_info = {"identity": str(user_identity), "expires_delta": timedelta(days=1)}
     email_token = create_access_token(**token_info)
@@ -97,12 +97,10 @@ def generate_email_token(user_data: dict) -> Union[str, tuple[Response, int]]:
         "jti": decoded_token_email.get("jti"),
         "expires_at": decoded_token_email.get("exp"),
     }
-    TokenModel(**data_email_token_db).insert_email_token()
-    return email_token
+    return email_token, data_email_token_db
 
 
 def get_expiration_time_access_token(role: int) -> timedelta:
-    # TODO: Añadir el rol 0
     if role == 1:
         return timedelta(minutes=15)
     elif role == 2:
@@ -112,7 +110,6 @@ def get_expiration_time_access_token(role: int) -> timedelta:
 
 
 def get_expiration_time_refresh_token(role: int) -> timedelta:
-    # TODO: Añadir el rol 0
     if role == 1:
         return timedelta(hours=3)
     elif role == 2:
@@ -135,8 +132,10 @@ def delete_refresh_token(user_id: str) -> DeleteResult:
 def check_if_token_active_callback(
     jwt_header: dict, jwt_payload: dict
 ) -> Union[bool, None]:
+    if config == "config.DevelopmentConfig":
+        return False
     check_token = TokenModel.get_active_token_by_user_id(jwt_payload["sub"])
-    return True if not check_token else None
+    return True if not check_token else False
 
 
 @jwt.revoked_token_loader

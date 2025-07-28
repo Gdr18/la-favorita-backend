@@ -9,7 +9,7 @@ from src.services.db_service import db
 from src.utils.models_helpers import to_json_serializable
 
 
-# Campos únicos: "jti" y "user_id", configurado en MongoDB Atlas.
+# Campos únicos: "jti" y "user_id", en las colecciones "active-tokens" y "refresh-tokens"; "jti" en la colección "email-tokens", configurado en MongoDB Atlas.
 # Campo TTL: "expires_at", configurado en MongoDB Atlas. El documento se eliminará automáticamente cuando expire la fecha.
 class TokenModel(BaseModel, extra="forbid"):
     user_id: str = Field(..., pattern=r"^[a-f0-9]{24}$")
@@ -43,7 +43,7 @@ class TokenModel(BaseModel, extra="forbid"):
             )
         return v
 
-    # Solicitudes a la colección refresh_tokens
+    # Solicitudes a la colección "refresh_tokens"
     def insert_refresh_token(self) -> InsertOneResult:
         new_refresh_token = db.refresh_tokens.insert_one(self.model_dump())
         return new_refresh_token
@@ -97,7 +97,7 @@ class TokenModel(BaseModel, extra="forbid"):
         refresh_token_deleted = db.refresh_tokens.delete_one({"user_id": user_id})
         return refresh_token_deleted
 
-    # Solicitudes a la colección email_tokens
+    # Solicitudes a la colección "email_tokens"
     def insert_email_token(self) -> InsertOneResult:
         new_email_token = db.email_tokens.insert_one(self.model_dump())
         return new_email_token
@@ -130,7 +130,14 @@ class TokenModel(BaseModel, extra="forbid"):
         email_token_deleted = db.email_tokens.delete_one({"_id": ObjectId(token_id)})
         return email_token_deleted
 
-    # Solicitudes a la colección active_tokens
+    @staticmethod
+    def delete_email_tokens_by_user_id(user_id: str, session=None) -> DeleteResult:
+        email_tokens_deleted = db.email_tokens.delete_many(
+            {"user_id": user_id}, session=session
+        )
+        return email_tokens_deleted
+
+    # Solicitudes a la colección "active_tokens"
     def insert_active_token(self) -> InsertOneResult:
         new_active_token = db.active_tokens.insert_one(self.model_dump())
         return new_active_token

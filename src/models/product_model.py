@@ -12,7 +12,7 @@ from src.utils.models_helpers import to_json_serializable
 # Funciones para obtener y actualizar los valores permitidos para categorías y alérgenos de productos
 def get_allowed_values(name: str) -> list[str]:
     settings_request = db.settings.find_one({"name": name}, {"name": 0, "_id": 0})
-    return settings_request.get("values") if settings_request else []
+    return settings_request.get("value") if settings_request else []
 
 
 _allowed_allergens = get_allowed_values("allergens")
@@ -25,7 +25,8 @@ def reload_allowed_values() -> None:
     _allowed_categories = get_allowed_values("categories")
 
 
-# Campos únicos: name. Está configurado en MongoDB Atlas.
+# Campos únicos: "name". Está configurado en MongoDB Atlas.
+# Índices: "categories". Está configurado en MongoDB Atlas.
 class ProductModel(BaseModel, extra="forbid"):
     name: str = Field(..., min_length=1, max_length=50)
     categories: List[str] = Field(..., min_length=1)
@@ -60,7 +61,7 @@ class ProductModel(BaseModel, extra="forbid"):
             )
         return value
 
-    # Solicitudes a la colección products
+    # Solicitudes a la colección "products"
     def insert_product(self) -> InsertOneResult:
         new_product = db.products.insert_one(self.model_dump())
         return new_product

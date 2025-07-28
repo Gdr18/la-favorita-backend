@@ -1,7 +1,9 @@
 import pytest
 from pymongo.errors import PyMongoError, DuplicateKeyError, ConnectionFailure
+from bson.errors import InvalidId
 from pydantic import ValidationError
 from sendgrid import SendGridException
+from flask import abort
 
 from src.utils.exception_handlers import (
     ValueCustomError,
@@ -13,6 +15,7 @@ from src.utils.exception_handlers import (
     handle_literal_value_error,
     handle_pattern_value_error,
     handle_mongodb_exception,
+    EmailCustomError,
 )
 from src.models.token_model import TokenModel
 from tests.test_helpers import app
@@ -25,12 +28,16 @@ MONGODB_ERRORS = {
     "generic_error": PyMongoError("Generic error"),
 }
 VALUE_CUSTOM_ERRORS = {
-    "value_custom1": {"function": "not_found", "resource": "usuario"},
-    "value_custom2": {"function": "not_match", "resource": None},
-    "value_custom3": {"function": "not_confirmed", "resource": None},
-    "value_custom4": {"function": "too_many_requests", "resource": None},
-    "value_custom5": {"function": "not_authorized", "resource": None},
-    "value_custom6": {"function": "not_authorized_to_set", "resource": "role"},
+    "value_custom1": {"error_type": "not_found", "resource": "usuario"},
+    "value_custom2": {"error_type": "password_not_match", "resource": None},
+    "value_custom3": {"error_type": "email_not_confirmed", "resource": None},
+    "value_custom4": {"error_type": "too_many_requests", "resource": None},
+    "value_custom5": {"error_type": "not_auth", "resource": None},
+    "value_custom6": {"error_type": "not_auth_set", "resource": "role"},
+    "value_custom7": {"error_type": "email_already_confirmed", "resource": None},
+    "value_custom8": {"error_type": "resource_required", "resource": "resource1"},
+    "value_custom9": {"error_type": "bar_closed_manually", "resource": None},
+    "value_custom10": {"error_type": "bar_closed_schedule", "resource": None},
 }
 VALUE_TYPE_ERRORS = {
     "value_type1": [{"loc": ["field1"], "type": "int_"}],
@@ -50,6 +57,38 @@ EXTRA_INPUT_AND_FIELD_REQUIRED_ERRORS = [
     {"loc": ["field2"]},
 ]
 PATTERN_ERROR = [{"loc": ["field1"]}]
+
+
+@pytest.mark.parametrize(
+    "error_type, expected_message",
+    [
+        (
+            "sender identity",
+            "El remitente del correo no está verificado. Revisa tu configuración en SendGrid.",
+        ),
+        ("to field is required", "Falta el destinatario del correo."),
+        (
+            "permission denied",
+            "Permisos insuficientes. Verifica tu API key o autenticación.",
+        ),
+        (
+            "invalid email address",
+            "La dirección de correo electrónico no es válida.",
+        ),
+        ("unauthorized", "No estás autorizado. Revisa tu clave API de SendGrid."),
+        ("api key", "No estás autorizado. Revisa tu clave API de SendGrid."),
+        ("403", "Acceso denegado por SendGrid (403 Forbidden)."),
+        ("401", "No autorizado (401). Verifica tu clave API o autenticación."),
+        ("timeout", "Tiempo de espera agotado al conectar con SendGrid."),
+        ("unexpected", "Error desconocido al enviar el correo con SendGrid."),
+    ],
+)
+def test_email_custom_error(app, error_type, expected_message):
+    with app.app_context():
+        err = EmailCustomError(Exception(error_type))
+        response, status_code = err.response
+
+        assert response.json["msg"] == expected_message
 
 
 @pytest.mark.parametrize(
@@ -82,14 +121,38 @@ PATTERN_ERROR = [{"loc": ["field1"]}]
         (
             ValueCustomError,
             VALUE_CUSTOM_ERRORS["value_custom5"],
-            401,
+            403,
             "not_auth",
         ),
         (
             ValueCustomError,
             VALUE_CUSTOM_ERRORS["value_custom6"],
-            401,
+            403,
             "not_auth_set",
+        ),
+        (
+            ValueCustomError,
+            VALUE_CUSTOM_ERRORS["value_custom7"],
+            401,
+            "email_already_confirmed",
+        ),
+        (
+            ValueCustomError,
+            VALUE_CUSTOM_ERRORS["value_custom8"],
+            400,
+            "resource_required",
+        ),
+        (
+            ValueCustomError,
+            VALUE_CUSTOM_ERRORS["value_custom9"],
+            503,
+            "bar_closed_manually",
+        ),
+        (
+            ValueCustomError,
+            VALUE_CUSTOM_ERRORS["value_custom10"],
+            503,
+            "bar_closed_schedule",
         ),
         (
             handle_extra_inputs_forbidden_error,
@@ -203,6 +266,18 @@ def test_mongodb_error_flask_handler(app):
         assert response.json["err"] == "db_generic"
 
 
+def test_mongodb_error_invalid_id_flask_handler(app):
+    with app.test_client() as client:
+
+        @app.route("/mongodb-error-invalid-id")
+        def trigger_mongodb_error_invalid_id():
+            raise InvalidId("Invalid ObjectId")
+
+        response = client.get("/mongodb-error-invalid-id")
+        assert response.status_code == 400
+        assert response.json["err"] == "db_invalid_id"
+
+
 def test_captured_validation_error_flask_handler(app):
     with app.test_client() as client:
 
@@ -252,16 +327,23 @@ def test_value_custom_error_flask_handler(app):
         assert response.json["err"] == "not_found"
 
 
-def test_sendgrid_error_flask_handler(app):
+def test_email_custom_error_flask_handler(app):
     with app.test_client() as client:
 
-        @app.route("/sendgrid-error")
-        def trigger_sendgrid_error():
-            raise SendGridException("error")
+        @app.route("/email-custom-error")
+        def trigger_email_custom_error():
+            raise EmailCustomError(Exception("unexpected"))
 
-        response = client.get("/sendgrid-error")
+        response = client.get("/email-custom-error")
         assert response.status_code == 500
         assert response.json["err"] == "send_email"
+
+
+def test_not_found_error(app):
+    with app.test_client() as client:
+        with pytest.raises(ValueCustomError) as error:
+            client.get("/resource-not-found")
+        assert error.value.args == ("not_found", "recurso")
 
 
 def test_generic_error_flask_handler(app):

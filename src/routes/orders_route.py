@@ -10,6 +10,7 @@ from src.services.db_service import client
 from src.services.bar_service import check_manual_closure, check_schedule_bar
 
 ORDERS_RESOURCE = "orden"
+NOT_AUTHORIZED_TO_SET = ["created_at", "state"]
 NOT_AUTHORIZED_TO_UPDATE = ["created_at", "user_id"]
 
 orders_route = Blueprint("orders", __name__)
@@ -23,8 +24,9 @@ def add_order() -> tuple[Response, int]:
     if not check_schedule_bar():
         raise ValueCustomError("bar_closed_schedule")
     order_data = request.get_json()
-    if order_data.get("created_at"):
-        raise ValueCustomError("not_authorized_to_set", "created_at")
+    for field in order_data.keys():
+        if field in NOT_AUTHORIZED_TO_SET:
+            raise ValueCustomError("not_auth_set", field)
     order_object = OrderModel(**order_data)
     order_object.insert_order()
     return success_json_response(ORDERS_RESOURCE, "añadida", 201)
@@ -35,7 +37,7 @@ def add_order() -> tuple[Response, int]:
 def get_orders() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     if token_role != 1:
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
     page = request.args.get("page", 1)
     per_page = request.args.get("per-page", 10)
     skip = (page - 1) * per_page
@@ -43,14 +45,14 @@ def get_orders() -> tuple[Response, int]:
     return db_json_response(orders)
 
 
-@orders_route.route("/users/<user_id>")
+@orders_route.route("/user/<user_id>")
 @jwt_required()
 def get_user_orders(user_id):
     token_data = get_jwt()
     token_id = token_data.get("sub")
     token_role = token_data.get("role")
     if not any([token_id == user_id, token_role == 1]):
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
     page = request.args.get("page", 1)
     per_page = request.args.get("per_page", 10)
     skip = (page - 1) * per_page
@@ -62,16 +64,20 @@ def get_user_orders(user_id):
 @jwt_required()
 def update_order(order_id):
     session = client.start_session()
-    token_role = get_jwt().get("role")
+    token = get_jwt()
+    token_role = token.get("role")
+    token_id = token.get("sub")
     order = OrderModel.get_order(order_id)
     if not order:
         raise ValueCustomError("not_found", ORDERS_RESOURCE)
-    if token_role != 1:
-        raise ValueCustomError("not_authorized")
+    if not any([token_id == order["user_id"], token_role == 1]):
+        raise ValueCustomError("not_auth")
     order_new_data = request.get_json()
-    for field in NOT_AUTHORIZED_TO_UPDATE:
-        if order_new_data.get(field) and order_new_data[field] != order[field]:
-            raise ValueCustomError("not_authorized_to_set", field)
+    for field in order_new_data.keys():
+        if (token_role != 1 and field != "state") or (
+            field in NOT_AUTHORIZED_TO_UPDATE
+        ):
+            raise ValueCustomError("not_auth_set", field)
     if order_new_data.get("state") and order["state"] != order_new_data["state"]:
         OrderModel.check_level_state(order_new_data.get("state"), order["state"])
     order_mixed_data = {**order, **order_new_data}
@@ -103,12 +109,12 @@ def handle_order(order_id):
             raise ValueCustomError("not_found", ORDERS_RESOURCE)
         user_order = order.get("user_id")
         if not any([token_id == user_order, token_role == 1]):
-            raise ValueCustomError("not_authorized")
+            raise ValueCustomError("not_auth")
         return db_json_response(order)
 
     if request.method == "DELETE":
         if token_role != 1:
-            raise ValueCustomError("not_authorized")
+            raise ValueCustomError("not_auth")
         deleted_order = OrderModel.delete_order(order_id)
         if not deleted_order.deleted_count > 0:
             raise ValueCustomError("not_found", ORDERS_RESOURCE)

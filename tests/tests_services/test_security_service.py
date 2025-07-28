@@ -83,7 +83,7 @@ def test_verify_google_identity(mocker, app):
         ),
         (
             "create_access_token",
-            "insert_email_token",
+            None,
             generate_email_token,
             {"identity": ID, "expires_delta": timedelta(days=1)},
         ),
@@ -99,15 +99,16 @@ def test_generation_tokens(
     mock_decode_token = mocker.patch(
         "src.services.security_service.decode_token", return_value=VALID_JWT
     )
-    mock_call_db = mocker.patch.object(TokenModel, method_db)
+    mock_call_db = mocker.patch.object(TokenModel, method_db) if method_db else None
     result = (
-        function_name(VALID_USER_DATA)
-        if method_db == "insert_email_token"
-        else function_name(VALID_USER_DATA, mock_session)
+        function_name(VALID_USER_DATA, mock_session)
+        if method_db
+        else function_name(VALID_USER_DATA)
     )
-    assert result == JWT
+
+    assert result == JWT if method_db else isinstance(result, tuple)
     mock_creation_token.assert_called_once_with(**jwt_decoded)
-    mock_call_db.assert_called_once()
+    mock_call_db.assert_called_once() if method_db else None
     mock_decode_token.assert_called_once_with(JWT)
 
 
@@ -150,12 +151,19 @@ def test_revoke_tokens_functions(mocker, function_name, class_method):
 
 
 def test_check_if_token_active_callback(mocker, app):
+    mocker.patch("src.services.security_service.config", "config")
     mock_db_call = mocker.patch.object(
-        TokenModel, "get_active_token_by_user_id", return_value=None
+        TokenModel, "get_active_token_by_user_id", return_value=VALID_JWT
     )
     result = check_if_token_active_callback(None, VALID_JWT)
-    assert result is True
+    assert result is False
     mock_db_call.assert_called_once()
+
+
+def test_check_if_token_active_callback_mode_dev(mocker, app):
+    mocker.patch("src.services.security_service.config", "config.DevelopmentConfig")
+    result = check_if_token_active_callback(None, VALID_JWT)
+    assert result is False
 
 
 @pytest.mark.parametrize(

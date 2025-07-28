@@ -20,9 +20,9 @@ from src.services.security_service import bcrypt
 from src.utils.models_helpers import Address, ItemBasket, to_json_serializable
 
 
-# Campos únicos: email. Está configurado en MongoDB Atlas.
-# Campos TTL: expires_at. Está configurado en MongoDB Atlas. El documento se eliminará automáticamente cuando expire
-# la fecha. Si el usuario no ha confirmado su email, se eliminará automáticamente a los 7 días.
+# Campos únicos: "email". Está configurado en MongoDB Atlas.
+# Campos TTL: "expires_at". Está configurado en MongoDB Atlas. El documento se eliminará automáticamente cuando
+# expire la fecha. Si el usuario no ha confirmado su email, se eliminará automáticamente a los 7 días.
 class UserModel(BaseModel, extra="forbid"):
     name: str = Field(..., min_length=1, max_length=50)
     email: EmailStr = Field(..., min_length=5, max_length=100)
@@ -72,7 +72,8 @@ class UserModel(BaseModel, extra="forbid"):
             return hashed_password
         else:
             raise ValueError(
-                "El campo 'password' debe tener al menos 8 caracteres, contener al menos una mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*_-)"
+                "El campo 'password' debe tener al menos 8 caracteres, contener al menos una mayúscula, "
+                "una minúscula, un número y un carácter especial (!@#$%^&*_-)"
             )
 
     @field_validator("addresses", "basket", mode="before")
@@ -81,13 +82,25 @@ class UserModel(BaseModel, extra="forbid"):
         if v is None:
             return v
         if isinstance(v, list) and all(isinstance(i, dict) for i in v):
+            if field.field_name == "basket":
+                for item in v:
+                    if item.get("custom"):
+                        if False in item["custom"].values():
+                            item["custom"] = {
+                                key: value
+                                for key, value in item["custom"].items()
+                                if value is False
+                            }
+                        else:
+                            item["custom"] = None
+                return v
             return v
         else:
             raise ValueError(
                 f"El campo '{field.field_name}' debe ser una lista de diccionarios o None."
             )
 
-    # Solicitudes a la colección users
+    # Solicitudes a la colección "users"
     def insert_user(self, session=None) -> InsertOneResult:
         user = db.users.insert_one(self.model_dump(), session=session)
         return user
@@ -121,11 +134,12 @@ class UserModel(BaseModel, extra="forbid"):
         user = db.users.find_one({"email": email})
         return to_json_serializable(user)
 
-    def update_user(self, user_id: str) -> dict:
+    def update_user(self, user_id: str, session=None) -> dict:
         updated_user = db.users.find_one_and_update(
             {"_id": ObjectId(user_id)},
             {"$set": self.model_dump()},
             return_document=ReturnDocument.AFTER,
+            session=session,
         )
         return to_json_serializable(updated_user)
 

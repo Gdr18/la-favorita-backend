@@ -1,5 +1,6 @@
 from flask import Blueprint, request, url_for, jsonify, Response
 from flask_jwt_extended import jwt_required, get_jwt, decode_token
+from pymongo.errors import PyMongoError
 
 from src.models.token_model import TokenModel
 from src.models.user_model import UserModel
@@ -32,7 +33,7 @@ def register() -> tuple[Response, int]:
     user_data = request.get_json()
     for field in not_authorized_to_set:
         if field in user_data.keys():
-            raise ValueCustomError("not_authorized_to_set", field)
+            raise ValueCustomError("not_auth_set", field)
     user_object = UserModel(**user_data)
     try:
         session.start_transaction()
@@ -77,9 +78,9 @@ def login() -> tuple[Response, int]:
     if not user_requested:
         raise ValueCustomError("not_found", "usuario")
     if not verify_password(user_requested.get("password"), user_data.get("password")):
-        raise ValueCustomError("not_match")
+        raise ValueCustomError("password_not_match")
     if not user_requested.get("confirmed"):
-        raise ValueCustomError("not_confirmed")
+        raise ValueCustomError("email_not_confirmed")
     try:
         session.start_transaction()
         access_token = generate_access_token(user_requested, session)
@@ -87,7 +88,7 @@ def login() -> tuple[Response, int]:
         session.commit_transaction()
         return (
             jsonify(
-                msg=f"Usuario inicia sesión manual de forma satisfactoria",
+                msg=f"Usuario ha iniciado sesión manualmente de forma satisfactoria",
                 access_token=access_token,
                 refresh_token=refresh_token,
             ),
@@ -137,7 +138,7 @@ def authorize_google() -> tuple[Response, int]:
         return (
             jsonify(
                 {
-                    "msg": "Usuario inicia sesión con Google de forma satisfactoria",
+                    "msg": "El usuario ha iniciado sesión con Google de forma satisfactoria",
                     "access_token": access_token,
                     "refresh_token": refresh_token,
                 }
@@ -171,17 +172,27 @@ def refresh_user_token():
 
 @auth_route.route("/confirm-email/<token>", methods=["GET"])
 def confirm_email(token: str) -> tuple[Response, int]:
+    session = client.start_session()
     user_identity = decode_token(token)
     user_id = user_identity.get("sub")
     user_requested = UserModel.get_user_by_user_id_without_id(user_id)
     if not user_requested:
         raise ValueCustomError("not_found", "usuario")
     if user_requested["confirmed"]:
-        raise ValueCustomError("already_confirmed")
+        raise ValueCustomError("email_already_confirmed")
     user_requested["confirmed"] = True
     user_object = UserModel(**user_requested)
-    user_object.update_user(user_id)
-    return success_json_response("usuario", "confirmado")
+    try:
+        session.start_transaction()
+        user_object.update_user(user_id, session=session)
+        TokenModel.delete_email_tokens_by_user_id(user_id, session=session)
+        session.commit_transaction()
+        return success_json_response("usuario", "confirmado")
+    except Exception as e:
+        session.abort_transaction()
+        raise e
+    finally:
+        session.end_session()
 
 
 @auth_route.route("/resend-email", methods=["POST"])

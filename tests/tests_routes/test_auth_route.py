@@ -198,7 +198,7 @@ def test_register_with_role_error(client):
         json={**VALID_USER_DATA, "role": 3},
     )
 
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json["err"] == "not_auth_set"
 
 
@@ -338,7 +338,8 @@ def test_login_success(
 
     assert response.status_code == 200
     assert (
-        response.json["msg"] == f"Usuario inicia sesión manual de forma satisfactoria"
+        response.json["msg"]
+        == f"Usuario ha iniciado sesión manualmente de forma satisfactoria"
     )
     assert response.json["access_token"] == "access_token"
     assert response.json["refresh_token"] == "refresh_token"
@@ -449,7 +450,7 @@ def test_callback_google_success(
     assert response.status_code == 200
     assert (
         response.json["msg"]
-        == "Usuario inicia sesión con Google de forma satisfactoria"
+        == "El usuario ha iniciado sesión con Google de forma satisfactoria"
     )
     assert response.json["access_token"] == "access_token"
     assert response.json["refresh_token"] == "refresh_token"
@@ -572,6 +573,29 @@ def test_confirm_email_already_confirmed_error(
     assert response.json["err"] == "email_already_confirmed"
     mock_decode_token.assert_called_once()
     mock_db_get_user_by_user_id_without_id.assert_called_once()
+
+
+def test_confirm_email_mongodb_error(
+    mock_db_update_user,
+    client,
+    mock_db_get_user_by_user_id_without_id,
+    mock_decode_token,
+):
+    mock_decode_token.return_value = {"sub": ID}
+    mock_db_get_user_by_user_id_without_id.return_value = {
+        **VALID_USER_DATA,
+        "auth_provider": "email",
+        "confirmed": False,
+    }
+    mock_db_update_user.side_effect = PyMongoError("Database error")
+
+    response = client.get("/auth/confirm-email/test_token")
+
+    assert response.status_code == 500
+    assert response.json["err"] == "db_generic"
+    mock_decode_token.assert_called_once()
+    mock_db_get_user_by_user_id_without_id.assert_called_once()
+    mock_db_update_user.assert_called_once()
 
 
 def test_resend_email_success(

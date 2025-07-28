@@ -19,9 +19,10 @@ VALID_DATA = {
             "name": "Plato 1",
             "qty": 2,
             "ingredients": [
-                {"name": "Producto 1", "allergens": ["cereal", "huevo"], "waste": 0.1},
-                {"name": "Producto 2", "waste": 0.2},
+                {"name": "Huevo", "allergens": ["huevo"], "waste": 0.1},
+                {"name": "Tomate", "waste": 0.2},
             ],
+            "custom": {"Huevo": True, "Tomate": False},
             "price": 5.0,
         }
     ],
@@ -29,11 +30,11 @@ VALID_DATA = {
     "address": {
         "name": "Casa",
         "line_one": "Calle de la Libertad 5",
-        "postal_code": "28001",
+        "postal_code": "03001",
     },
     "payment": "cash",
     "total_price": 10.0,
-    "state": "accepted",
+    "state": "pending",
 }
 
 
@@ -46,6 +47,8 @@ def mock_db(mocker):
 
 def test_order_valid_data():
     order = OrderModel(**VALID_DATA)
+    VALID_DATA["items"][0]["custom"] = {"Huevo": True, "Tomate": True}
+    order_two = OrderModel(**{**VALID_DATA, "type_order": "local"})
     assert isinstance(order.user_id, str) and USER_ID_PATTERN.match(order.user_id)
     assert isinstance(order.items, list) and all(
         isinstance(item, dict) for item in order.items
@@ -55,6 +58,7 @@ def test_order_valid_data():
     assert order.payment in ["cash", "card", "paypal"]
     assert isinstance(order.total_price, float) and order.total_price > 0
     assert order.state in [
+        "pending",
         "accepted",
         "cooking",
         "canceled",
@@ -62,6 +66,8 @@ def test_order_valid_data():
         "sent",
         "delivered",
     ]
+    assert order_two.state == "accepted"
+    assert order_two.items[0]["custom"] is None
 
 
 @pytest.mark.parametrize(
@@ -306,7 +312,7 @@ def test_get_order(mock_db):
 
 
 def test_update_order(mock_db):
-    new_data = {**VALID_DATA, "type_order": "collect"}
+    new_data = {**VALID_DATA, "type_order": "local"}
     order_object = OrderModel(**new_data)
     return assert_update_document_template(mock_db, order_object.update_order, new_data)
 

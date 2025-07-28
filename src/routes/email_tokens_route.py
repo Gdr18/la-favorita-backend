@@ -5,7 +5,7 @@ from src.models.token_model import TokenModel
 from src.utils.exception_handlers import ValueCustomError
 from src.utils.json_responses import success_json_response, db_json_response
 
-EMAIL_TOKENS_RESOURCE = "email token"
+EMAIL_TOKENS_RESOURCE = "token de email"
 
 email_tokens_route = Blueprint("email_tokens", __name__)
 
@@ -15,10 +15,10 @@ email_tokens_route = Blueprint("email_tokens", __name__)
 def add_email_token() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     if token_role != 0:
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
     email_token_data = request.get_json()
     if email_token_data.get("created_at"):
-        raise ValueCustomError("not_authorized_to_set", "created_at")
+        raise ValueCustomError("not_auth_set", "created_at")
     email_token = TokenModel(**email_token_data)
     email_token.insert_email_token()
     return success_json_response(EMAIL_TOKENS_RESOURCE, "añadido", 201)
@@ -29,7 +29,7 @@ def add_email_token() -> tuple[Response, int]:
 def get_email_tokens() -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     if token_role != 0:
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
     page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per-page", 10))
     skip = (page - 1) * per_page
@@ -42,7 +42,7 @@ def get_email_tokens() -> tuple[Response, int]:
 def handle_email_token(email_token_id: str) -> tuple[Response, int]:
     token_role = get_jwt().get("role")
     if token_role != 0:
-        raise ValueCustomError("not_authorized")
+        raise ValueCustomError("not_auth")
 
     if request.method == "GET":
         email_token = TokenModel.get_email_token(email_token_id)
@@ -59,7 +59,7 @@ def handle_email_token(email_token_id: str) -> tuple[Response, int]:
             email_token_new_data.get("created_at")
             and email_token_new_data["created_at"] != email_token["created_at"]
         ):
-            raise ValueCustomError("not_authorized_to_set", "created_at")
+            raise ValueCustomError("not_auth_set", "created_at")
         mixed_data = {**email_token, **email_token_new_data}
         email_token_object = TokenModel(**mixed_data)
         email_token_updated = email_token_object.update_email_token(email_token_id)

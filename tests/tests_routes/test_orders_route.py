@@ -20,10 +20,9 @@ VALID_ORDER_DATA = {
             ],
         }
     ],
-    "type_order": "collect",
+    "type_order": "local",
     "payment": "card",
     "total_price": 20.0,
-    "state": "cooking",
 }
 
 
@@ -51,7 +50,7 @@ def mock_delete_order(mocker):
     "url, method, mock",
     [
         ("/orders/", "get", False),
-        ("/orders/users/507f1f77bcf86cd799439011", "get", False),
+        ("/orders/user/507f1f77bcf86cd799439011", "get", False),
         ("/orders/507f1f77bcf86cd799439011", "put", True),
         ("/orders/507f1f77bcf86cd799439011", "get", True),
         ("/orders/507f1f77bcf86cd799439011", "delete", False),
@@ -71,7 +70,7 @@ def test_not_authorized_error(
     elif method == "delete":
         response = client.delete(url, headers=auth_header)
 
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json["err"] == "not_auth"
     mock_get_jwt.assert_called_once()
     mock_get_order.assert_called_once() if mock else None
@@ -119,7 +118,7 @@ def test_not_authorized_to_set_error(
         mock_get_jwt.assert_called_once()
         mock_get_order.assert_called_once()
 
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json["err"] == "not_auth_set"
 
 
@@ -235,7 +234,7 @@ def test_get_user_orders_success(mocker, client, auth_header):
         OrderModel, "get_orders_by_user_id", return_value=[VALID_ORDER_DATA]
     )
 
-    response = client.get(f"/orders/users/{ID}", headers=auth_header)
+    response = client.get(f"/orders/user/{ID}", headers=auth_header)
 
     assert response.status_code == 200
     assert json.loads(response.data.decode()) == [VALID_ORDER_DATA]
@@ -246,7 +245,7 @@ def test_update_order_success(
     mocker, mock_get_jwt, client, auth_header, mock_get_order, mock_update_order
 ):
     mock_get_jwt.return_value = {"role": 1}
-    mock_get_order.return_value = VALID_ORDER_DATA
+    mock_get_order.return_value = {**VALID_ORDER_DATA, "state": "cooking"}
     mock_update_order.return_value = {**VALID_ORDER_DATA, "state": "ready"}
     mock_update_product = mocker.patch.object(
         ProductModel,
@@ -276,7 +275,7 @@ def test_update_order_exception(
     client, auth_header, mock_get_jwt, mock_get_order, mock_update_order
 ):
     mock_get_jwt.return_value = {"role": 1}
-    mock_get_order.return_value = VALID_ORDER_DATA
+    mock_get_order.return_value = {**VALID_ORDER_DATA, "state": "cooking"}
     mock_update_order.side_effect = PyMongoError("Database error")
 
     response = client.put(f"/orders/{ID}", json={"state": "ready"}, headers=auth_header)

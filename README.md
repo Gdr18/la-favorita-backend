@@ -95,11 +95,11 @@ En consola aparecerá el código que ha pasado y fallado las pruebas, junto con 
 
 ---
 
-## 📫 Documentación de la API
+## 📓 Documentación de la API
 
 Puedes consultar y probar todos los endpoints desde la colección de Postman:
 
-🔗 [Colección de Postman](https://www.postman.com/tu-nombre-de-usuario/workspace/My-Workspace~959b1184-c553-4747-8bce-84d1bf72923a/collection/26739293-51b9ab63-6047-487f-a538-17276126744f?action=share&creator=26739293)
+🔗 [Colección de Postman](https://www.postman.com/maintenance-participant-28116252/workspace/gdor-comparte/collection/26739293-51b9ab63-6047-487f-a538-17276126744f?action=share&creator=26739293)
 
 Incluye:
 
@@ -119,18 +119,18 @@ endpoints según el rol asignado:
 
 ### 👩‍💻 Developer
 
-- Email: `developer@example.com`
-- Contraseña: `developer123`
+- Email: `developer_user@outlook.com`
+- Contraseña: `Developer_user123`
 
 ### 👑 Admin
 
-- Email: `admin@example.com`
-- Contraseña: `admin123`
+- Email: `admin_user@outlook.com`
+- Contraseña: `Admin_user123`
 
 ### 🧑‍🔧 Staff
 
-- Email: `staff@example.com`
-- Contraseña: `staff123`
+- Email: `staff_user@outlook.com`
+- Contraseña: `Staff_user123`
 
 > Los tokens de acceso son temporales. Puedes obtener uno nuevo en cualquier momento repitiendo el login.
 
@@ -154,10 +154,6 @@ El rol `cliente` se asigna automáticamente a cualquier usuario que se registre 
 
 Cada endpoint protegido requiere un determinado nivel de rol (`developer`, `admin`, `staff`). Estos niveles
 están definidos en la lógica del backend y limitan el acceso a funciones como:
-
-- Creación y edición de productos o configuraciones
-- Consulta de tokens
-- Gestión de usuarios
 
 La documentación en Postman especifica, donde corresponde, qué rol es necesario.
 

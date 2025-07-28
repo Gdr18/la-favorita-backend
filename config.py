@@ -2,7 +2,7 @@ import os
 
 from dotenv import load_dotenv
 
-# load_dotenv(".env")
+load_dotenv(".env")
 
 DATABASE_URI = os.getenv("MONGO_DB_URI")
 GOOGLE_CLIENT_ID = os.getenv("CLIENT_ID")

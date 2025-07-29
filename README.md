@@ -97,16 +97,10 @@ En consola aparecerá el código que ha pasado y fallado las pruebas, junto con 
 
 ## 📓 Documentación de la API
 
-Puedes consultar y probar todos los endpoints desde la colección de Postman:
+Puedes consultar y probar todos los endpoints desde las colecciones de Postman:
 
-🔗 [Colección de Postman](https://www.postman.com/maintenance-participant-28116252/workspace/gdor-comparte/collection/26739293-51b9ab63-6047-487f-a538-17276126744f?action=share&creator=26739293)
-
-Incluye:
-
-- Endpoints protegidos y públicos
-- Headers, query params y body requeridos
-- Respuestas esperadas y posibles errores
-- Documentación embebida en cada endpoint
+🔗 [Colección de Postman Producción](https://www.postman.com/maintenance-participant-28116252/workspace/gdor-comparte/collection/26739293-8ed71c06-f67a-40b3-8b21-6e642cabcce4?action=share&creator=26739293)
+🔗 [Colección de Postman Local](https://www.postman.com/maintenance-participant-28116252/workspace/gdor-comparte/collection/26739293-51b9ab63-6047-487f-a538-17276126744f?action=share&creator=26739293)
 
 > 💡 Asegúrate de iniciar sesión primero con una cuenta de prueba para obtener un `access_token` válido.
 

@@ -56,13 +56,14 @@ pip install -r requirements.txt
 
 ```
 MONGO_DB_URI = "mongodburi"
-CONFIG = config.DevelopmentConfig
+CONFIG = config.DevelopmentConfigv (modo depuración) o config.Config
 JWT_SECRET_KEY = "jwtsecretkey"
 CLIENT_ID = "googleclientid"
 CLIENT_SECRET = "googleclientsecret"
 SECRET_KEY = "secretkey"
 SENDGRID_API_KEY = "sendgridapikey"
 DEFAULT_SENDER_EMAIL = "senderemail"
+EMAIL_CONFIRMATION_LINK = "http://localhost:5000/auth/confirm-email/"
 ```
 
 - `MONGO_DB_URI`: URI de conexión a la base de datos MongoDB.
@@ -72,6 +73,7 @@ DEFAULT_SENDER_EMAIL = "senderemail"
 - `SECRET_KEY`: Clave secreta para la aplicación Flask.
 - `SENDGRID_API_KEY`: Clave API de SendGrid para el envío de correos electrónicos.
 - `DEFAULT_SENDER_EMAIL`: Correo electrónico del remitente por defecto.
+- `EMAIL_CONFIRMATION_LINK`: URL base para la confirmación de correos electrónicos.
 
 5. Ejecuta la aplicación:
 
@@ -97,7 +99,7 @@ En consola aparecerá el código que ha pasado y fallado las pruebas, junto con 
 
 ## 📓 Documentación de la API
 
-Puedes consultar y probar todos los endpoints desde las colecciones de Postman:
+Puedes consultar la documentación y probar todos los endpoints desde las colecciones de Postman:
 
 🔗 [Colección de Postman Producción](https://www.postman.com/maintenance-participant-28116252/workspace/gdor-comparte/collection/26739293-8ed71c06-f67a-40b3-8b21-6e642cabcce4?action=share&creator=26739293)
 🔗 [Colección de Postman Local](https://www.postman.com/maintenance-participant-28116252/workspace/gdor-comparte/collection/26739293-51b9ab63-6047-487f-a538-17276126744f?action=share&creator=26739293)

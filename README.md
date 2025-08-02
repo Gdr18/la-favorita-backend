@@ -5,8 +5,12 @@ Esta aplicación permite a usuarios con distintos roles consultar y modificar la
 facilitando tanto la realización de pedidos por parte de los clientes como su gestión por parte del personal del bar,
 entre otras funcionalidades.
 
-[![Demo del proyecto](https://img.youtube.com/vi/UmdkoXxtj_s/0.jpg)](https://www.youtube.com/watch?v=UmdkoXxtj_s)
-
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=UmdkoXxtj_sO">
+    <img src="https://img.youtube.com/vi/UmdkoXxtj_s/0.jpg" alt="Demo del proyecto">
+  </a>
+  <em>Vídeo demostrativo del proyecto en YouTube</em>
+</p>
 
 ---
 

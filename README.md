@@ -5,7 +5,7 @@ Esta aplicación permite a usuarios con distintos roles consultar y modificar la
 facilitando tanto la realización de pedidos por parte de los clientes como su gestión por parte del personal del bar,
 entre otras funcionalidades.
 
-![Demo La Favorita Bar](https://youtu.be/UmdkoXxtj_s)
+[![Demo del proyecto](https://img.youtube.com/vi/UmdkoXxtj_s/0.jpg)](https://www.youtube.com/watch?v=UmdkoXxtj_s)
 
 
 ---

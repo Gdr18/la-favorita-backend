@@ -8,8 +8,8 @@ entre otras funcionalidades.
 <p align="center">
   <a href="https://www.youtube.com/watch?v=UmdkoXxtj_sO">
     <img src="https://img.youtube.com/vi/UmdkoXxtj_s/0.jpg" alt="Demo del proyecto">
-    <em>Vídeo demostrativo del proyecto en YouTube</em>
-  </a>  
+  </a>
+  <em>Vídeo demostrativo del proyecto en YouTube</em>
 </p>
 
 ---

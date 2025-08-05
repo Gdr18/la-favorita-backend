@@ -9,6 +9,7 @@ entre otras funcionalidades.
   <a href="https://www.youtube.com/watch?v=UmdkoXxtj_sO">
     <img src="https://img.youtube.com/vi/UmdkoXxtj_s/0.jpg" alt="Demo del proyecto">
   </a>
+  <br>
   <em>Vídeo demostrativo del proyecto en YouTube</em>
 </p>
 

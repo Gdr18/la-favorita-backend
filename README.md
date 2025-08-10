@@ -1,6 +1,7 @@
 # 🍻 Back end de La Favorita Bar
 
-API desarrollada con **Python + Flask + MongoDB** para gestionar productos y pedidos en línea del bar _La Favorita_.
+API REST desarrollada con **Python + Flask + MongoDB** para gestionar productos y pedidos en línea del bar _La
+Favorita_.
 Esta aplicación permite a usuarios con distintos roles consultar y modificar la base de datos de forma segura,
 facilitando tanto la realización de pedidos por parte de los clientes como su gestión por parte del personal del bar,
 entre otras funcionalidades.
@@ -62,7 +63,7 @@ CLIENT_ID = "googleclientid"
 CLIENT_SECRET = "googleclientsecret"
 SECRET_KEY = "secretkey"
 SENDGRID_API_KEY = "sendgridapikey"
-DEFAULT_SENDER_EMAIL = "senderemail"
+DEFAULT_SENDER_EMAIL = "senderemail@lafavorita.com"
 EMAIL_CONFIRMATION_LINK = "http://localhost:5000/auth/confirm-email/"
 ```
 

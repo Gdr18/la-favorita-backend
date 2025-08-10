@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 
 from src.routes.auth_route import auth_route
 from src.routes.email_tokens_route import email_tokens_route
@@ -12,9 +12,23 @@ from src.routes.dishes_route import dishes_route
 from src.services.security_service import jwt, oauth, bcrypt
 from src.utils.exception_handlers import register_global_exception_handlers
 
+app = Flask(__name__, static_url_path="")
+
+
+@app.route("/")
+def welcome():
+    return jsonify(msg="Bienvenidx a la API REST de La Favorita Bar"), 200
+
+
+@app.route("/keep-alive")
+def keep_alive():
+    return (
+        jsonify(msg="Keep alive de La Favorita Bar realizado de forma satisfactoria"),
+        200,
+    )
+
 
 def run_app(config):
-    app = Flask(__name__, static_url_path="")
     app.url_map.strict_slashes = False
     app.config.from_object(config)
 

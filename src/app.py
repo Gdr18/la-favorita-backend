@@ -20,14 +20,6 @@ def welcome():
     return jsonify(msg="Bienvenidx a la API REST de La Favorita Bar"), 200
 
 
-@app.route("/keep-alive")
-def keep_alive():
-    return (
-        jsonify(msg="Keep alive de La Favorita Bar realizado de forma satisfactoria"),
-        200,
-    )
-
-
 def run_app(config):
     app.url_map.strict_slashes = False
     app.config.from_object(config)

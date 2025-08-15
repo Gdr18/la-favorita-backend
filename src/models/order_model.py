@@ -65,12 +65,12 @@ class OrderModel(BaseModel, extra="forbid"):
     @staticmethod
     def get_orders(skip: int, per_page: int) -> List[dict]:
         orders = db.orders.find().skip(skip).limit(per_page)
-        return to_json_serializable(list(orders))
+        return to_json_serializable(orders)
 
     @staticmethod
     def get_orders_by_user_id(user_id: str, skip: int, per_page: int) -> List[dict]:
         user_orders = db.orders.find({"user_id": user_id}).skip(skip).limit(per_page)
-        return to_json_serializable(list(user_orders))
+        return to_json_serializable(user_orders)
 
     @staticmethod
     def get_order(order_id: str) -> dict:

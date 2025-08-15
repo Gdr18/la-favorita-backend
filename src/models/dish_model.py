@@ -59,12 +59,12 @@ class DishModel(BaseModel, extra="forbid"):
     @staticmethod
     def get_dishes(skip: int, per_page: int) -> List[dict]:
         dishes = db.dishes.find().skip(skip).limit(per_page)
-        return to_json_serializable(list(dishes))
+        return to_json_serializable(dishes)
 
     @staticmethod
     def get_dishes_by_category(category: str) -> List[dict]:
         dishes_by_category = db.dishes.find({"category": category})
-        return to_json_serializable(list(dishes_by_category))
+        return to_json_serializable(dishes_by_category)
 
     @staticmethod
     def get_dish(dish_id: str) -> dict:

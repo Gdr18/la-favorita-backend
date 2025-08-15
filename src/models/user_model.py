@@ -117,7 +117,7 @@ class UserModel(BaseModel, extra="forbid"):
     @staticmethod
     def get_users(skip: int, per_page: int) -> list[dict]:
         users = db.users.find().skip(skip).limit(per_page)
-        return to_json_serializable(list(users))
+        return to_json_serializable(users)
 
     @staticmethod
     def get_user_by_user_id_without_id(user_id: str) -> dict:

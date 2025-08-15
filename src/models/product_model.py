@@ -69,7 +69,7 @@ class ProductModel(BaseModel, extra="forbid"):
     @staticmethod
     def get_products(skip: int, per_page: int) -> List[dict]:
         products = db.products.find().skip(skip).limit(per_page)
-        return to_json_serializable(list(products))
+        return to_json_serializable(products)
 
     @staticmethod
     def get_product(product_id: str) -> dict:

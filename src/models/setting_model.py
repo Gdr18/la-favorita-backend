@@ -33,7 +33,7 @@ class SettingModel(BaseModel, extra="forbid"):
     @staticmethod
     def get_settings(skip: int, per_page: int) -> List[dict]:
         settings = db.settings.find().skip(skip).limit(per_page)
-        return to_json_serializable(list(settings))
+        return to_json_serializable(settings)
 
     @staticmethod
     def get_setting(setting_id: str) -> dict:

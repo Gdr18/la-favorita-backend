@@ -51,7 +51,7 @@ class TokenModel(BaseModel, extra="forbid"):
     @staticmethod
     def get_refresh_tokens(skip: int, per_page: int) -> list[dict]:
         refresh_tokens = db.refresh_tokens.find().skip(skip).limit(per_page)
-        return to_json_serializable(list(refresh_tokens))
+        return to_json_serializable(refresh_tokens)
 
     @staticmethod
     def get_refresh_token_by_token_id(token_id: str) -> dict:
@@ -105,12 +105,12 @@ class TokenModel(BaseModel, extra="forbid"):
     @staticmethod
     def get_email_tokens(skip: int, per_page: int) -> list[dict]:
         email_tokens = db.email_tokens.find().skip(skip).limit(per_page)
-        return to_json_serializable(list(email_tokens))
+        return to_json_serializable(email_tokens)
 
     @staticmethod
     def get_email_tokens_by_user_id(user_id: str) -> list[dict]:
         email_tokens = db.email_tokens.find({"user_id": user_id})
-        return to_json_serializable(list(email_tokens))
+        return to_json_serializable(email_tokens)
 
     @staticmethod
     def get_email_token(token_id: str) -> dict:
@@ -145,7 +145,7 @@ class TokenModel(BaseModel, extra="forbid"):
     @staticmethod
     def get_active_tokens(skip: int, per_page: int) -> list[dict]:
         active_tokens = db.active_tokens.find().skip(skip).limit(per_page)
-        return to_json_serializable(list(active_tokens))
+        return to_json_serializable(active_tokens)
 
     @staticmethod
     def get_active_token_by_token_id(token_id: str) -> dict:

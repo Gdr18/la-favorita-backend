@@ -1,6 +1,5 @@
 from flask import jsonify, Response
 from typing import Union, Literal
-import json
 
 
 def success_json_response(
@@ -28,4 +27,4 @@ def success_json_response(
 
 
 def db_json_response(response: Union[list, dict]) -> tuple[Response, int]:
-    return Response(json.dumps(response)), 200
+    return jsonify(response), 200

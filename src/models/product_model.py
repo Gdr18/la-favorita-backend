@@ -15,16 +15,6 @@ def get_allowed_values(name: str) -> list[str]:
     return settings_request.get("value") if settings_request else []
 
 
-_allowed_allergens = get_allowed_values("allergens")
-_allowed_categories = get_allowed_values("categories")
-
-
-def reload_allowed_values() -> None:
-    global _allowed_allergens, _allowed_categories
-    _allowed_allergens = get_allowed_values("allergens")
-    _allowed_categories = get_allowed_values("categories")
-
-
 # Campos únicos: "name". Está configurado en MongoDB Atlas.
 # Índices: "categories". Está configurado en MongoDB Atlas.
 class ProductModel(BaseModel, extra="forbid"):
@@ -43,11 +33,7 @@ class ProductModel(BaseModel, extra="forbid"):
         if field == "allergens":
             if v is None:
                 return v
-        checked_values = cls.checking_in_list(
-            field,
-            v,
-            _allowed_allergens if field == "allergens" else _allowed_categories,
-        )
+        checked_values = cls.checking_in_list(field, v, get_allowed_values(field))
         return checked_values
 
     @staticmethod

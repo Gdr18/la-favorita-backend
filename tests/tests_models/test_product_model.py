@@ -5,9 +5,6 @@ from flask_jwt_extended import create_access_token
 from src.models.product_model import (
     ProductModel,
     get_allowed_values,
-    reload_allowed_values,
-    _allowed_allergens,
-    _allowed_categories,
 )
 from tests.test_helpers import (
     assert_insert_document_template,
@@ -98,16 +95,6 @@ def test_get_allowed_values(mock_db_settings):
     )
 
 
-def test_reload_allowed_values(mock_db_settings):
-    mock_db_settings.find_one.side_effect = [
-        {"value": ALLERGENS},
-        {"value": CATEGORIES},
-    ]
-    reload_allowed_values()
-    assert _allowed_allergens == ALLERGENS
-    assert _allowed_categories == CATEGORIES
-
-
 def test_product_validate_allergens_none():
     product = ProductModel(**{**VALID_DATA, "allergens": None})
     assert product.allergens is None
@@ -126,8 +113,12 @@ def test_product_valid_data():
         and isinstance(product.allergens, list)
         and len(product.allergens) >= 1
     )
-    assert all(category in _allowed_categories for category in product.categories)
-    assert all(allergen in _allowed_allergens for allergen in product.allergens)
+    assert all(
+        category in get_allowed_values("categories") for category in product.categories
+    )
+    assert all(
+        allergen in get_allowed_values("allergens") for allergen in product.allergens
+    )
     assert isinstance(product.stock, int) and product.stock >= 0
     assert product.brand is None or (
         isinstance(product.brand, str) and 1 <= len(product.brand) <= 50

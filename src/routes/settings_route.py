@@ -1,7 +1,6 @@
 from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt
 
-from src.models.product_model import reload_allowed_values
 from src.models.setting_model import SettingModel
 from src.utils.exception_handlers import ValueCustomError
 from src.utils.json_responses import success_json_response, db_json_response
@@ -61,7 +60,6 @@ def handle_setting(setting_id: str) -> tuple[Response, int]:
         mixed_data.pop("updated_at", None)
         setting_object = SettingModel(**mixed_data)
         updated_setting = setting_object.update_setting(setting_id)
-        reload_allowed_values()
         return db_json_response(updated_setting)
 
     if request.method == "DELETE":

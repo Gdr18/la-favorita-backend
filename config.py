@@ -12,6 +12,7 @@ DEFAULT_SENDER_EMAIL = os.getenv("DEFAULT_SENDER_EMAIL")
 
 
 class Config:
+    PORT = int(os.getenv("PORT", 8080))
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
     SECRET_KEY = os.getenv("SECRET_KEY")
 

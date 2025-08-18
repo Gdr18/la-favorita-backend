@@ -38,7 +38,7 @@ def register() -> tuple[Response, int]:
     try:
         session.start_transaction()
         new_user = user_object.insert_user(session=session)
-        # send_email({**user_object.model_dump(), "_id": new_user.inserted_id})
+        send_email({**user_object.model_dump(), "_id": new_user.inserted_id})
         session.commit_transaction()
         return success_json_response("usuario", "añadido", 201)
     except Exception as e:

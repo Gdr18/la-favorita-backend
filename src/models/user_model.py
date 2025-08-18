@@ -63,7 +63,7 @@ class UserModel(BaseModel, extra="forbid"):
             raise ValueError("El campo 'password' es obligatorio.")
         bcrypt_pattern = re.compile(r"^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$")
         password_pattern = re.compile(
-            r"^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*_-]).{8,}$"
+            r"^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[?!@#$%^&*_-]).{8,}$"
         )
         if bcrypt_pattern.match(password):
             return password

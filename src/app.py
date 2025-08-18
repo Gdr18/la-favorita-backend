@@ -17,7 +17,7 @@ app = Flask(__name__, static_url_path="")
 
 @app.route("/")
 def welcome():
-    return jsonify(msg="Bienvenidx a la API REST de La Favorita Bar"), 200
+    return "Bienvenidx a la API REST de La Favorita Bar"
 
 
 def run_app(config):

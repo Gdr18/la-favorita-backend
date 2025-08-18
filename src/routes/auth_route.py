@@ -66,7 +66,7 @@ def change_email() -> tuple[Response, int]:
     user_requested["email"] = user_data["email"]
     user_object = UserModel(**user_requested)
     updated_user = user_object.update_user(user_id)
-    send_email(updated_user)
+    # send_email(updated_user)
     return success_json_response("email del usuario", "actualizado")
 
 

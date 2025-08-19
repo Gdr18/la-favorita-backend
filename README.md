@@ -33,7 +33,7 @@ entre otras funcionalidades.
 ## ✨ Funcionalidades principales
 
 - Registro e inicio de sesión con JWT y Google OAuth
-- Gestión de productos, usuarios, pedidos y platos (crear, listar, editar, eliminar)
+- CRUD de productos, usuarios, pedidos, platos, configuraciones y tokens.
 - Sistema de roles para restringir el acceso a ciertas acciones para garantizar la seguridad
 - Envío de correos electrónicos (bienvenida y confirmación de usuario)
 
@@ -141,7 +141,7 @@ endpoints según el rol asignado:
 
 ### 👤 Cliente
 
-El rol `cliente` se asigna automáticamente a cualquier usuario que se registre a través del endpoint de
+El rol `customer` se asigna automáticamente a cualquier usuario que se registre a través del endpoint de
 `/auth/register`. No necesitas permisos especiales para registrarte.
 
 ### 🧾 Equivalencia de roles (internos)
@@ -167,5 +167,12 @@ ___
 ## 👩‍💻 Autor
 
 Desarrollado por **Gádor García Martínez**  
-[GitHub](https://github.com/Gdr18) · [LinkedIn](https://www.linkedin.com/in/g%C3%A1dor-garc%C3%ADa-mart%C3%ADnez-99a33717b/)  
+[GitHub](https://github.com/Gdr18) · [LinkedIn](https://www.linkedin.com/in/g%C3%A1dor-garc%C3%ADa-mart%C3%ADnez-99a33717b/)
 
+---
+
+---
+
+## 📄 Licencia
+
+Este proyecto está bajo la licencia MIT. Consulta el archivo [LICENSE](LICENSE.txt) para más detalles.
